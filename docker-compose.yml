@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # Base de données PostgreSQL partagée
+  # ==========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: pfa-postgres
+    environment:
+      - POSTGRES_USER=pfa_user
+      - POSTGRES_PASSWORD=pfa_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./workflow-automation-backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - pfa-network
+
+  # ==========================================
+  # Microservice 1 : Auth Service
+  # ==========================================
+  auth-service:
+    build:
+      context: ./workflow-automation-backend/auth-service
+      dockerfile: Dockerfile
+    container_name: pfa-auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/auth_db
+      - SPRING_DATASOURCE_USERNAME=pfa_user
+      - SPRING_DATASOURCE_PASSWORD=pfa_password
+      - APP_BACKEND_URL=http://api-gateway:8085
+      - APP_FRONTEND_URL=http://localhost:3000
+      - SPRING_MAIL_HOST=smtp.gmail.com
+      - SPRING_MAIL_PORT=587
+      - SPRING_MAIL_USERNAME=moussaidhouria34@gmail.com
+      - SPRING_MAIL_PASSWORD=aonpvqaocwfllzdq
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+    depends_on:
+      - postgres
+    networks:
+      - pfa-network
+
+  # ==========================================
+  # Microservice 2 : Workflow Service
+  # ==========================================
+  workflow-service:
+    build:
+      context: ./workflow-automation-backend/workflow-service
+      dockerfile: Dockerfile
+    container_name: pfa-workflow-service
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./workflow-automation-backend/workflow-service/.env
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/workflow_db
+      - SPRING_DATASOURCE_USERNAME=pfa_user
+      - SPRING_DATASOURCE_PASSWORD=pfa_password
+    depends_on:
+      - postgres
+    networks:
+      - pfa-network
+
+  # ==========================================
+  # Microservice 3 : API Gateway
+  # ==========================================
+  api-gateway:
+    build:
+      context: ./workflow-automation-backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: pfa-api-gateway
+    ports:
+      - "8085:8085"
+    environment:
+      - AUTH_SERVICE_URI=http://auth-service:8081
+      - WORKFLOW_SERVICE_URI=http://workflow-service:8082
+    depends_on:
+      - auth-service
+      - workflow-service
+    networks:
+      - pfa-network
+
+  # ==========================================
+  # Frontend : React Application (Dev mode with HMR)
+  # ==========================================
+  frontend:
+    build:
+      context: ./workflow-automation-frontend
+      dockerfile: Dockerfile
+    container_name: pfa-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WDS_SOCKET_PORT=0
+    volumes:
+      - ./workflow-automation-frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api-gateway
+    networks:
+      - pfa-network
+
+# ==========================================
+# Configuration des Volumes
+# ==========================================
+volumes:
+  postgres_data:
+
+# ==========================================
+# Configuration du Réseau
+# ==========================================
+networks:
+  pfa-network:
+    driver: bridge
