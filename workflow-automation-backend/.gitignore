@@ -1,0 +1,25 @@
+# ── Maven build output ────────────────────────────────────────────────────────
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ── Maven wrapper (keep .properties, ignore the jar) ─────────────────────────
+.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+!.mvn/wrapper/maven-wrapper.properties
+
+# ── Java / Spring Boot artifacts ──────────────────────────────────────────────
+*.jar
+*.war
+*.ear
+*.class
+HELP.md
+
+# ── Maven release plugin leftovers ────────────────────────────────────────────
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.restore
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties

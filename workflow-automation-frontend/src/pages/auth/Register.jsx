@@ -2,12 +2,10 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, Lock, Mail, Moon, Sun, User, Workflow } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
-import { useThemeStore } from '../../stores/themeStore';
 
 const Register = () => {
   const navigate = useNavigate();
   const { clearError, error, isAuthenticated, isLoading, register } = useAuthStore();
-  const { theme, toggleTheme } = useThemeStore();
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -84,14 +82,6 @@ const Register = () => {
       </section>
 
       <section className="relative flex items-center justify-center p-6">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="absolute right-6 top-6 rounded-xl border border-[#E2E8F0] bg-white p-2 text-[#5C5C5C] hover:border-[#D0FFA4]"
-        >
-          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
-
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:hidden">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#D0FFA4]">

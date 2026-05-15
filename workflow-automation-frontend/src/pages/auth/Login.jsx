@@ -2,13 +2,11 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, Building2, Lock, Mail, Moon, Sun, Workflow } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
-import { useThemeStore } from '../../stores/themeStore';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { clearError, error, isAuthenticated, isLoading, login } = useAuthStore();
-  const { theme, toggleTheme } = useThemeStore();
   const [formData, setFormData] = React.useState({ email: '', password: '' });
   const [formErrors, setFormErrors] = React.useState({});
   const [successMessage, setSuccessMessage] = React.useState(location.state?.message || null);
@@ -65,22 +63,10 @@ const Login = () => {
               <p className="text-sm text-[#5C5C5C]">Secure automation for mission-critical operations.</p>
             </div>
           </div>
-          <div className="flex gap-2 text-xs font-semibold text-[#292D32]">
-            <span className="rounded-full bg-white px-3 py-1">SOC 2</span>
-            <span className="rounded-full bg-white px-3 py-1">GDPR</span>
-            <span className="rounded-full bg-white px-3 py-1">99.9% Uptime</span>
-          </div>
         </div>
       </section>
 
       <section className="relative flex items-center justify-center p-6">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="absolute right-6 top-6 rounded-xl border border-[#E2E8F0] bg-white p-2 text-[#5C5C5C] hover:border-[#D0FFA4]"
-        >
-          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
 
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:hidden">
@@ -136,10 +122,6 @@ const Login = () => {
               <ArrowRight size={14} />
             </button>
           </form>
-
-          <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-white p-4 text-sm text-[#5C5C5C]">
-            Demo credentials: <span className="font-semibold text-[#292D32]">admin@example.com / admin123</span>
-          </div>
 
           <p className="mt-5 text-center text-sm text-[#5C5C5C]">
             Do not have an account?{' '}

@@ -9,13 +9,6 @@ export const useThemeStore = create(
         document.documentElement.setAttribute('data-theme', theme);
         set({ theme });
       },
-      toggleTheme: () => {
-        set((state) => {
-          const newTheme = state.theme === 'light' ? 'dark' : 'light';
-          document.documentElement.setAttribute('data-theme', newTheme);
-          return { theme: newTheme };
-        });
-      },
       initTheme: () => {
         set((state) => {
           document.documentElement.setAttribute('data-theme', state.theme);
