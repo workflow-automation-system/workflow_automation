@@ -91,7 +91,11 @@ services:
       - ./workflow-automation-frontend/.env
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - WDS_SOCKET_PORT=0
+      - CHOKIDAR_POLLING_INTERVAL=300
+      - WATCHPACK_POLLING=true
+      - WDS_SOCKET_PORT=3000
+      - WDS_SOCKET_HOST=localhost
+      - FAST_REFRESH=true
     volumes:
       - ./workflow-automation-frontend:/app
       - /app/node_modules

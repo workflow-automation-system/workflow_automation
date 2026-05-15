@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, ChevronRight, Moon, Sun } from 'lucide-react';
+import { Bell, ChevronRight} from 'lucide-react';
 
 const routeTitles = {
   '/': 'Overview',

@@ -143,13 +143,13 @@ const fallbackFunctions = [
   },
   {
     key: 'gmail',
-    label: 'Gmail',
+    label: 'Email',
     entity: 'ACTION',
     description: 'Send an email through Gmail',
     icon: 'Mail',
     color: '#D0FFA4',
     defaultData: {
-      label: 'Send Gmail',
+      label: 'Send Email',
       to: '',
       subject: '',
       body: '',
@@ -157,13 +157,13 @@ const fallbackFunctions = [
   },
   {
     key: 'gmail_read',
-    label: 'Read Gmail',
+    label: 'Read Email',
     entity: 'ACTION',
     description: 'Read latest emails from Gmail',
     icon: 'Mail',
     color: '#D0FFA4',
     defaultData: {
-      label: 'Read Gmail',
+      label: 'Read Email',
       action: 'read_emails',
       query: 'is:unread',
       maxResults: 10,

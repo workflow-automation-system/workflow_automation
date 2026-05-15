@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, Lock, Mail, Moon, Sun, User, Workflow } from 'lucide-react';
+import { ArrowRight, Check, Lock, Mail, User, Workflow } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const Register = () => {
