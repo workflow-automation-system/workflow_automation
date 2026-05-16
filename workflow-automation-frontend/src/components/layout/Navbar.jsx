@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, ChevronRight} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const routeTitles = {
   '/': 'Overview',
@@ -15,7 +15,6 @@ const routeTitles = {
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showNotifications, setShowNotifications] = React.useState(false);
 
   const pageTitle = React.useMemo(() => {
     if (location.pathname.startsWith('/workflow/')) return 'Workflows';
@@ -61,24 +60,7 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2">
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowNotifications((value) => !value)}
-               className="relative inline-flex rounded-xl border border-[#E2E8F0] bg-white p-2 text-[#5E6672] transition-colors hover:border-[#D0FFA4] hover:bg-[#F6F5FA]"
-            >
-              <Bell size={17} />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#D0FFA4]" />
-            </button>
-
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-lg">
-                <p className="text-sm font-semibold text-[#292D32]">Notifications</p>
-                <p className="mt-1 text-xs text-[#5E6672]">All enterprise systems are running normally.</p>
-              </div>
-            )}
-          </div>
+          {/* Notifications removed */}
         </div>
       </div>
     </header>
