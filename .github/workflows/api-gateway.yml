@@ -31,3 +31,13 @@ jobs:
 
       - name: Maven Build
         run: mvn clean install
+
+  docker-validation:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Compose File
+        run: docker-compose config
