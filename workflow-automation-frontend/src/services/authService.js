@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../api/config';
 
 const API = axios.create({
-  baseURL: 'http://localhost:8085/api',
+  baseURL: API_BASE_URL,
 });
 
 // Intercepteur — ajoute le token JWT automatiquement à chaque requête
@@ -26,8 +27,8 @@ API.interceptors.response.use(
 );
 
 const authService = {
-  register: async (email, password, name) => {
-    const res = await API.post('/auth/register', { email, password, name });
+  register: async (payload) => {
+    const res = await API.post('/auth/register', payload);
     return res.data;
   },
 

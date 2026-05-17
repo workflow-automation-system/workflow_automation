@@ -9,7 +9,7 @@ const Login = () => {
   const { clearError, error, isAuthenticated, isLoading, login } = useAuthStore();
   const [formData, setFormData] = React.useState({ email: '', password: '' });
   const [formErrors, setFormErrors] = React.useState({});
-  const [successMessage, setSuccessMessage] = React.useState(location.state?.message || null);
+  const [successMessage] = React.useState(location.state?.message || null);
 
   React.useEffect(() => {
     if (isAuthenticated) {

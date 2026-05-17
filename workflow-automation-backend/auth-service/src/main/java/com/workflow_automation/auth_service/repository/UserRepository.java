@@ -1,6 +1,5 @@
 package com.workflow_automation.auth_service.repository;
 
-
 import com.workflow_automation.auth_service.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;

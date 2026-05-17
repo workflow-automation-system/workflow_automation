@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, Lock, Mail, User, Workflow } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Building2, Check, Lock, Mail, User, Workflow } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const Register = () => {
@@ -9,6 +9,9 @@ const Register = () => {
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
+    organizationName: '',
+    department: '',
+    jobTitle: '',
     password: '',
     confirmPassword: '',
   });
@@ -25,6 +28,8 @@ const Register = () => {
   const validate = () => {
     const errors = {};
     if (!formData.name.trim()) errors.name = 'Full name is required';
+    if (!formData.organizationName.trim()) errors.organizationName = 'Organization name is required';
+    if (!formData.department.trim()) errors.department = 'Department is required';
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
@@ -43,13 +48,20 @@ const Register = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validate()) return;
-    const result = await register(formData.email, formData.password, formData.name);
+    const result = await register({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      organizationName: formData.organizationName.trim(),
+      department: formData.department.trim(),
+      jobTitle: formData.jobTitle.trim(),
+      password: formData.password,
+    });
     if (result.success) navigate('/email-verification');
   };
 
   const featureList = [
-    'Unlimited workflow executions',
-    'Node-based enterprise workflow builder',
+    'Dedicated workspace per company',
+    'Department-aware member directory',
     'Secure API integrations and webhooks',
     'Enterprise governance controls',
   ];
@@ -91,7 +103,7 @@ const Register = () => {
           </div>
 
           <h2 className="text-2xl font-bold text-[#292D32]">Create account</h2>
-          <p className="mt-1 text-sm text-[#5C5C5C]">Provision your workspace and start building workflows.</p>
+          <p className="mt-1 text-sm text-[#5C5C5C]">Create your enterprise workspace and start building governed workflows.</p>
 
           <form onSubmit={handleSubmit} className="enterprise-card mt-6 space-y-4 p-6">
             {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-[#EF4444]">{error}</div>}
@@ -99,8 +111,41 @@ const Register = () => {
             <Field label="Full Name" icon={User} value={formData.name} onChange={(value) => setFormData((prev) => ({ ...prev, name: value }))} />
             {formErrors.name && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.name}</span>}
 
-            <Field label="Email" icon={Mail} value={formData.email} onChange={(value) => setFormData((prev) => ({ ...prev, email: value }))} />
+            <Field
+              label="Work Email"
+              icon={Mail}
+              type="email"
+              value={formData.email}
+              onChange={(value) => setFormData((prev) => ({ ...prev, email: value }))}
+              placeholder="you@company.com"
+            />
             {formErrors.email && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.email}</span>}
+
+            <Field
+              label="Organization Name"
+              icon={Building2}
+              value={formData.organizationName}
+              onChange={(value) => setFormData((prev) => ({ ...prev, organizationName: value }))}
+              placeholder="Acme Corporation"
+            />
+            {formErrors.organizationName && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.organizationName}</span>}
+
+            <Field
+              label="Department"
+              icon={BriefcaseBusiness}
+              value={formData.department}
+              onChange={(value) => setFormData((prev) => ({ ...prev, department: value }))}
+              placeholder="Operations"
+            />
+            {formErrors.department && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.department}</span>}
+
+            <Field
+              label="Job Title"
+              icon={BriefcaseBusiness}
+              value={formData.jobTitle}
+              onChange={(value) => setFormData((prev) => ({ ...prev, jobTitle: value }))}
+              placeholder="Automation Lead"
+            />
 
             <Field
               label="Password"
@@ -142,7 +187,7 @@ const Register = () => {
   );
 };
 
-const Field = ({ label, icon: Icon, value, onChange, type = 'text' }) => (
+const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder }) => (
   <label className="block">
     <span className="mb-1 block text-sm font-medium text-[#5C5C5C]">{label}</span>
     <div className="relative">
@@ -151,6 +196,7 @@ const Field = ({ label, icon: Icon, value, onChange, type = 'text' }) => (
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
         className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
       />
     </div>

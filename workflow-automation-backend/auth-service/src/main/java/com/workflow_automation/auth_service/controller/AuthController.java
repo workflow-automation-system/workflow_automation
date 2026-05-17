@@ -1,10 +1,10 @@
 package com.workflow_automation.auth_service.controller;
 
 import com.workflow_automation.auth_service.dto.*;
-import com.workflow_automation.auth_service.entity.User;
 import com.workflow_automation.auth_service.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -49,10 +49,13 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<User> me(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(
-                authService.getCurrentUser(userDetails.getUsername())
-        );
+    public ResponseEntity<?> me(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Authentication required"));
+        }
+
+        return ResponseEntity.ok(authService.getCurrentUser(userDetails.getUsername()));
     }
 
     @GetMapping("/health")

@@ -25,8 +25,15 @@ public class User {
 
     private String name;
 
+    private String department;
+
+    private String jobTitle;
+
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     private boolean enabled = false;
 

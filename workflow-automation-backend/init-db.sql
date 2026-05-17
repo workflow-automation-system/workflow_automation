@@ -3,4 +3,5 @@
 -- Cela nous évite de devoir créer les bases de données manuellement
 
 CREATE DATABASE auth_db;
+CREATE DATABASE organization_db;
 CREATE DATABASE workflow_db;
