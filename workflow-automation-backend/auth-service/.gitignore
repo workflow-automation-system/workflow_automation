@@ -1,0 +1,5 @@
+# Inherited: IDE/OS from root, Maven/Java from workflow-automation-backend/
+# Service-specific overrides only:
+
+.env
+.env.*

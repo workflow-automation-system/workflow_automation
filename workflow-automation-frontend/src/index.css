@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F6F5FA;
+  --background-muted: #F6F5FA;
+  --background-subtle: #F6F5FA;
+  --surface: #FFFFFF;
+  --surface-hover: #f4f4f8;
+  --surface-elevated: #ffffff;
+
+  --primary: #292D32;
+  --primary-hover: #3C4249;
+  --secondary: #D0FFA4;
+  --secondary-hover: #bbef89;
+  --accent-highlight: #D0FFA4;
+
+  --text-primary: #292D32;
+  --text-secondary: #5E6672;
+  --text-muted: #8D95A1;
+
+  --border: #E2E8F0;
+  --border-subtle: #E7EBF1;
+  --border-hover: #C4CCD8;
+
+  --success: #D0FFA4;
+  --success-hover: #bbef89;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --error-hover: #DC2626;
+  --info: #3B82F6;
+
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Urbanist', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: 'Urbanist', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.enterprise-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(41, 45, 50, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.enterprise-card:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 12px 30px rgba(41, 45, 50, 0.08);
+}
+
+.enterprise-flat {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.bento-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.canvas-grid-bg {
+  background-image:
+    linear-gradient(rgba(226, 232, 240, 0.6) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.react-flow__node {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 14px 16px;
+  font-size: 14px;
+  font-family: 'Urbanist', sans-serif;
+  box-shadow: 0 8px 24px rgba(41, 45, 50, 0.04);
+}
+
+.react-flow__node.selected {
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 4px rgba(208, 255, 164, 0.45);
+}
+
+.react-flow__edge-path {
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--secondary);
+  border: 2px solid var(--surface);
+}
+
+.react-flow__controls,
+.react-flow__minimap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(41, 45, 50, 0.06);
+}

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-service
+  namespace: workflow-automation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workflow-service
+  template:
+    metadata:
+      labels:
+        app: workflow-service
+    spec:
+      containers:
+        - name: workflow-service
+          image: workflow-automation-backend-workflow-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/workflow_db
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: workflow-secret
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: workflow-secret
+                  key: POSTGRES_PASSWORD
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-service
+  namespace: workflow-automation
+spec:
+  selector:
+    app: workflow-service
+  ports:
+    - port: 8082
+      targetPort: 8082
+  type: ClusterIP

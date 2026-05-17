@@ -1,0 +1,42 @@
+# ── Claude Code ───────────────────────────────────────────────────────────────
+.claude
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# VS Code
+.vscode/
+.vscode-test/
+
+# STS / Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
+# ── OS files ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Secrets safety net (applies repo-wide) ────────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks

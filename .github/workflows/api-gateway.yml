@@ -1,0 +1,84 @@
+name: API Gateway CI
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'workflow-automation-backend/api-gateway/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'workflow-automation-backend/api-gateway/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workflow-automation-backend/api-gateway
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          DB_URL=${{ secrets.DB_URL }}
+          DB_USERNAME=${{ secrets.DB_USERNAME }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+          EOF
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Maven Build and Test
+        run: mvn clean install -Dspring.profiles.active=test
+
+  docker-validation:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create .env files for Docker Compose
+        run: |
+          mkdir -p workflow-automation-backend/auth-service
+          mkdir -p workflow-automation-backend/workflow-service
+          mkdir -p workflow-automation-backend/api-gateway
+          mkdir -p workflow-automation-frontend
+
+          cat > workflow-automation-backend/auth-service/.env << EOF
+          DB_URL=jdbc:postgresql://postgres:5432/auth_db
+          DB_USERNAME=postgres
+          DB_PASSWORD=postgres
+          JWT_SECRET=test-secret-key
+          MAIL_USERNAME=test@example.com
+          MAIL_PASSWORD=test-password
+          EOF
+
+          cat > workflow-automation-backend/workflow-service/.env << EOF
+          DB_URL=jdbc:postgresql://postgres:5432/workflow_db
+          DB_USERNAME=postgres
+          DB_PASSWORD=postgres
+          EOF
+
+          cat > workflow-automation-backend/api-gateway/.env << EOF
+          JWT_SECRET=test-secret-key
+          EOF
+
+          cat > workflow-automation-frontend/.env << EOF
+          REACT_APP_API_URL=http://localhost:8085
+          EOF
+
+      - name: Validate Compose File
+        run: docker compose config
