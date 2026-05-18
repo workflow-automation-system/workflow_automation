@@ -30,6 +30,7 @@ services:
       - ./workflow-automation-backend/auth-service/.env
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/auth_db
+      - ORGANIZATION_SERVICE_URL=http://organization-service:8083/api/organizations
     depends_on:
       - postgres
     networks:
@@ -54,6 +55,26 @@ services:
       - pfa-network
 
   # ==========================================
+  # Microservice 3 : Organization Service
+  # ==========================================
+  organization-service:
+    build:
+      context: ./workflow-automation-backend/organization-service
+      dockerfile: Dockerfile
+    container_name: pfa-organization-service
+    ports:
+      - "8083:8083"
+    env_file:
+      - ./workflow-automation-backend/organization-service/.env
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/organization_db
+    depends_on:
+      - postgres
+    networks:
+      - pfa-network
+
+  # ==========================================
+  # API Gateway
   # ==========================================
   api-gateway:
     build:
@@ -67,9 +88,11 @@ services:
     environment:
       - AUTH_SERVICE_URI=http://auth-service:8081
       - WORKFLOW_SERVICE_URI=http://workflow-service:8082
+      - ORGANIZATION_SERVICE_URI=http://organization-service:8083
     depends_on:
       - auth-service
       - workflow-service
+      - organization-service
     networks:
       - pfa-network
 
