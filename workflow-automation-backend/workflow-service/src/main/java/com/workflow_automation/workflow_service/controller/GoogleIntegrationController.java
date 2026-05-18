@@ -12,6 +12,7 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/api/integrations/google")
@@ -20,6 +21,9 @@ public class GoogleIntegrationController {
 
     private final GoogleOAuthService googleOAuthService;
     private final UserIntegrationRepository userIntegrationRepository;
+
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
 
     @GetMapping("/auth-url")
     public ResponseEntity<GoogleAuthUrlResponse> getAuthUrl(@RequestParam Long userId) {
@@ -49,7 +53,7 @@ public class GoogleIntegrationController {
 
         return ResponseEntity
                 .status(302)
-                .location(URI.create("http://localhost:3000/app-connections?gmail=connected"))
+                .location(URI.create(frontendUrl + "/app-connections?gmail=connected"))
                 .build();
     }
 }
