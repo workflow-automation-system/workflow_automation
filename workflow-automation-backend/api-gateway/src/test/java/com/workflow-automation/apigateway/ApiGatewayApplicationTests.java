@@ -6,8 +6,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-
-@SpringBootTest
 class ApiGatewayApplicationTests {
 
 	@Test
