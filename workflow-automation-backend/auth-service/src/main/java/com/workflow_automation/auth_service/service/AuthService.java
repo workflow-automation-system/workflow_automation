@@ -39,15 +39,15 @@ public class AuthService {
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.USER)
-                .enabled(false)
+                .enabled(true) // Automatically enable the user since Railway blocks SMTP
                 .verificationToken(verificationToken)
                 .verificationTokenExpiresAt(LocalDateTime.now().plusHours(24))
                 .build();
 
         userRepository.save(user);
 
-        String verificationLink = backendUrl + "/api/auth/verify?token=" + verificationToken;
-        emailService.sendVerificationEmail(user.getEmail(), verificationLink);
+        // String verificationLink = backendUrl + "/api/auth/verify?token=" + verificationToken;
+        // emailService.sendVerificationEmail(user.getEmail(), verificationLink);
 
         return new AuthResponse(
                 user.getId(),
