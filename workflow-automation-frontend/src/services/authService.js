@@ -27,8 +27,8 @@ API.interceptors.response.use(
 );
 
 const authService = {
-  register: async (email, password, name) => {
-    const res = await API.post('/auth/register', { email, password, name });
+  register: async (payload) => {
+    const res = await API.post('/auth/register', payload);
     return res.data;
   },
 

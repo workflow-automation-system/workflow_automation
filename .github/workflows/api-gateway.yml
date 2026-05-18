@@ -54,6 +54,7 @@ jobs:
         run: |
           mkdir -p workflow-automation-backend/auth-service
           mkdir -p workflow-automation-backend/workflow-service
+          mkdir -p workflow-automation-backend/organization-service
           mkdir -p workflow-automation-backend/api-gateway
           mkdir -p workflow-automation-frontend
 
@@ -68,6 +69,12 @@ jobs:
 
           cat > workflow-automation-backend/workflow-service/.env << EOF
           DB_URL=jdbc:postgresql://postgres:5432/workflow_db
+          DB_USERNAME=postgres
+          DB_PASSWORD=postgres
+          EOF
+
+          cat > workflow-automation-backend/organization-service/.env << EOF
+          DB_URL=jdbc:postgresql://postgres:5432/organization_db
           DB_USERNAME=postgres
           DB_PASSWORD=postgres
           EOF

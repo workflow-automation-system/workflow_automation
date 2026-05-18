@@ -14,16 +14,18 @@ export const useAuthStore = create(
         set({ isLoading: true, error: null });
         try {
           const response = await authService.login(email, password);
-          // Assuming response contains token, email, name, role
           localStorage.setItem('token', response.token);
-          
+
           const user = {
             id: response.id,
             email: response.email,
             name: response.name,
-            role: response.role
+            role: response.role,
+            department: response.department,
+            jobTitle: response.jobTitle,
+            organization: response.organization,
           };
-          
+
           set({ user, isAuthenticated: true, isLoading: false });
           return { success: true };
         } catch (error) {
@@ -33,10 +35,10 @@ export const useAuthStore = create(
         }
       },
 
-      register: async (email, password, name) => {
+      register: async (payload) => {
         set({ isLoading: true, error: null });
         try {
-          await authService.register(email, password, name);
+          await authService.register(payload);
           set({ isLoading: false });
           return { success: true };
         } catch (error) {

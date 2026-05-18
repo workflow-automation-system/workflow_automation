@@ -12,5 +12,8 @@ public class AuthResponse {
     private String token;
     private String email;
     private String name;
+    private String department;
+    private String jobTitle;
     private String role;
+    private OrganizationSummary organization;
 }

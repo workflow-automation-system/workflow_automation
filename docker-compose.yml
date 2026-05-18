@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ==========================================
   # Base de données PostgreSQL partagée
@@ -38,7 +36,6 @@ services:
       - pfa-network
 
   # ==========================================
-  # Microservice 2 : Workflow Service
   # ==========================================
   workflow-service:
     build:
@@ -57,7 +54,6 @@ services:
       - pfa-network
 
   # ==========================================
-  # Microservice 3 : API Gateway
   # ==========================================
   api-gateway:
     build:

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
 
 const routeTitles = {
   '/': 'Overview',
@@ -12,9 +13,17 @@ const routeTitles = {
   '/create-workflow': 'Workflows',
 };
 
+const formatRole = (role = '') => {
+  if (!role) return 'Member';
+  if (role.toUpperCase() === 'ADMIN') return 'Admin';
+  if (role.toUpperCase() === 'USER') return 'Member';
+  return role;
+};
+
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthStore();
 
   const pageTitle = React.useMemo(() => {
     if (location.pathname.startsWith('/workflow/')) return 'Workflows';
@@ -60,10 +69,15 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Notifications removed */}
-        </div>
-      </div>
-    </header>
+          {user?.organization?.name && (
+            <div className="rounded-2xl border border-[#E2E8F0] bg-white px-3 py-2 text-right">
+              <p className="text-xs font-semibold text-[#292D32]">{user.organization.name}</p>
+              <p className="text-[11px] text-[#8D95A1]">{formatRole(user.role)} workspace</p>
+            </div>
+          )}
+        </div >
+      </div >
+    </header >
   );
 };
 

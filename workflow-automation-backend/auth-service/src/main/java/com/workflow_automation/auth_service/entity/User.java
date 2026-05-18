@@ -28,6 +28,13 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    private String department;
+
+    private String jobTitle;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
+
     private boolean enabled = false;
 
     @Column(unique = true)

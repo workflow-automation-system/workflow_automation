@@ -8,5 +8,8 @@ public class RegisterRequest {
 
     @NotBlank private String name;
     @NotBlank @Email private String email;
+    @NotBlank private String organizationName;
+    @NotBlank private String department;
+    private String jobTitle;
     @NotBlank @Size(min = 6) private String password;
 }
