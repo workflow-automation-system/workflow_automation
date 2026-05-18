@@ -41,6 +41,5 @@ public class User {
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
         if (this.role == null) this.role = Role.USER;
-        this.enabled = false;
     }
 }
