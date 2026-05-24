@@ -366,7 +366,7 @@ const parseNodeFromLegacyShape = (rawNode, index, configuration) => {
   const data = createNodeDataFromFunction(fallbackDefinition, rawNode?.data || {});
 
   return {
-    id: getNodeId(rawNode?.id, index),
+    id: getNodeId(rawNode?.id ?? rawNode?.clientId, index),
     type: fallbackDefinition.key,
     position: {
       x: normalizeNumber(rawNode?.position?.x ?? rawNode?.positionX, 0),
@@ -415,7 +415,7 @@ const parseNodeFromBackendShape = (rawNode, index, configuration) => {
   });
 
   return {
-    id: getNodeId(rawNode?.id, index),
+    id: getNodeId(rawNode?.id ?? rawNode?.clientId, index),
     type: fallbackDefinition.key,
     position: {
       x: normalizeNumber(rawNode?.positionX, 0),
@@ -459,8 +459,8 @@ export const toBackendNodeRequest = (node, index) => {
 };
 
 const normalizeWorkflowEdge = (edge, index = 0) => {
-  const source = edge?.source ?? edge?.sourceNodeId;
-  const target = edge?.target ?? edge?.targetNodeId;
+  const source = edge?.source ?? edge?.sourceNodeId ?? edge?.sourceClientId;
+  const target = edge?.target ?? edge?.targetNodeId ?? edge?.targetClientId;
 
   return {
     ...edge,

@@ -55,6 +55,7 @@ jobs:
           mkdir -p workflow-automation-backend/auth-service
           mkdir -p workflow-automation-backend/workflow-service
           mkdir -p workflow-automation-backend/organization-service
+          mkdir -p workflow-automation-backend/template-service
           mkdir -p workflow-automation-backend/api-gateway
           mkdir -p workflow-automation-frontend
 
@@ -77,6 +78,13 @@ jobs:
           DB_URL=jdbc:postgresql://postgres:5432/organization_db
           DB_USERNAME=postgres
           DB_PASSWORD=postgres
+          EOF
+
+          cat > workflow-automation-backend/template-service/.env << EOF
+          DB_URL=jdbc:postgresql://postgres:5432/template_db
+          DB_USERNAME=postgres
+          DB_PASSWORD=postgres
+          WORKFLOW_SERVICE_URL=http://workflow-service:8082
           EOF
 
           cat > workflow-automation-backend/api-gateway/.env << EOF

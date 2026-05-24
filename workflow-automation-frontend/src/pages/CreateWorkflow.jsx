@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   addEdge,
   Background,
@@ -23,28 +23,42 @@ import {
   FALLBACK_WORKFLOW_CONFIGURATION,
   getFunctionDefinition,
   normalizeWorkflowConfiguration,
+  buildMutationPayload,
+  normalizeWorkflow,
 } from '../services/workflowConverter';
 import useWorkflowStore from '../stores/workflowStore';
+import templateApi from '../api/templateApi';
+import { useAuthStore } from '../stores/authStore';
 
 const ALLOWED_STATUSES = ['ACTIVE', 'INACTIVE'];
 
-const CreateWorkflow = () => {
+const CreateWorkflow = ({ mode = 'workflow' }) => {
   const navigate = useNavigate();
+  const { templateId } = useParams();
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
+
+  const isTemplateMode = mode === 'template';
+  const isEditingTemplate = isTemplateMode && Boolean(templateId);
+
+  const { user } = useAuthStore();
+  const organizationId = user?.organization?.id;
+
   const { createWorkflow, fetchWorkflowById, getWorkflowById, updateWorkflow } = useWorkflowStore();
 
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [status, setStatus] = React.useState('ACTIVE');
+  const [category, setCategory] = React.useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = React.useState(null);
   const [saving, setSaving] = React.useState(false);
   const [loadingWorkflow, setLoadingWorkflow] = React.useState(false);
+  const [loadingTemplate, setLoadingTemplate] = React.useState(false);
   const [loadingConfiguration, setLoadingConfiguration] = React.useState(false);
   const [workflowConfiguration, setWorkflowConfiguration] = React.useState(
-    FALLBACK_WORKFLOW_CONFIGURATION
+      FALLBACK_WORKFLOW_CONFIGURATION
   );
   const [reactFlowInstance, setReactFlowInstance] = React.useState(null);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
@@ -56,13 +70,15 @@ const CreateWorkflow = () => {
   const nodeTypesMap = React.useMemo(() => {
     const map = {};
     const configuredFunctions = Array.isArray(workflowConfiguration?.functions)
-      ? workflowConfiguration.functions
-      : [];
+        ? workflowConfiguration.functions
+        : [];
+
     configuredFunctions.forEach((item) => {
       if (item?.key) {
         map[item.key] = CustomNode;
       }
     });
+
     nodes.forEach((node) => {
       if (node?.type) {
         map[node.type] = CustomNode;
@@ -81,8 +97,10 @@ const CreateWorkflow = () => {
 
     const loadConfiguration = async () => {
       setLoadingConfiguration(true);
+
       try {
         const configuration = await workflowApi.getConfiguration();
+
         if (!cancelled) {
           setWorkflowConfiguration(normalizeWorkflowConfiguration(configuration));
         }
@@ -106,26 +124,29 @@ const CreateWorkflow = () => {
   }, [showToast]);
 
   const hydrateNodeWithConfiguration = React.useCallback(
-    (node) => {
-      if (!node) return node;
-      const functionDefinition =
-        getFunctionDefinition(workflowConfiguration, node.data?.functionKey || node.type) ||
-        getFunctionDefinition(FALLBACK_WORKFLOW_CONFIGURATION, node.type);
-      if (!functionDefinition) return node;
+      (node) => {
+        if (!node) return node;
 
-      return {
-        ...node,
-        type: functionDefinition.key,
-        data: createNodeDataFromFunction(functionDefinition, node.data || {}),
-      };
-    },
-    [workflowConfiguration]
+        const functionDefinition =
+            getFunctionDefinition(workflowConfiguration, node.data?.functionKey || node.type) ||
+            getFunctionDefinition(FALLBACK_WORKFLOW_CONFIGURATION, node.type);
+
+        if (!functionDefinition) return node;
+
+        return {
+          ...node,
+          type: functionDefinition.key,
+          data: createNodeDataFromFunction(functionDefinition, node.data || {}),
+        };
+      },
+      [workflowConfiguration]
   );
 
   React.useEffect(() => {
     setNodes((currentNodes) => currentNodes.map((node) => hydrateNodeWithConfiguration(node)));
+
     setSelectedNode((currentNode) =>
-      currentNode ? hydrateNodeWithConfiguration(currentNode) : currentNode
+        currentNode ? hydrateNodeWithConfiguration(currentNode) : currentNode
     );
   }, [hydrateNodeWithConfiguration, setNodes]);
 
@@ -148,17 +169,19 @@ const CreateWorkflow = () => {
           setName(existingWorkflow.name || '');
           setDescription(existingWorkflow.description || '');
           setStatus((existingWorkflow.status || 'ACTIVE').toUpperCase());
+
           setNodes(
-            Array.isArray(existingWorkflow.nodes)
-              ? existingWorkflow.nodes.map((node) => hydrateNodeWithConfiguration(node))
-              : []
+              Array.isArray(existingWorkflow.nodes)
+                  ? existingWorkflow.nodes.map((node) => hydrateNodeWithConfiguration(node))
+                  : []
           );
+
           setEdges(
-            Array.isArray(existingWorkflow.edges)
-              ? existingWorkflow.edges
-              : Array.isArray(existingWorkflow.connections)
-              ? existingWorkflow.connections
-              : []
+              Array.isArray(existingWorkflow.edges)
+                  ? existingWorkflow.edges
+                  : Array.isArray(existingWorkflow.connections)
+                      ? existingWorkflow.connections
+                      : []
           );
         }
       } catch (err) {
@@ -187,50 +210,111 @@ const CreateWorkflow = () => {
     showToast,
   ]);
 
-  const onConnect = React.useCallback(
-    (connection) => {
-      setEdges((eds) =>
-        addEdge(
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadTemplate = async () => {
+      if (!isEditingTemplate) return;
+
+      setLoadingTemplate(true);
+
+      try {
+        const template = await templateApi.getById(templateId);
+
+        if (cancelled) return;
+
+        setName(template.name || '');
+        setDescription(template.description || '');
+        setCategory(template.category || '');
+
+        const normalizedTemplateWorkflow = normalizeWorkflow(
           {
-            ...connection,
-            id: generateId('edge'),
-            source: String(connection.source),
-            target: String(connection.target),
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#D0FFA4' },
-            style: { stroke: '#D0FFA4', strokeWidth: 2.2 },
+            name: template.name,
+            description: template.description,
+            status: 'ACTIVE',
+            nodes: template.content?.nodes || [],
+            connections: template.content?.connections || [],
           },
-          eds
-        )
-      );
-    },
-    [setEdges]
+          workflowConfiguration
+        );
+
+        setNodes(
+          Array.isArray(normalizedTemplateWorkflow.nodes)
+            ? normalizedTemplateWorkflow.nodes.map((node) => hydrateNodeWithConfiguration(node))
+            : []
+        );
+        setEdges(Array.isArray(normalizedTemplateWorkflow.edges) ? normalizedTemplateWorkflow.edges : []);
+      } catch (err) {
+        if (!cancelled) {
+          showToast(err.message || 'Failed to load template', 'error');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingTemplate(false);
+        }
+      }
+    };
+
+    loadTemplate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    hydrateNodeWithConfiguration,
+    isEditingTemplate,
+    setEdges,
+    setNodes,
+    showToast,
+    templateId,
+    workflowConfiguration,
+  ]);
+
+  const onConnect = React.useCallback(
+      (connection) => {
+        setEdges((eds) =>
+            addEdge(
+                {
+                  ...connection,
+                  id: generateId('edge'),
+                  source: String(connection.source),
+                  target: String(connection.target),
+                  markerEnd: { type: MarkerType.ArrowClosed, color: '#D0FFA4' },
+                  style: { stroke: '#D0FFA4', strokeWidth: 2.2 },
+                },
+                eds
+            )
+        );
+      },
+      [setEdges]
   );
 
   const onDrop = React.useCallback(
-    (event) => {
-      event.preventDefault();
-      const type = event.dataTransfer.getData('application/reactflow');
-      if (!type || !reactFlowInstance) return;
+      (event) => {
+        event.preventDefault();
 
-      const position = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
+        const type = event.dataTransfer.getData('application/reactflow');
+        if (!type || !reactFlowInstance) return;
 
-      const template = getFunctionDefinition(workflowConfiguration, type);
-      if (!template) return;
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
 
-      setNodes((currentNodes) => [
-        ...currentNodes,
-        {
-          id: generateId('node'),
-          type: template.key,
-          position,
-          data: createNodeDataFromFunction(template, template.defaultData),
-        },
-      ]);
-    },
-    [reactFlowInstance, setNodes, workflowConfiguration]
+        const template = getFunctionDefinition(workflowConfiguration, type);
+        if (!template) return;
+
+        setNodes((currentNodes) => [
+          ...currentNodes,
+          {
+            id: generateId('node'),
+            type: template.key,
+            position,
+            data: createNodeDataFromFunction(template, template.defaultData),
+          },
+        ]);
+      },
+      [reactFlowInstance, setNodes, workflowConfiguration]
   );
 
   const handleSave = async () => {
@@ -238,11 +322,31 @@ const CreateWorkflow = () => {
     const normalizedStatus = String(status || '').toUpperCase();
 
     if (!trimmedName) {
-      showToast('Workflow name is required before saving.', 'error');
+      showToast(
+          isTemplateMode
+              ? 'Template name is required before saving.'
+              : 'Workflow name is required before saving.',
+          'error'
+      );
       return;
     }
 
-    if (!ALLOWED_STATUSES.includes(normalizedStatus)) {
+    if (isTemplateMode && !category.trim()) {
+      showToast('Template category is required before saving.', 'error');
+      return;
+    }
+
+    if (isTemplateMode && !user?.id) {
+      showToast('You must be logged in to create a template.', 'error');
+      return;
+    }
+
+    if (isTemplateMode && !organizationId) {
+      showToast('No organization found for current user.', 'error');
+      return;
+    }
+
+    if (!isTemplateMode && !ALLOWED_STATUSES.includes(normalizedStatus)) {
       showToast('Status must be ACTIVE or INACTIVE.', 'error');
       return;
     }
@@ -258,6 +362,34 @@ const CreateWorkflow = () => {
     };
 
     try {
+      if (isTemplateMode) {
+        const workflowPayload = buildMutationPayload(payload);
+
+        const templatePayload = {
+          userId: user.id,
+          organizationId,
+          name: trimmedName,
+          description: description.trim(),
+          category: category.trim(),
+          active: true,
+          content: {
+            nodes: workflowPayload.nodes,
+            connections: workflowPayload.connections,
+          },
+        };
+
+        if (isEditingTemplate) {
+          await templateApi.update(templateId, templatePayload);
+          showToast('Template updated successfully.', 'success');
+        } else {
+          await templateApi.create(templatePayload);
+          showToast('Template saved successfully.', 'success');
+        }
+
+        navigate('/templates');
+        return;
+      }
+
       if (workflowId) {
         await updateWorkflow(workflowId, payload);
       } else {
@@ -267,7 +399,10 @@ const CreateWorkflow = () => {
       showToast('Workflow saved successfully.', 'success');
       navigate('/workflows');
     } catch (err) {
-      showToast(err.message || 'Failed to save workflow', 'error');
+      showToast(
+          err.message || (isTemplateMode ? 'Failed to save template' : 'Failed to save workflow'),
+          'error'
+      );
     } finally {
       setSaving(false);
     }
@@ -278,7 +413,7 @@ const CreateWorkflow = () => {
 
     setNodes((currentNodes) => currentNodes.filter((node) => node.id !== selectedNode.id));
     setEdges((currentEdges) =>
-      currentEdges.filter((edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id)
+        currentEdges.filter((edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id)
     );
     setSelectedNode(null);
   };
@@ -290,199 +425,229 @@ const CreateWorkflow = () => {
     delete sanitizedData.__nodeType;
 
     setNodes((currentNodes) =>
-      currentNodes.map((node) =>
-        node.id === nodeId
-          ? {
-              ...node,
-              type: nextNodeType || node.type,
-              data: { ...node.data, ...sanitizedData },
-            }
-          : node
-      )
+        currentNodes.map((node) =>
+            node.id === nodeId
+                ? {
+                  ...node,
+                  type: nextNodeType || node.type,
+                  data: { ...node.data, ...sanitizedData },
+                }
+                : node
+        )
     );
 
     setSelectedNode((current) =>
-      current?.id === nodeId
-        ? {
-            ...current,
-            type: nextNodeType || current.type,
-            data: { ...current.data, ...sanitizedData },
-          }
-        : current
+        current?.id === nodeId
+            ? {
+              ...current,
+              type: nextNodeType || current.type,
+              data: { ...current.data, ...sanitizedData },
+            }
+            : current
     );
   };
 
   return (
-    <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4 font-urbanist">
-      <header className="enterprise-card p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/workflows')}
-              className="rounded-xl border border-[#E2E8F0] bg-white p-2 text-[#5C5C5C] hover:border-[#D0FFA4]"
-              aria-label="Back to workflows"
-            >
-              <ArrowLeft size={16} />
-            </button>
+      <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4 font-urbanist">
+        <header className="enterprise-card p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                  type="button"
+                  onClick={() => navigate(isTemplateMode ? '/templates' : '/workflows')}
+                  className="rounded-xl border border-[#E2E8F0] bg-white p-2 text-[#5C5C5C] hover:border-[#D0FFA4]"
+                  aria-label={isTemplateMode ? 'Back to templates' : 'Back to workflows'}
+              >
+                <ArrowLeft size={16} />
+              </button>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#E2E8F0] bg-[#D0FFA4]">
-              <Play size={16} className="text-[#292D32]" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#E2E8F0] bg-[#D0FFA4]">
+                <Play size={16} className="text-[#292D32]" />
+              </div>
+
+              <div>
+                <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder={isTemplateMode ? 'Untitled Template' : 'Untitled Workflow'}
+                    className="w-full bg-transparent text-lg font-semibold text-[#292D32] outline-none placeholder:text-[#8A8A8A]"
+                />
+              </div>
             </div>
 
-            <div>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Untitled Workflow"
-                className="w-full bg-transparent text-lg font-semibold text-[#292D32] outline-none placeholder:text-[#8A8A8A]"
-              />
+            <div className="flex flex-wrap items-center gap-2">
+              {isTemplateMode ? (
+                  <input
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                      placeholder="Category"
+                      className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-semibold text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                  />
+              ) : (
+                  <select
+                      value={status}
+                      onChange={(event) => setStatus(event.target.value.toUpperCase())}
+                      className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-semibold text-[#292D32]"
+                  >
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                  </select>
+              )}
+
+              <button
+                  type="button"
+                  onClick={() => navigate(isTemplateMode ? '/templates' : '/workflows')}
+                  className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
+              >
+                Cancel
+              </button>
+
+              <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || loadingWorkflow || loadingTemplate || loadingConfiguration}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
+              >
+                <Save size={14} />
+                {saving
+                  ? 'Saving...'
+                  : isTemplateMode
+                    ? 'Save Template'
+                    : 'Save Workflow'}
+              </button>
             </div>
           </div>
+        </header>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value.toUpperCase())}
-              className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-semibold text-[#292D32]"
-            >
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-            </select>
-            <button
-              type="button"
-              onClick={() => navigate('/workflows')}
-              className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || loadingWorkflow || loadingConfiguration}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
-            >
-              <Save size={14} />
-              {saving ? 'Saving...' : 'Save Workflow'}
-            </button>
-          </div>
-        </div>
-      </header>
+        <div className="grid gap-4 xl:grid-cols-[290px_1fr_320px]">
+          <NodeSidebar workflowConfiguration={workflowConfiguration} />
 
-      <div className="grid gap-4 xl:grid-cols-[290px_1fr_320px]">
-        <NodeSidebar workflowConfiguration={workflowConfiguration} />
-
-        <section className="enterprise-card flex min-h-[520px] flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#E2E8F0] bg-[#F6F5FA] px-4 py-3">
-            <div className="flex items-center gap-2">
-              <SplitSquareVertical size={16} className="text-[#292D32]" />
-              <p className="text-sm font-semibold text-[#292D32]">Workflow Canvas</p>
-            </div>
-            <span className="text-xs text-[#5C5C5C]">
+          <section className="enterprise-card flex min-h-[520px] flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] bg-[#F6F5FA] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <SplitSquareVertical size={16} className="text-[#292D32]" />
+                <p className="text-sm font-semibold text-[#292D32]">
+                  {isTemplateMode ? 'Template Canvas' : 'Workflow Canvas'}
+                </p>
+              </div>
+              <span className="text-xs text-[#5C5C5C]">
               {nodes.length} nodes, {edges.length} connections
             </span>
-          </div>
+            </div>
 
-          <div className="canvas-grid-bg relative flex-1 bg-white">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onInit={setReactFlowInstance}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={(_, node) => setSelectedNode(node)}
-              onPaneClick={() => setSelectedNode(null)}
-              onDrop={onDrop}
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = 'move';
-              }}
-              nodeTypes={nodeTypesMap}
-              fitView
-              defaultEdgeOptions={{
-                style: { stroke: '#D0FFA4', strokeWidth: 2.2 },
-                markerEnd: { type: MarkerType.ArrowClosed, color: '#D0FFA4' },
-              }}
-            >
-              <Background gap={24} color="#E2E8F0" />
-              <Controls />
-              <MiniMap nodeColor="#D0FFA4" maskColor="rgba(246, 245, 250, 0.7)" />
-            </ReactFlow>
+            <div className="canvas-grid-bg relative flex-1 bg-white">
+              <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onInit={setReactFlowInstance}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  onNodeClick={(_, node) => setSelectedNode(node)}
+                  onPaneClick={() => setSelectedNode(null)}
+                  onDrop={onDrop}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                  }}
+                  nodeTypes={nodeTypesMap}
+                  fitView
+                  defaultEdgeOptions={{
+                    style: { stroke: '#D0FFA4', strokeWidth: 2.2 },
+                    markerEnd: { type: MarkerType.ArrowClosed, color: '#D0FFA4' },
+                  }}
+              >
+                <Background gap={24} color="#E2E8F0" />
+                <Controls />
+                <MiniMap nodeColor="#D0FFA4" maskColor="rgba(246, 245, 250, 0.7)" />
+              </ReactFlow>
 
-            <button
-              type="button"
-              className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#292D32] shadow-sm transition-colors hover:border-[#D0FFA4]"
-            >
-              AI + Help
-            </button>
+              <button
+                  type="button"
+                  className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#292D32] shadow-sm transition-colors hover:border-[#D0FFA4]"
+              >
+                AI + Help
+              </button>
 
-            <div className="absolute bottom-4 right-4 space-y-2">
-              <div className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs shadow-sm">
-                <p className="font-semibold text-[#292D32]">Scenario 1</p>
-                <p className="text-[#5E6672]">Data mapping healthy</p>
-              </div>
-              <div className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs shadow-sm">
-                <p className="font-semibold text-[#292D32]">Scenario 2</p>
-                <p className="text-[#5E6672]">Fallback branch standby</p>
+              <div className="absolute bottom-4 right-4 space-y-2">
+                <div className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs shadow-sm">
+                  <p className="font-semibold text-[#292D32]">Scenario 1</p>
+                  <p className="text-[#5E6672]">Data mapping healthy</p>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs shadow-sm">
+                  <p className="font-semibold text-[#292D32]">Scenario 2</p>
+                  <p className="text-[#5E6672]">Fallback branch standby</p>
+                </div>
               </div>
             </div>
+          </section>
+
+          {selectedNode ? (
+              <ConfigPanel
+                  node={selectedNode}
+                  onClose={() => setSelectedNode(null)}
+                  onUpdate={handleUpdateNodeData}
+                  onDelete={handleDeleteNode}
+                  workflowConfiguration={workflowConfiguration}
+              />
+          ) : (
+              <aside className="enterprise-card hidden p-4 text-sm text-[#5C5C5C] xl:block">
+                <p className="text-sm font-semibold text-[#292D32]">Node Configuration</p>
+                <p className="mt-2">
+                  Select a node to configure branching rules, data transformations, connector credentials, and error policy.
+                </p>
+              </aside>
+          )}
+        </div>
+
+        <footer className="enterprise-card flex flex-col gap-3 p-4 md:flex-row md:items-center">
+          <div className="flex items-center gap-2 text-sm text-[#5C5C5C]">
+            <FileText size={15} className="text-[#292D32]" />
+            {isTemplateMode ? 'Template Description' : 'Workflow Description'}
           </div>
-        </section>
 
-        {selectedNode ? (
-          <ConfigPanel
-            node={selectedNode}
-            onClose={() => setSelectedNode(null)}
-            onUpdate={handleUpdateNodeData}
-            onDelete={handleDeleteNode}
-            workflowConfiguration={workflowConfiguration}
+          <input
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder={
+                isTemplateMode
+                    ? 'Describe when this template should be used...'
+                    : 'Describe business intent, owner, and fallback behavior...'
+              }
+              className="flex-1 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
           />
-        ) : (
-          <aside className="enterprise-card hidden p-4 text-sm text-[#5C5C5C] xl:block">
-            <p className="text-sm font-semibold text-[#292D32]">Node Configuration</p>
-            <p className="mt-2">
-              Select a node to configure branching rules, data transformations, connector credentials, and error policy.
-            </p>
-          </aside>
-        )}
-      </div>
 
-      <footer className="enterprise-card flex flex-col gap-3 p-4 md:flex-row md:items-center">
-        <div className="flex items-center gap-2 text-sm text-[#5C5C5C]">
-          <FileText size={15} className="text-[#292D32]" />
-          Workflow Description
-        </div>
-        <input
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder="Describe business intent, owner, and fallback behavior..."
-          className="flex-1 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+          <div className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-3 py-1 text-xs font-semibold text-[#292D32]">
+            <ShieldCheck size={12} />
+            Enterprise-ready
+          </div>
+        </footer>
+
+        {loadingWorkflow && workflowId ? (
+            <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">
+              Loading workflow...
+            </div>
+        ) : null}
+
+        {loadingTemplate ? (
+            <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">
+              Loading template...
+            </div>
+        ) : null}
+
+        {loadingConfiguration ? (
+            <div className="fixed bottom-16 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">
+              Syncing backend entities and functions...
+            </div>
+        ) : null}
+
+        <Toast
+            open={toast.open}
+            message={toast.message}
+            tone={toast.tone}
+            onClose={() => setToast((current) => ({ ...current, open: false }))}
         />
-        <div className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-3 py-1 text-xs font-semibold text-[#292D32]">
-          <ShieldCheck size={12} />
-          Enterprise-ready
-        </div>
-      </footer>
-
-      {loadingWorkflow && workflowId ? (
-        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">
-          Loading workflow...
-        </div>
-      ) : null}
-      {loadingConfiguration ? (
-        <div className="fixed bottom-16 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">
-          Syncing backend entities and functions...
-        </div>
-      ) : null}
-
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        tone={toast.tone}
-        onClose={() => setToast((current) => ({ ...current, open: false }))}
-      />
-    </div>
+      </div>
   );
 };
 

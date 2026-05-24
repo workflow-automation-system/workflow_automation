@@ -26,7 +26,17 @@ import ExecutionStepsModal from '../components/workflow/ExecutionStepsModal';
 
 const formatDate = (value) => {
   if (!value) return 'Never';
-  const date = new Date(value);
+  const date = Array.isArray(value)
+    ? new Date(
+        value[0],
+        (value[1] || 1) - 1,
+        value[2] || 1,
+        value[3] || 0,
+        value[4] || 0,
+        value[5] || 0,
+        Math.floor((value[6] || 0) / 1000000)
+      )
+    : new Date(value);
   return Number.isNaN(date.getTime()) ? 'Never' : date.toLocaleString();
 };
 

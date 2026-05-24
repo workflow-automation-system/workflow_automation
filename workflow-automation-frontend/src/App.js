@@ -15,6 +15,7 @@ import Workflows from './pages/Workflows';
 import Settings from './pages/Settings';
 import { useAuthStore } from './stores/authStore';
 import { useThemeStore } from './stores/themeStore';
+import CreateTemplate from './pages/CreateTemplate';
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -90,15 +91,17 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/organisation" element={<Organisation />} />
-          <Route path="/workflows" element={<Workflows />} />
-          <Route path="/app-connections" element={<AppConnections />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/create-workflow" element={<CreateWorkflow />} />
-          <Route path="/workflow/:id" element={<WorkflowDetail />} />
-          <Route path="/workflows/:id" element={<WorkflowDetail />} />
-          <Route path="/settings" element={<Settings />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/organisation" element={<Organisation />} />
+            <Route path="/workflows" element={<Workflows />} />
+            <Route path="/app-connections" element={<AppConnections />} />
+            <Route path="/templates" element={<Templates />} />
+            <Route path="/templates/create" element={<CreateTemplate />} />
+            <Route path="/templates/edit/:templateId" element={<CreateTemplate />} />
+            <Route path="/create-workflow" element={<CreateWorkflow />} />
+            <Route path="/workflow/:id" element={<WorkflowDetail />} />
+            <Route path="/workflows/:id" element={<WorkflowDetail />} />
+            <Route path="/settings" element={<Settings />} />
         </Route>
 
         {/* Catch all - redirect to dashboard or login */}
