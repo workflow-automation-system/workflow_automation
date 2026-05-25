@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import Toast from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import CustomNode from '../components/workflow/nodes/CustomNode';
 import StatCard from '../components/workflow/StatCard';
 import useWorkflowStore from '../stores/workflowStore';
@@ -53,7 +54,12 @@ const WorkflowDetail = () => {
   const [loadingWorkflow, setLoadingWorkflow] = React.useState(false);
   const [loadingExecutions, setLoadingExecutions] = React.useState(false);
   const [action, setAction] = React.useState('');
+  const [currentPage, setCurrentPage] = React.useState(1);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [id]);
 
   const workflow = React.useMemo(
     () => workflows.find((item) => String(item.id) === String(id)),
@@ -109,6 +115,12 @@ const WorkflowDetail = () => {
   const executionCount = workflow?.executionCount || executions.length;
   const successful = executions.filter((e) => e.status === 'COMPLETED').length;
   const successRate = executions.length ? ((successful / executions.length) * 100).toFixed(0) : '0';
+
+  const totalPages = Math.ceil(executions.length / 8);
+  const displayedExecutions = React.useMemo(() => {
+    const start = (currentPage - 1) * 8;
+    return executions.slice(start, start + 8);
+  }, [executions, currentPage]);
 
   const nodes = React.useMemo(() => (workflow?.nodes || []).map((node) => ({
     ...node,
@@ -370,7 +382,7 @@ const WorkflowDetail = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E8F0] bg-[#F6F5FA]">
-                {executions.map((execution) => {
+                {displayedExecutions.map((execution) => {
                   const executionStatus = String(execution.status || '').toLowerCase();
                   const isSuccess = executionStatus === 'completed';
                   const isRunning = executionStatus === 'running';
@@ -409,6 +421,13 @@ const WorkflowDetail = () => {
                 })}
               </tbody>
             </table>
+            <div className="border-t border-[#E2E8F0] bg-white">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
           </div>
         )}
       </section>

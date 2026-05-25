@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import Toast from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import WorkflowCard from '../components/workflow/WorkflowCard';
 import WorkflowCardSkeleton from '../components/workflow/WorkflowCardSkeleton';
 import useWorkflowStore from '../stores/workflowStore';
@@ -52,12 +53,17 @@ const Workflows = () => {
   const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('ALL');
+  const [currentPage, setCurrentPage] = React.useState(1);
   const [actionWorkflowId, setActionWorkflowId] = React.useState(null);
   const [deleteModal, setDeleteModal] = React.useState({ open: false, workflow: null });
   const [executeModal, setExecuteModal] = React.useState({ open: false, workflow: null });
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
 
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 250);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, statusFilter]);
 
   const showToast = React.useCallback((message, tone = 'info') => {
     setToast({ open: true, message, tone });
@@ -105,6 +111,13 @@ const Workflows = () => {
 
     return { total, active, executions };
   }, [workflows]);
+
+  const totalPages = Math.ceil(filteredWorkflows.length / 6);
+
+  const displayedWorkflows = React.useMemo(() => {
+    const start = (currentPage - 1) * 6;
+    return filteredWorkflows.slice(start, start + 6);
+  }, [filteredWorkflows, currentPage]);
 
   const handleDeleteWorkflow = async () => {
     const workflowId = deleteModal.workflow?.id;
@@ -257,21 +270,28 @@ const Workflows = () => {
           </button>
         </section>
       ) : (
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredWorkflows.map((workflow) => (
-            <WorkflowCard
-              key={workflow.id}
-              workflow={workflow}
-              actionInProgress={actionWorkflowId === workflow.id}
-              onView={() => navigate(`/workflow/${workflow.id}`)}
-              onEdit={() => navigate(`/create-workflow?id=${workflow.id}`)}
-              onExecute={() => setExecuteModal({ open: true, workflow })}
-              onToggle={() => handleToggleStatus(workflow)}
-              onDelete={() => setDeleteModal({ open: true, workflow })}
-              formatDate={(w) => formatDate(w.createdAt || w.updatedAt || w.lastExecution || null)}
-            />
-          ))}
-        </section>
+        <div className="space-y-6">
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {displayedWorkflows.map((workflow) => (
+              <WorkflowCard
+                key={workflow.id}
+                workflow={workflow}
+                actionInProgress={actionWorkflowId === workflow.id}
+                onView={() => navigate(`/workflows/${workflow.id}`)}
+                onEdit={() => navigate(`/create-workflow?id=${workflow.id}`)}
+                onExecute={() => setExecuteModal({ open: true, workflow })}
+                onToggle={() => handleToggleStatus(workflow)}
+                onDelete={() => setDeleteModal({ open: true, workflow })}
+                formatDate={(w) => formatDate(w.createdAt || w.updatedAt || w.lastExecution || null)}
+              />
+            ))}
+          </section>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       )}
 
       <Modal isOpen={deleteModal.open} onClose={() => setDeleteModal({ open: false, workflow: null })} title="Delete Workflow">

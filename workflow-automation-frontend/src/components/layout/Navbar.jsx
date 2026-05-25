@@ -26,7 +26,7 @@ const Navbar = () => {
   const { user } = useAuthStore();
 
   const pageTitle = React.useMemo(() => {
-    if (location.pathname.startsWith('/workflow/')) return 'Workflows';
+    if (location.pathname.startsWith('/workflow/') || location.pathname.startsWith('/workflows/')) return 'Workflows';
     return routeTitles[location.pathname] || 'Overview';
   }, [location.pathname]);
 
@@ -35,13 +35,30 @@ const Navbar = () => {
     const items = [{ label: 'Overview', path: '/' }];
 
     segments.forEach((segment, index) => {
-      items.push({
-        label: segment
-          .split('-')
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' '),
-        path: `/${segments.slice(0, index + 1).join('/')}`,
-      });
+      let label = segment
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      let path = `/${segments.slice(0, index + 1).join('/')}`;
+
+      if (/^\d+$/.test(segment)) {
+        label = 'Detail';
+      }
+
+      const isWorkflowParent = segment.toLowerCase() === 'workflow' || segment.toLowerCase() === 'workflows';
+      if (isWorkflowParent) {
+        label = 'Workflows';
+        path = '/workflows';
+      }
+
+      const isWorkflowDetail = index > 0 && (segments[index - 1].toLowerCase() === 'workflow' || segments[index - 1].toLowerCase() === 'workflows');
+      if (isWorkflowDetail) {
+        label = 'Detail';
+        path = `/workflows/${segment}`;
+      }
+
+      items.push({ label, path });
     });
 
     return items;
