@@ -234,6 +234,18 @@ export async function getExecutionSteps(executionId) {
   return extractPayload(response);
 }
 
+export async function generateWorkflow(description) {
+  const userId = await getCurrentUserId();
+  const response = await request(`${WORKFLOWS_ENDPOINT}/generate-ai`, {
+    method: 'POST',
+    headers: {
+      'X-User-Id': String(userId),
+    },
+    body: { description },
+  });
+  return extractPayload(response);
+}
+
 export const workflowApi = {
   getAll: getWorkflows,
   getById: getWorkflowById,
@@ -244,6 +256,7 @@ export const workflowApi = {
   getExecutions: getExecutions,
   getSteps: getExecutionSteps,
   getConfiguration: getWorkflowConfiguration,
+  generateWorkflow,
 };
 
 export default workflowApi;

@@ -11,7 +11,7 @@ import {
   useNodesState,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, FileText, Play, Save, ShieldCheck, SplitSquareVertical } from 'lucide-react';
+import { ArrowLeft, FileText, Play, Save, ShieldCheck, SplitSquareVertical, Sparkles } from 'lucide-react';
 import ConfigPanel from '../components/workflow/ConfigPanel';
 import NodeSidebar from '../components/workflow/NodeSidebar';
 import CustomNode from '../components/workflow/nodes/CustomNode';
@@ -23,7 +23,9 @@ import {
   FALLBACK_WORKFLOW_CONFIGURATION,
   getFunctionDefinition,
   normalizeWorkflowConfiguration,
+  normalizeWorkflow,
 } from '../services/workflowConverter';
+import AiGeneratorModal from '../components/workflow/AiGeneratorModal';
 import useWorkflowStore from '../stores/workflowStore';
 
 const ALLOWED_STATUSES = ['ACTIVE', 'INACTIVE'];
@@ -41,6 +43,16 @@ const CreateWorkflow = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = React.useState(null);
   const [saving, setSaving] = React.useState(false);
+  const [aiModalOpen, setAiModalOpen] = React.useState(false);
+
+  const handleUseAiWorkflow = (aiWorkflow) => {
+    const normalized = normalizeWorkflow(aiWorkflow, workflowConfiguration);
+    setName(normalized.name);
+    setDescription(normalized.description || '');
+    setNodes(normalized.nodes || []);
+    setEdges(normalized.edges || []);
+    setAiModalOpen(false);
+  };
   const [loadingWorkflow, setLoadingWorkflow] = React.useState(false);
   const [loadingConfiguration, setLoadingConfiguration] = React.useState(false);
   const [workflowConfiguration, setWorkflowConfiguration] = React.useState(
@@ -351,6 +363,14 @@ const CreateWorkflow = () => {
             </select>
             <button
               type="button"
+              onClick={() => setAiModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 transition-colors mr-1"
+            >
+              <Sparkles size={14} />
+              Generate with AI
+            </button>
+            <button
+              type="button"
               onClick={() => navigate('/workflows')}
               className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
             >
@@ -481,6 +501,12 @@ const CreateWorkflow = () => {
         message={toast.message}
         tone={toast.tone}
         onClose={() => setToast((current) => ({ ...current, open: false }))}
+      />
+
+      <AiGeneratorModal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onUseWorkflow={handleUseAiWorkflow}
       />
     </div>
   );

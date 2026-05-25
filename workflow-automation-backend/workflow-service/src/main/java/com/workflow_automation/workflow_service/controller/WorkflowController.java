@@ -1,18 +1,23 @@
 package com.workflow_automation.workflow_service.controller;
 
 import com.workflow_automation.workflow_service.dto.request.CreateWorkflowRequest;
+import com.workflow_automation.workflow_service.dto.request.GenerateWorkflowRequest;
 import com.workflow_automation.workflow_service.dto.request.NodeRequest;
 import com.workflow_automation.workflow_service.dto.request.UpdateWorkflowRequest;
 import com.workflow_automation.workflow_service.dto.response.WorkflowConfigurationResponse;
 import com.workflow_automation.workflow_service.dto.response.NodeResponse;
 import com.workflow_automation.workflow_service.dto.response.WorkflowResponse;
+import com.workflow_automation.workflow_service.service.AiWorkflowService;
 import com.workflow_automation.workflow_service.service.NodeService;
 import com.workflow_automation.workflow_service.service.WorkflowService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/workflows")
@@ -21,6 +26,25 @@ public class WorkflowController {
 
     private final WorkflowService workflowService;
     private final NodeService nodeService;
+    private final AiWorkflowService aiWorkflowService;
+
+    @PostMapping("/generate-ai")
+    public ResponseEntity<?> generateWorkflow(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody GenerateWorkflowRequest request
+    ) {
+        try {
+            WorkflowResponse workflow = aiWorkflowService.generateFromDescription(
+                    request.getDescription(),
+                    userId
+            );
+            return ResponseEntity.ok(workflow);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Failed to generate workflow: " + e.getMessage()));
+        }
+    }
+
 
     @PostMapping
     public ResponseEntity<WorkflowResponse> create(@RequestBody CreateWorkflowRequest request) {
