@@ -364,9 +364,9 @@ const CreateWorkflow = () => {
             <button
               type="button"
               onClick={() => setAiModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 transition-colors mr-1"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#D0FFA4] px-4 py-2 text-sm font-semibold text-[#292D32] hover:bg-[#BDEB94] transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_12px_rgba(208,255,164,0.3)] focus:outline-none focus:ring-2 focus:ring-[#D0FFA4] focus:ring-offset-2 mr-1"
             >
-              <Sparkles size={14} />
+              <Sparkles size={14} className="text-[#292D32]" />
               Generate with AI
             </button>
             <button

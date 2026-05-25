@@ -51,7 +51,6 @@ export function AiGeneratorModal({ isOpen, onClose, onUseWorkflow }) {
               onClick={handleGenerate}
               disabled={loading || !description.trim()}
               loading={loading}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               <Sparkles size={16} className="mr-2" />
               {loading ? 'Generating...' : 'Generate'}
