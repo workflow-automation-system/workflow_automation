@@ -13,6 +13,7 @@ import CreateWorkflow from './pages/CreateWorkflow';
 import WorkflowDetail from './pages/WorkflowDetail';
 import Workflows from './pages/Workflows';
 import Settings from './pages/Settings';
+import Landing from './pages/Landing';
 import { useAuthStore } from './stores/authStore';
 import { useThemeStore } from './stores/themeStore';
 // Protected Route wrapper
@@ -31,10 +32,16 @@ const PublicRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
+};
+
+// Landing Page controller for root URL
+const LandingController = () => {
+  const { isAuthenticated } = useAuthStore();
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />;
 };
 
 function App() {
@@ -80,7 +87,8 @@ function App() {
               <VerifyEmail />
             </PublicRoute>
           }
-        />
+        />        {/* Public root router */}
+        <Route path="/" element={<LandingController />} />
 
         {/* Protected routes with layout */}
         <Route
@@ -90,7 +98,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/organisation" element={<Organisation />} />
           <Route path="/workflows" element={<Workflows />} />
           <Route path="/app-connections" element={<AppConnections />} />

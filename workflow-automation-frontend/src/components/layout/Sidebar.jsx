@@ -13,7 +13,7 @@ import {
 import { useAuthStore } from '../../stores/authStore';
 
 const navItems = [
-  { path: '/', icon: LayoutGrid, label: 'Overview' },
+  { path: '/dashboard', icon: LayoutGrid, label: 'Overview' },
   { path: '/organisation', icon: Building2, label: 'Organisation' },
   { path: '/workflows', icon: Workflow, label: 'Workflows' },
   { path: '/app-connections', icon: Plug, label: 'App Connections' },

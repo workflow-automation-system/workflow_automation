@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 
 const routeTitles = {
   '/': 'Overview',
+  '/dashboard': 'Overview',
   '/organisation': 'Organisation',
   '/workflows': 'Workflows',
   '/app-connections': 'App Connections',
@@ -32,9 +33,13 @@ const Navbar = () => {
 
   const breadcrumbs = React.useMemo(() => {
     const segments = location.pathname.split('/').filter(Boolean);
-    const items = [{ label: 'Overview', path: '/' }];
+    const items = [{ label: 'Overview', path: '/dashboard' }];
 
     segments.forEach((segment, index) => {
+      if (segment.toLowerCase() === 'dashboard') {
+        return; // skip duplicate overview breadcrumb
+      }
+
       let label = segment
         .split('-')
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
