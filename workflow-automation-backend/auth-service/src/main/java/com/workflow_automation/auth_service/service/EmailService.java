@@ -1,13 +1,16 @@
 package com.workflow_automation.auth_service.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
@@ -29,6 +32,14 @@ public class EmailService {
                         "Si vous n'avez pas créé de compte, ignorez cet email."
         );
 
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+            log.info("Verification email sent to {}", to);
+        } catch (MailException e) {
+            log.error("Failed to send verification email to {}: {}", to, e.getMessage());
+            throw new RuntimeException(
+                    "Impossible d'envoyer l'email de vérification à " + to +
+                    ". Veuillez vérifier que l'adresse email est valide.", e);
+        }
     }
 }

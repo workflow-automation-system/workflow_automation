@@ -9,14 +9,35 @@ import {
   MessageSquare,
   Network,
   Plus,
+  Shield,
+  Eye,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import { canCreateWorkflow, isViewer, isAdmin, getRole } from '../utils/rbac';
 
 const graphData = [62, 58, 68, 64, 74, 70, 78, 75, 82, 79, 86, 84];
+
+const roleBanners = {
+  ADMIN: {
+    bg: 'border-[#292D32] bg-[#292D32]',
+    text: 'text-white',
+    icon: Shield,
+    message: 'Administrator mode. You have full access to manage the platform, users, workflows, and settings.',
+  },
+  USER: null,
+  VIEWER: {
+    bg: 'border-[#E2E8F0] bg-white',
+    text: 'text-[#5C5C5C]',
+    icon: Eye,
+    message: 'Read-only mode. You can review workflows and execution history, and execute only where access is granted.',
+  },
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const role = getRole(user);
+  const banner = roleBanners[role];
 
   const points = graphData
     .map((value, index) => `${index * (100 / (graphData.length - 1))},${100 - value}`)
@@ -24,6 +45,13 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 font-urbanist">
+      {banner ? (
+        <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${banner.bg}`}>
+          <banner.icon size={16} className={banner.text} />
+          <span className={`text-sm font-medium ${banner.text}`}>{banner.message}</span>
+        </div>
+      ) : null}
+
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-4xl font-semibold leading-tight text-[#292D32]">
@@ -32,14 +60,28 @@ const Dashboard = () => {
           <p className="mt-2 text-lg text-[#5E6672]">Today's Business Automation Performance</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => navigate('/create-workflow')}
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3C4249]"
-        >
-          <Plus size={16} />
-          Create Workflow
-        </button>
+        <div className="flex items-center gap-3">
+          {isAdmin(user) && (
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-semibold text-[#292D32] transition-colors hover:border-[#D0FFA4]"
+            >
+              <Shield size={16} />
+              Admin Console
+            </button>
+          )}
+          {canCreateWorkflow(user) ? (
+            <button
+              type="button"
+              onClick={() => navigate('/create-workflow')}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3C4249]"
+            >
+              <Plus size={16} />
+              Create Workflow
+            </button>
+          ) : null}
+        </div>
       </header>
 
       <section className="bento-grid grid-cols-1 gap-4 xl:grid-cols-12">

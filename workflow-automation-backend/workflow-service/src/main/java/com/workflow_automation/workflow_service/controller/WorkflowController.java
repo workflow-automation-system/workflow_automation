@@ -3,10 +3,13 @@ package com.workflow_automation.workflow_service.controller;
 import com.workflow_automation.workflow_service.dto.request.CreateWorkflowRequest;
 import com.workflow_automation.workflow_service.dto.request.NodeRequest;
 import com.workflow_automation.workflow_service.dto.request.UpdateWorkflowRequest;
-import com.workflow_automation.workflow_service.dto.response.WorkflowConfigurationResponse;
 import com.workflow_automation.workflow_service.dto.response.NodeResponse;
+import com.workflow_automation.workflow_service.dto.response.WorkflowConfigurationResponse;
 import com.workflow_automation.workflow_service.dto.response.WorkflowResponse;
+import com.workflow_automation.workflow_service.entity.Workflow;
+import com.workflow_automation.workflow_service.security.AccessContext;
 import com.workflow_automation.workflow_service.service.NodeService;
+import com.workflow_automation.workflow_service.service.WorkflowAccessService;
 import com.workflow_automation.workflow_service.service.WorkflowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +24,25 @@ public class WorkflowController {
 
     private final WorkflowService workflowService;
     private final NodeService nodeService;
+    private final WorkflowAccessService workflowAccessService;
 
     @PostMapping
-    public ResponseEntity<WorkflowResponse> create(@RequestBody CreateWorkflowRequest request) {
-        return ResponseEntity.ok(workflowService.create(request));
+    public ResponseEntity<WorkflowResponse> create(
+            @RequestBody CreateWorkflowRequest request,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
+    ) {
+        return ResponseEntity.ok(workflowService.create(request, accessContext(userId, organizationId, role)));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<WorkflowResponse>> getAll(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
+    ) {
+        return ResponseEntity.ok(workflowService.getAll(accessContext(userId, organizationId, role)));
     }
 
     @GetMapping("/configuration")
@@ -33,41 +51,94 @@ public class WorkflowController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<WorkflowResponse>> getByUserId(@PathVariable Long userId) {
-        return ResponseEntity.ok(workflowService.getByUserId(userId));
+    public ResponseEntity<List<WorkflowResponse>> getByUserId(
+            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long currentUserId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
+    ) {
+        return ResponseEntity.ok(workflowService.getByUserId(userId, accessContext(currentUserId, organizationId, role)));
+    }
+
+    @GetMapping("/{workflowId:\\d+}")
+    public ResponseEntity<WorkflowResponse> getById(
+            @PathVariable Long workflowId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
+    ) {
+        return ResponseEntity.ok(workflowService.getById(workflowId, accessContext(userId, organizationId, role)));
     }
 
     @GetMapping("/{workflowId:\\d+}/user/{userId:\\d+}")
     public ResponseEntity<WorkflowResponse> getByIdAndUserId(
             @PathVariable Long workflowId,
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long currentUserId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
     ) {
-        return ResponseEntity.ok(workflowService.getByIdAndUserId(workflowId, userId));
+        return ResponseEntity.ok(
+                workflowService.getByIdAndUserId(workflowId, userId, accessContext(currentUserId, organizationId, role))
+        );
+    }
+
+    @PutMapping("/{workflowId:\\d+}")
+    public ResponseEntity<WorkflowResponse> update(
+            @PathVariable Long workflowId,
+            @RequestBody UpdateWorkflowRequest request,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
+    ) {
+        return ResponseEntity.ok(workflowService.update(workflowId, request, accessContext(userId, organizationId, role)));
     }
 
     @PutMapping("/{workflowId:\\d+}/user/{userId:\\d+}")
-    public ResponseEntity<WorkflowResponse> update(
+    public ResponseEntity<WorkflowResponse> updateByUser(
             @PathVariable Long workflowId,
             @PathVariable Long userId,
-            @RequestBody UpdateWorkflowRequest request
+            @RequestBody UpdateWorkflowRequest request,
+            @RequestHeader("X-User-Id") Long currentUserId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
     ) {
-        return ResponseEntity.ok(workflowService.update(workflowId, userId, request));
+        return ResponseEntity.ok(workflowService.update(workflowId, request, accessContext(currentUserId, organizationId, role)));
+    }
+
+    @DeleteMapping("/{workflowId:\\d+}")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long workflowId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
+    ) {
+        workflowService.delete(workflowId, accessContext(userId, organizationId, role));
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{workflowId:\\d+}/user/{userId:\\d+}")
-    public ResponseEntity<Void> delete(
+    public ResponseEntity<Void> deleteByUser(
             @PathVariable Long workflowId,
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long currentUserId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
     ) {
-        workflowService.delete(workflowId, userId);
+        workflowService.delete(workflowId, accessContext(currentUserId, organizationId, role));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{workflowId:\\d+}/nodes")
     public ResponseEntity<NodeResponse> addNode(
             @PathVariable Long workflowId,
-            @RequestBody NodeRequest request
+            @RequestBody NodeRequest request,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
     ) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role));
+        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role));
         return ResponseEntity.ok(nodeService.addNode(workflowId, request));
     }
 
@@ -75,17 +146,31 @@ public class WorkflowController {
     public ResponseEntity<NodeResponse> updateNode(
             @PathVariable Long workflowId,
             @PathVariable Long nodeId,
-            @RequestBody NodeRequest request
+            @RequestBody NodeRequest request,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
     ) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role));
+        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role));
         return ResponseEntity.ok(nodeService.updateNode(workflowId, nodeId, request));
     }
 
     @DeleteMapping("/{workflowId:\\d+}/nodes/{nodeId:\\d+}")
     public ResponseEntity<Void> deleteNode(
             @PathVariable Long workflowId,
-            @PathVariable Long nodeId
+            @PathVariable Long nodeId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
     ) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role));
+        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role));
         nodeService.deleteNode(workflowId, nodeId);
         return ResponseEntity.noContent().build();
+    }
+
+    private AccessContext accessContext(Long userId, Long organizationId, String role) {
+        return AccessContext.of(userId, organizationId, role);
     }
 }

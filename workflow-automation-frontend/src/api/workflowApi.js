@@ -5,6 +5,7 @@ import {
   WORKFLOWS_ENDPOINT,
 } from './config';
 import authService from '../services/authService';
+import { clearStoredSession, AUTH_STORAGE_KEY } from '../utils/session';
 import {
   FALLBACK_WORKFLOW_CONFIGURATION,
   normalizeWorkflowConfiguration,
@@ -14,7 +15,6 @@ import {
 } from '../services/workflowConverter';
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
-const AUTH_STORAGE_KEY = 'auth-storage';
 let userIdResolutionPromise = null;
 
 function readStoredUserId() {
@@ -95,11 +95,6 @@ async function getCurrentUserId() {
   return userIdResolutionPromise;
 }
 
-async function withCurrentUserPath(builder) {
-  const userId = await getCurrentUserId();
-  return builder(userId);
-}
-
 async function parseJsonSafely(response) {
   if (response.status === 204) {
     return null;
@@ -137,6 +132,12 @@ async function request(path, options = {}) {
       body: hasBody ? JSON.stringify(options.body) : undefined,
     });
 
+    if (response.status === 401) {
+      clearStoredSession();
+      window.location.assign('/login');
+      throw new Error('Your session expired. Please sign in again.');
+    }
+
     if (!response.ok) {
       const errorPayload = await parseJsonSafely(response);
       const backendMessage =
@@ -167,20 +168,16 @@ export async function getWorkflowConfiguration() {
 }
 
 export async function getWorkflows() {
-  const response = await request(await withCurrentUserPath((userId) => `${WORKFLOWS_ENDPOINT}/user/${userId}`));
+  const response = await request(WORKFLOWS_ENDPOINT);
   const payload = extractPayload(response);
   const workflows = Array.isArray(payload) ? payload : [];
   return workflows.map((workflow) => normalizeWorkflow(workflow, FALLBACK_WORKFLOW_CONFIGURATION));
 }
 
 export async function createWorkflow(payload) {
-  const userId = await getCurrentUserId();
   const response = await request(WORKFLOWS_ENDPOINT, {
     method: 'POST',
-    body: {
-      ...buildMutationPayload(payload),
-      userId,
-    },
+    body: buildMutationPayload(payload),
   });
 
   const normalized = extractPayload(response);
@@ -190,9 +187,7 @@ export async function createWorkflow(payload) {
 }
 
 export async function getWorkflowById(id) {
-  const response = await request(
-    await withCurrentUserPath((userId) => `${WORKFLOWS_ENDPOINT}/${id}/user/${userId}`)
-  );
+  const response = await request(`${WORKFLOWS_ENDPOINT}/${id}`);
   const normalized = extractPayload(response);
   return isObject(normalized)
     ? normalizeWorkflow(normalized, FALLBACK_WORKFLOW_CONFIGURATION)
@@ -200,7 +195,7 @@ export async function getWorkflowById(id) {
 }
 
 export async function updateWorkflow(id, payload) {
-  const response = await request(await withCurrentUserPath((userId) => `${WORKFLOWS_ENDPOINT}/${id}/user/${userId}`), {
+  const response = await request(`${WORKFLOWS_ENDPOINT}/${id}`, {
     method: 'PUT',
     body: buildMutationPayload(payload),
   });
@@ -212,7 +207,7 @@ export async function updateWorkflow(id, payload) {
 }
 
 export async function deleteWorkflow(id) {
-  return request(await withCurrentUserPath((userId) => `${WORKFLOWS_ENDPOINT}/${id}/user/${userId}`), {
+  return request(`${WORKFLOWS_ENDPOINT}/${id}`, {
     method: 'DELETE',
   });
 }
@@ -246,4 +241,5 @@ export const workflowApi = {
   getConfiguration: getWorkflowConfiguration,
 };
 
+export { getCurrentUserId };
 export default workflowApi;

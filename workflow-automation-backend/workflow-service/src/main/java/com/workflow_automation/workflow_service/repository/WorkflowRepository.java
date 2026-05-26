@@ -9,7 +9,11 @@ import java.util.Optional;
 public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
     // This interface gives you save(), findAll(), findById(), etc. for free!
     List<Workflow> findByUserId(Long userId);
+    List<Workflow> findByOrganizationId(Long organizationId);
+    List<Workflow> findByOrganizationIdOrderByUpdatedAtDesc(Long organizationId);
+    List<Workflow> findByUserIdAndOrganizationId(Long userId, Long organizationId);
     Optional<Workflow> findByIdAndUserId(Long id, Long userId);
-
+    Optional<Workflow> findByIdAndOrganizationId(Long id, Long organizationId);
     boolean existsByIdAndUserId(Long id, Long userId);
+    boolean existsByIdAndOrganizationId(Long id, Long organizationId);
 }

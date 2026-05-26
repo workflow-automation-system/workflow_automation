@@ -10,7 +10,9 @@ import com.workflow_automation.workflow_service.dto.response.WorkflowFunctionRes
 import com.workflow_automation.workflow_service.dto.response.WorkflowResponse;
 import com.workflow_automation.workflow_service.dto.response.ConnectionResponse;
 import com.workflow_automation.workflow_service.entity.Connection;
+import com.workflow_automation.workflow_service.entity.Execution;
 import com.workflow_automation.workflow_service.entity.Node;
+import com.workflow_automation.workflow_service.entity.enums.PermissionType;
 import com.workflow_automation.workflow_service.entity.enums.NodeType;
 import com.workflow_automation.workflow_service.entity.Workflow;
 import com.workflow_automation.workflow_service.entity.enums.WorkflowStatus;
@@ -18,6 +20,9 @@ import com.workflow_automation.workflow_service.exception.WorkflowNotFoundExcept
 import com.workflow_automation.workflow_service.repository.ConnectionRepository;
 import com.workflow_automation.workflow_service.repository.WorkflowRepository;
 import com.workflow_automation.workflow_service.service.WorkflowService;
+import com.workflow_automation.workflow_service.service.PermissionService;
+import com.workflow_automation.workflow_service.service.WorkflowAccessService;
+import com.workflow_automation.workflow_service.security.AccessContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +34,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -179,12 +185,17 @@ public class WorkflowServiceImpl implements WorkflowService {
 
     private final WorkflowRepository workflowRepository;
     private final ConnectionRepository connectionRepository;
+    private final PermissionService permissionService;
+    private final WorkflowAccessService workflowAccessService;
 
     @Override
-    public WorkflowResponse create(CreateWorkflowRequest request) {
+    public WorkflowResponse create(CreateWorkflowRequest request, AccessContext accessContext) {
+        workflowAccessService.assertCanCreate(accessContext);
+
         LocalDateTime now = LocalDateTime.now();
         Workflow workflow = new Workflow();
-        workflow.setUserId(request.getUserId());
+        workflow.setUserId(accessContext.getUserId());
+        workflow.setOrganizationId(accessContext.getOrganizationId());
         workflow.setName(request.getName());
         workflow.setDescription(request.getDescription());
         workflow.setStatus(resolveWorkflowStatus(request.getStatus(), WorkflowStatus.ACTIVE));
@@ -198,46 +209,48 @@ public class WorkflowServiceImpl implements WorkflowService {
         applyConnections(workflow, request.getConnections(), clientNodes);
         
         workflow = workflowRepository.save(workflow);
+        permissionService.ensureOwnerPermissions(workflow);
 
-        return toWorkflowResponse(workflow);
+        return toWorkflowResponse(workflow, accessContext);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkflowResponse> getAll() {
-        return workflowRepository.findAll().stream()
-                .map(this::toWorkflowResponse)
+    public List<WorkflowResponse> getAll(AccessContext accessContext) {
+        return workflowAccessService.getAccessibleWorkflows(accessContext).stream()
+                .map(workflow -> toWorkflowResponse(workflow, accessContext))
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public WorkflowResponse getById(Long workflowId) {
-        Workflow workflow = workflowRepository.findById(workflowId)
-                .orElseThrow(() -> new WorkflowNotFoundException(workflowId));
-        return toWorkflowResponse(workflow);
+    public WorkflowResponse getById(Long workflowId, AccessContext accessContext) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
+        return toWorkflowResponse(workflow, accessContext);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkflowResponse> getByUserId(Long userId) {
-        return workflowRepository.findByUserId(userId).stream()
-                .map(this::toWorkflowResponse)
+    public List<WorkflowResponse> getByUserId(Long userId, AccessContext accessContext) {
+        return getAll(accessContext).stream()
+                .filter(workflow -> workflow.getUserId() != null && workflow.getUserId().equals(userId))
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public WorkflowResponse getByIdAndUserId(Long workflowId, Long userId) {
-        Workflow workflow = workflowRepository.findByIdAndUserId(workflowId, userId)
-                .orElseThrow(() -> new WorkflowNotFoundException(workflowId));
-        return toWorkflowResponse(workflow);
+    public WorkflowResponse getByIdAndUserId(Long workflowId, Long userId, AccessContext accessContext) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
+        if (userId != null && !userId.equals(workflow.getUserId())) {
+            throw new WorkflowNotFoundException(workflowId);
+        }
+        return toWorkflowResponse(workflow, accessContext);
     }
 
     @Override
-    public WorkflowResponse update(Long workflowId, Long userId, UpdateWorkflowRequest request) {
-        Workflow workflow = workflowRepository.findByIdAndUserId(workflowId, userId)
-                .orElseThrow(() -> new WorkflowNotFoundException(workflowId));
+    public WorkflowResponse update(Long workflowId, UpdateWorkflowRequest request, AccessContext accessContext) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
+        workflowAccessService.assertCanEdit(workflow, accessContext);
 
         workflow.setName(request.getName());
         workflow.setDescription(request.getDescription());
@@ -246,13 +259,16 @@ public class WorkflowServiceImpl implements WorkflowService {
         Map<String, Node> clientNodes = applyNodes(workflow, request.getNodes());
         applyConnections(workflow, request.getConnections(), clientNodes);
         workflow = workflowRepository.save(workflow);
-        return toWorkflowResponse(workflow);
+        return toWorkflowResponse(workflow, accessContext);
     }
 
     @Override
-    public void delete(Long workflowId, Long userId) {
-        Workflow workflow = workflowRepository.findByIdAndUserId(workflowId, userId)
-                .orElseThrow(() -> new WorkflowNotFoundException(workflowId));
+    public void delete(Long workflowId, AccessContext accessContext) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
+        workflowAccessService.assertCanDelete(workflow, accessContext);
+
+        // Delete all associated permissions
+        permissionService.deleteWorkflowPermissions(workflowId);
 
         workflowRepository.delete(workflow);
     }
@@ -318,16 +334,39 @@ public class WorkflowServiceImpl implements WorkflowService {
     }
 
 
-    private WorkflowResponse toWorkflowResponse(Workflow workflow) {
+    private WorkflowResponse toWorkflowResponse(Workflow workflow, AccessContext accessContext) {
+        Set<PermissionType> permissions = workflowAccessService.resolvePermissions(workflow, accessContext);
         WorkflowResponse response = new WorkflowResponse();
         response.setId(workflow.getId());
         response.setUserId(workflow.getUserId());
+        response.setOrganizationId(workflow.getOrganizationId());
         response.setName(workflow.getName());
         response.setDescription(workflow.getDescription());
         response.setStatus(workflow.getStatus() != null ? workflow.getStatus().name() : WorkflowStatus.INACTIVE.name());
+        response.setNodeCount(workflow.getNodes() != null ? workflow.getNodes().size() : 0);
+        response.setExecutionCount(workflow.getExecutions() != null ? workflow.getExecutions().size() : 0);
+        response.setLastExecution(resolveLastExecution(workflow));
+        response.setOwnedByCurrentUser(workflowAccessService.isOwner(workflow, accessContext));
+        response.setCanEdit(permissions.contains(PermissionType.EDIT));
+        response.setCanDelete(permissions.contains(PermissionType.EDIT));
+        response.setCanExecute(permissions.contains(PermissionType.EXECUTE));
+        response.setCanShare(workflowAccessService.canShare(workflow, accessContext));
+        response.setReadOnly(!permissions.contains(PermissionType.EDIT));
         response.setNodes(toNodeResponses(workflow.getNodes()));
         response.setConnections(toConnectionResponses(workflow.getConnections()));
         return response;
+    }
+
+    private LocalDateTime resolveLastExecution(Workflow workflow) {
+        if (workflow.getExecutions() == null || workflow.getExecutions().isEmpty()) {
+            return null;
+        }
+
+        return workflow.getExecutions().stream()
+                .map(Execution::getStartedAt)
+                .filter(java.util.Objects::nonNull)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
     }
 
     private List<NodeResponse> toNodeResponses(List<Node> nodes) {

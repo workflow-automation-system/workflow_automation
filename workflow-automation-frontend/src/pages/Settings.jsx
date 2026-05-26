@@ -1,7 +1,47 @@
 import React from 'react';
-import { Bell, Building2, Check, Copy, KeyRound, Monitor, Moon, Shield, Sun } from 'lucide-react';
+import { Bell, Building2, Check, Copy, Eye, KeyRound, Monitor, Moon, Shield, Sun, UserCircle2, Workflow } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
+import { getRole, isAdmin, isViewer } from '../utils/rbac';
+
+const ROLE_DESCRIPTIONS = {
+  ADMIN: {
+    label: 'Administrator',
+    color: 'bg-[#292D32] text-white',
+    description: 'Full access to the platform. You can manage organization members, assign roles, create/edit/delete workflows, manage integrations, and view audit logs.',
+    capabilities: [
+      'Manage organization members and roles',
+      'Create, edit, and delete workflows',
+      'Execute any workflow',
+      'Manage integrations and app connections',
+      'Access admin console and audit logs',
+      'Configure platform settings',
+    ],
+  },
+  USER: {
+    label: 'Member',
+    color: 'bg-[#D0FFA4] text-[#292D32]',
+    description: 'Standard access. You can create and manage your own workflows, execute permitted workflows, and view organization info.',
+    capabilities: [
+      'Create new workflows',
+      'Edit own workflows',
+      'Execute permitted workflows',
+      'View organization members',
+      'View templates',
+    ],
+  },
+  VIEWER: {
+    label: 'Viewer',
+    color: 'bg-[#E2E8F0] text-[#5C5C5C]',
+    description: 'Read-only access. You can view workflows and execution history, but cannot create, edit, or delete anything.',
+    capabilities: [
+      'View all workflows (read-only)',
+      'View execution history',
+      'Execute workflows where access is granted',
+      'View templates',
+    ],
+  },
+};
 
 const Settings = () => {
   const { user } = useAuthStore();
@@ -12,6 +52,8 @@ const Settings = () => {
     summary: true,
     push: false,
   });
+  const role = getRole(user);
+  const roleInfo = ROLE_DESCRIPTIONS[role] || ROLE_DESCRIPTIONS.USER;
 
   const copy = (value, key) => {
     navigator.clipboard.writeText(value);
@@ -38,6 +80,41 @@ const Settings = () => {
             <Field label="Display Name" value={user?.name || 'User'} />
             <Field label="Email Address" value={user?.email || 'user@company.com'} />
           </div>
+        </div>
+      </section>
+
+      <section className="enterprise-card overflow-hidden">
+        <div className="border-b border-[#E2E8F0] px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Shield size={18} className="text-[#292D32]" />
+            <h2 className="text-lg font-semibold text-[#292D32]">Role & Permissions</h2>
+          </div>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className={`rounded-full px-3 py-1.5 text-sm font-bold ${roleInfo.color}`}>
+              {roleInfo.label}
+            </span>
+            <p className="text-sm text-[#5C5C5C]">{roleInfo.description}</p>
+          </div>
+
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.06em] text-[#5C5C5C]">
+              Your permissions
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {roleInfo.capabilities.map((cap) => (
+                <div key={cap} className="flex items-center gap-2 text-sm text-[#292D32]">
+                  <Check size={14} className="shrink-0 text-[#292D32]" />
+                  {cap}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-xs text-[#8D95A1]">
+            As an administrator, you can manage member roles from the Admin Console.
+          </p>
         </div>
       </section>
 

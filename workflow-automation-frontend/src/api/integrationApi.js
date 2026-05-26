@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { clearStoredSession } from '../utils/session';
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('token');
@@ -11,8 +12,15 @@ async function request(path, options = {}) {
     },
   });
 
+  if (response.status === 401) {
+    clearStoredSession();
+    window.location.assign('/login');
+    throw new Error('Your session expired. Please sign in again.');
+  }
+
   if (!response.ok) {
-    throw new Error(`Request failed (${response.status})`);
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.message || `Request failed (${response.status})`);
   }
 
   return response.json();

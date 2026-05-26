@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, GitBranch, Plus, Search, ShieldCheck, Sparkles, Star, Users } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
+import { canCreateWorkflow } from '../utils/rbac';
 
 const categories = [
   { name: 'All', count: 48 },
@@ -52,6 +54,7 @@ const templates = [
 
 const Templates = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [selectedCategory, setSelectedCategory] = React.useState('All');
 
   const visibleTemplates =
@@ -68,14 +71,16 @@ const Templates = () => {
             Deploy pre-built enterprise blueprints for scalable automation programs.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/create-workflow')}
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3C4249]"
-        >
-          <Plus size={16} />
-          Create Custom
-        </button>
+        {canCreateWorkflow(user) && (
+          <button
+            type="button"
+            onClick={() => navigate('/create-workflow')}
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3C4249]"
+          >
+            <Plus size={16} />
+            Create Custom
+          </button>
+        )}
       </div>
 
       <section className="enterprise-card p-6">
@@ -162,14 +167,20 @@ const Templates = () => {
             </div>
 
             <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                onClick={() => navigate('/create-workflow')}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249]"
-              >
-                Use Template
-                <ArrowRight size={14} />
-              </button>
+              {canCreateWorkflow(user) ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/create-workflow')}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249]"
+                >
+                  Use Template
+                  <ArrowRight size={14} />
+                </button>
+              ) : (
+                <span className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2.5 text-sm font-medium text-[#8D95A1]">
+                  View Only
+                </span>
+              )}
               <button
                 type="button"
                 className="inline-flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm font-semibold text-[#292D32] hover:border-[#D0FFA4]"

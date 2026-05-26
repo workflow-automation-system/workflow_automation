@@ -31,7 +31,7 @@ const iconMap = {
 
 const getNodeColor = (nodeDefinition) => nodeDefinition?.color || '#D0FFA4';
 
-const NodeSidebar = ({ workflowConfiguration }) => {
+const NodeSidebar = ({ workflowConfiguration, disabled = false }) => {
   const nodeFunctions =
     Array.isArray(workflowConfiguration?.functions) && workflowConfiguration.functions.length > 0
       ? workflowConfiguration.functions
@@ -61,9 +61,12 @@ const NodeSidebar = ({ workflowConfiguration }) => {
             <button
               key={node.key}
               type="button"
-              draggable
-              onDragStart={(event) => onDragStart(event, node.key)}
-              className="flex w-full cursor-grab items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-3 text-left transition-colors hover:border-[#D0FFA4]"
+              draggable={!disabled}
+              onDragStart={(event) => !disabled && onDragStart(event, node.key)}
+              className={[
+                'flex w-full items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-3 text-left transition-colors',
+                disabled ? 'cursor-not-allowed opacity-60' : 'cursor-grab hover:border-[#D0FFA4]',
+              ].join(' ')}
             >
               <span
                 className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl border border-[#E2E8F0]"
@@ -84,7 +87,9 @@ const NodeSidebar = ({ workflowConfiguration }) => {
 
       <div className="border-t border-[#E2E8F0] p-4">
         <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 text-xs text-[#5C5C5C]">
-          Functions and entities are loaded from backend workflow configuration.
+          {disabled
+            ? 'Read only mode is active. Drag-and-drop is disabled for this workflow.'
+            : 'Functions and entities are loaded from backend workflow configuration.'}
         </div>
       </div>
     </aside>

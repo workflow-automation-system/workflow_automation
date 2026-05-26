@@ -6,16 +6,25 @@ import com.workflow_automation.auth_service.dto.organization.OrganizationMemberS
 import com.workflow_automation.auth_service.repository.UserRepository;
 import com.workflow_automation.auth_service.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+<<<<<<< Updated upstream
 
+=======
+import org.springframework.web.server.ResponseStatusException;
+>>>>>>> Stashed changes
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -37,11 +46,33 @@ public class AuthService {
             throw new RuntimeException("Email already exists");
         }
 
+<<<<<<< Updated upstream
         OrganizationSummary organization = organizationClient.resolveOrganization(
                 request.getOrganizationName().trim(),
                 extractDomain(email)
         );
+=======
+        String domain = extractDomain(email);
+        if (domain == null || domain.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Adresse email invalide");
+        }
+
+        OrganizationSummary organization = null;
+        if (request.getOrganizationName() != null && !request.getOrganizationName().isBlank()) {
+            organization = organizationClient.resolveOrganization(
+                    request.getOrganizationName().trim(), domain);
+        } else {
+            organization = organizationClient.resolveOrganization("", domain);
+        }
+
+>>>>>>> Stashed changes
         Role assignedRole = isFirstOrganizationMember(organization) ? Role.ADMIN : Role.USER;
+        log.info("Registration: email={}, assignedRole={}, orgId={}, orgMemberCount={}",
+                email, assignedRole,
+                organization != null ? organization.getId() : null,
+                organization != null ? organization.getMemberCount() : null);
+
         String verificationToken = UUID.randomUUID().toString();
 
         User user = User.builder()
@@ -58,10 +89,22 @@ public class AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        syncOrganizationMember(savedUser);
+        log.info("Registration saved: userId={}, role={}", savedUser.getId(), savedUser.getRole());
 
+<<<<<<< Updated upstream
         String verificationLink = backendUrl + "/api/auth/verify?token=" + verificationToken;
         emailService.sendVerificationEmail(savedUser.getEmail(), verificationLink);
+=======
+        String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
+        try {
+            emailService.sendVerificationEmail(savedUser.getEmail(), verificationLink);
+        } catch (Exception e) {
+            log.error("Email send failed for userId={}, deleting user", savedUser.getId());
+            userRepository.delete(savedUser);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Impossible d'envoyer l'email de vérification. Veuillez vérifier que l'adresse email est valide.");
+        }
+>>>>>>> Stashed changes
 
         return toAuthResponse(savedUser, null);
     }
@@ -70,21 +113,26 @@ public class AuthService {
         String email = request.getEmail().trim().toLowerCase();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cet email n'existe pas"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Mot de passe incorrect");
         }
 
         if (!user.isEnabled()) {
-            throw new RuntimeException("Please verify your email before login");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Veuillez vérifier votre email avant de vous connecter");
         }
 
         user = ensureOrganization(user);
-        String token = jwtUtil.generateToken(user.getEmail());
+        log.info("Login: email={}, dbRole={}, orgId={}", email, user.getRole(), user.getOrganizationId());
+
+        String token = jwtUtil.generateToken(user);
+        log.info("Login: JWT generated with role={}", user.getRole());
 
         return toAuthResponse(user, token);
     }
+
 
     public String verifyEmail(String token) {
         User user = userRepository.findByVerificationToken(token)
@@ -104,17 +152,59 @@ public class AuthService {
         user.setVerificationTokenExpiresAt(null);
         userRepository.save(user);
         syncOrganizationMember(user);
+        log.info("Email verified: userId={}, role={}", user.getId(), user.getRole());
 
         return "Account verified successfully";
     }
 
+    public String resendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
+                .orElseThrow(() -> new RuntimeException("Email not found"));
+
+        if (user.isEnabled()) {
+            throw new RuntimeException("Email already verified");
+        }
+
+        String verificationToken = UUID.randomUUID().toString();
+        user.setVerificationToken(verificationToken);
+        user.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+        userRepository.save(user);
+
+        String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
+        emailService.sendVerificationEmail(user.getEmail(), verificationLink);
+
+        return "Verification email resent successfully";
+    }
 
     public AuthResponse getCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (!user.isEnabled()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Veuillez vérifier votre email avant de vous connecter");
+        }
+
         user = ensureOrganization(user);
-        return toAuthResponse(user, null);
+        return toAuthResponse(user, jwtUtil.generateToken(user));
+    }
+
+    public void updateUserRole(Long targetUserId, String newRole, Long adminOrganizationId) {
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!adminOrganizationId.equals(target.getOrganizationId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Cannot modify users outside your organization");
+        }
+
+        Role role = parseRole(newRole);
+        target.setRole(role);
+        userRepository.save(target);
+        syncOrganizationMember(target);
+
+        organizationClient.updateMemberRole(adminOrganizationId, targetUserId, role.name());
+        log.info("Role updated: userId={}, newRole={}, by orgId={}", targetUserId, role, adminOrganizationId);
     }
 
     private User ensureOrganization(User user) {
@@ -157,6 +247,7 @@ public class AuthService {
                 .department(user.getDepartment())
                 .jobTitle(user.getJobTitle())
                 .role(resolveRole(user).name())
+                .organizationId(user.getOrganizationId())
                 .organization(organization)
                 .build();
     }
@@ -215,9 +306,28 @@ public class AuthService {
         return user.getRole() == null ? Role.USER : user.getRole();
     }
 
+    private Role parseRole(String rawRole) {
+        if (rawRole == null || rawRole.isBlank()) {
+            return Role.USER;
+        }
+
+        try {
+            return Role.valueOf(rawRole.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return Role.USER;
+        }
+    }
+
     private boolean isFirstOrganizationMember(OrganizationSummary organization) {
         return organization != null
                 && organization.getMemberCount() != null
                 && organization.getMemberCount() == 0L;
+    }
+
+    public List<AuthResponse> getAllUsers(Long organizationId) {
+        return userRepository.findByOrganizationId(organizationId)
+                .stream()
+                .map(user -> toAuthResponse(user, null))
+                .collect(Collectors.toList());
     }
 }

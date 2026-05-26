@@ -56,7 +56,7 @@ const Register = () => {
       jobTitle: formData.jobTitle.trim(),
       password: formData.password,
     });
-    if (result.success) navigate('/email-verification');
+    if (result.success) navigate('/email-verification', { state: { email: formData.email.trim() } });
   };
 
   const featureList = [

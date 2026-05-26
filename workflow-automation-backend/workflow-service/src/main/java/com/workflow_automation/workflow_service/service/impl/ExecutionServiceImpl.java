@@ -7,11 +7,10 @@ import com.workflow_automation.workflow_service.entity.Node;
 import com.workflow_automation.workflow_service.entity.Workflow;
 import com.workflow_automation.workflow_service.entity.enums.ExecutionStatus;
 import com.workflow_automation.workflow_service.entity.enums.NodeType;
-import com.workflow_automation.workflow_service.exception.WorkflowNotFoundException;
 import com.workflow_automation.workflow_service.repository.ExecutionRepository;
 import com.workflow_automation.workflow_service.repository.ExecutionStepRepository;
-import com.workflow_automation.workflow_service.repository.WorkflowRepository;
 import com.workflow_automation.workflow_service.service.ExecutionService;
+import com.workflow_automation.workflow_service.service.WorkflowAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.workflow_automation.workflow_service.integration.ApplicationActionHandler;
 import com.workflow_automation.workflow_service.integration.ApplicationActionRegistry;
+import com.workflow_automation.workflow_service.security.AccessContext;
 
 
 import java.time.LocalDateTime;
@@ -35,17 +35,17 @@ public class ExecutionServiceImpl implements ExecutionService {
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{\\s*([a-zA-Z0-9_.-]+)\\s*}}");
 
-    private final WorkflowRepository workflowRepository;
     private final ExecutionRepository executionRepository;
     private final ExecutionStepRepository executionStepRepository;
     private final ApplicationActionRegistry actionRegistry;
     private final ObjectMapper objectMapper;
+    private final WorkflowAccessService workflowAccessService;
 
     @Override
     @Transactional
-    public void executeWorkflow(Long workflowId, Map<String, Object> input) {
-        Workflow workflow = workflowRepository.findById(workflowId)
-                .orElseThrow(() -> new WorkflowNotFoundException(workflowId));
+    public void executeWorkflow(Long workflowId, AccessContext accessContext, Map<String, Object> input) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
+        workflowAccessService.assertCanExecute(workflow, accessContext);
 
         Execution execution = Execution.builder()
                 .workflow(workflow)
@@ -64,7 +64,8 @@ public class ExecutionServiceImpl implements ExecutionService {
 
             // Initialize context with input
             Map<String, Object> context = new HashMap<>(input != null ? input : new HashMap<>());
-            context.put("userId", workflow.getUserId());
+            context.put("userId", accessContext.getUserId());
+            context.put("organizationId", accessContext.getOrganizationId());
             
             processNode(triggerNode, context, execution);
 

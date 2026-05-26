@@ -1,9 +1,11 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../api/config';
+import { clearStoredSession } from '../utils/session';
 
 const API = axios.create({
   baseURL: API_BASE_URL,
 });
+
 
 // Intercepteur — ajoute le token JWT automatiquement à chaque requête
 API.interceptors.request.use((config) => {
@@ -19,7 +21,7 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      clearStoredSession();
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -42,8 +44,18 @@ const authService = {
     return res.data;
   },
 
+  resendVerification: async (email) => {
+    const res = await API.post('/auth/resend-verification', { email });
+    return res.data;
+  },
+
   me: async () => {
     const res = await API.get('/auth/me');
+    return res.data;
+  },
+
+  updateUserRole: async (userId, role) => {
+    const res = await API.patch(`/auth/admin/users/${userId}/role`, { role });
     return res.data;
   },
 };

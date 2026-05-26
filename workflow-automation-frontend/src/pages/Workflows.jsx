@@ -12,6 +12,14 @@ import WorkflowCard from '../components/workflow/WorkflowCard';
 import WorkflowCardSkeleton from '../components/workflow/WorkflowCardSkeleton';
 import useWorkflowStore from '../stores/workflowStore';
 import ExecuteWorkflowModal from '../components/workflow/ExecuteWorkflowModal';
+import { useAuthStore } from '../stores/authStore';
+import {
+  canCreateWorkflow,
+  canDeleteWorkflow,
+  canEditWorkflow,
+  canExecuteWorkflow,
+  isViewer,
+} from '../utils/rbac';
 
 const STATUS_FILTERS = [
   { key: 'ALL', label: 'All' },
@@ -66,6 +74,8 @@ const Workflows = () => {
   const closeToast = React.useCallback(() => {
     setToast((current) => ({ ...current, open: false }));
   }, []);
+
+  const { user } = useAuthStore();
 
   const refreshWorkflows = React.useCallback(async () => {
     try {
@@ -155,6 +165,12 @@ const Workflows = () => {
 
   return (
     <div className="space-y-5 font-urbanist">
+      {isViewer(user) ? (
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm font-medium text-[#5C5C5C]">
+          Read only mode is active. Workflow editing controls are disabled for viewer accounts.
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[#292D32]">Workflows</h1>
@@ -162,14 +178,16 @@ const Workflows = () => {
             Build and operate enterprise automations with controlled branching, retry logic, and execution history.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/create-workflow')}
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3C4249]"
-        >
-          <Plus size={16} />
-          Create Workflow
-        </button>
+        {canCreateWorkflow(user) && (
+          <button
+            type="button"
+            onClick={() => navigate('/create-workflow')}
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3C4249]"
+          >
+            <Plus size={16} />
+            Create Workflow
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -247,14 +265,16 @@ const Workflows = () => {
               ? 'Create your first workflow to get started with automation.'
               : 'No workflow matches your current search/filter.'}
           </p>
-          <button
-            type="button"
-            onClick={() => navigate('/create-workflow')}
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3C4249]"
-          >
-            <Plus size={16} />
-            Create Workflow
-          </button>
+          {canCreateWorkflow(user) ? (
+            <button
+              type="button"
+              onClick={() => navigate('/create-workflow')}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3C4249]"
+            >
+              <Plus size={16} />
+              Create Workflow
+            </button>
+          ) : null}
         </section>
       ) : (
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -264,10 +284,10 @@ const Workflows = () => {
               workflow={workflow}
               actionInProgress={actionWorkflowId === workflow.id}
               onView={() => navigate(`/workflow/${workflow.id}`)}
-              onEdit={() => navigate(`/create-workflow?id=${workflow.id}`)}
-              onExecute={() => setExecuteModal({ open: true, workflow })}
-              onToggle={() => handleToggleStatus(workflow)}
-              onDelete={() => setDeleteModal({ open: true, workflow })}
+              onEdit={canEditWorkflow(workflow, user) ? () => navigate(`/create-workflow?id=${workflow.id}`) : undefined}
+              onExecute={canExecuteWorkflow(workflow, user) ? () => setExecuteModal({ open: true, workflow }) : undefined}
+              onToggle={canEditWorkflow(workflow, user) ? () => handleToggleStatus(workflow) : undefined}
+              onDelete={canDeleteWorkflow(workflow, user) ? () => setDeleteModal({ open: true, workflow }) : undefined}
               formatDate={(w) => formatDate(w.createdAt || w.updatedAt || w.lastExecution || null)}
             />
           ))}

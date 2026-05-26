@@ -3,9 +3,12 @@ package com.workflow_automation.workflow_service.controller;
 import com.workflow_automation.workflow_service.dto.request.ExecuteWorkflowRequest;
 import com.workflow_automation.workflow_service.entity.Execution;
 import com.workflow_automation.workflow_service.entity.ExecutionStep;
+import com.workflow_automation.workflow_service.entity.Workflow;
 import com.workflow_automation.workflow_service.repository.ExecutionRepository;
 import com.workflow_automation.workflow_service.repository.ExecutionStepRepository;
+import com.workflow_automation.workflow_service.security.AccessContext;
 import com.workflow_automation.workflow_service.service.ExecutionService;
+import com.workflow_automation.workflow_service.service.WorkflowAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,19 +23,31 @@ public class ExecutionController {
     private final ExecutionService executionService;
     private final ExecutionRepository executionRepository;
     private final ExecutionStepRepository executionStepRepository;
+    private final WorkflowAccessService workflowAccessService;
 
     @PostMapping("/api/workflows/{workflowId}/execute")
     public ResponseEntity<Void> execute(
             @PathVariable Long workflowId,
-            @RequestBody ExecuteWorkflowRequest request
+            @RequestBody ExecuteWorkflowRequest request,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
     ) {
-        executionService.executeWorkflow(workflowId, request.getInput());
+        executionService.executeWorkflow(workflowId, AccessContext.of(userId, organizationId, role), request.getInput());
         return ResponseEntity.accepted().build();
     }
 
     @GetMapping("/api/executions/workflow/{workflowId}")
-    public ResponseEntity<List<Map<String, Object>>> getByWorkflow(@PathVariable Long workflowId) {
-        List<Map<String, Object>> executions = executionRepository.findByWorkflowIdOrderByStartedAtDesc(workflowId)
+    public ResponseEntity<List<Map<String, Object>>> getByWorkflow(
+            @PathVariable Long workflowId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
+    ) {
+        AccessContext accessContext = AccessContext.of(userId, organizationId, role);
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
+
+        List<Map<String, Object>> executions = executionRepository.findByWorkflowIdOrderByStartedAtDesc(workflow.getId())
                 .stream()
                 .map(this::toExecutionResponse)
                 .toList();
@@ -40,7 +55,18 @@ public class ExecutionController {
     }
 
     @GetMapping("/api/executions/{executionId}/steps")
-    public ResponseEntity<List<Map<String, Object>>> getSteps(@PathVariable Long executionId) {
+    public ResponseEntity<List<Map<String, Object>>> getSteps(
+            @PathVariable Long executionId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role
+    ) {
+        AccessContext accessContext = AccessContext.of(userId, organizationId, role);
+        Execution execution = executionRepository.findById(executionId)
+                .orElseThrow(() -> new IllegalArgumentException("Execution not found"));
+
+        workflowAccessService.getAccessibleWorkflow(execution.getWorkflow().getId(), accessContext);
+
         List<Map<String, Object>> steps = executionStepRepository.findByExecutionIdOrderByExecutedAtAsc(executionId)
                 .stream()
                 .map(this::toStepResponse)

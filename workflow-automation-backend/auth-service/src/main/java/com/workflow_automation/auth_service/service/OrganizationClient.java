@@ -1,6 +1,7 @@
 package com.workflow_automation.auth_service.service;
 
 import com.workflow_automation.auth_service.dto.OrganizationSummary;
+import com.workflow_automation.auth_service.dto.organization.OrganizationMemberResponse;
 import com.workflow_automation.auth_service.dto.organization.OrganizationMemberSyncRequest;
 import com.workflow_automation.auth_service.dto.organization.OrganizationResolveRequest;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,6 +71,58 @@ public class OrganizationClient {
                     .toBodilessEntity();
         } catch (RestClientException exception) {
             throw new RuntimeException("Unable to sync organization member", exception);
+        }
+    }
+
+    public OrganizationMemberResponse getMember(Long organizationId, Long userId) {
+        if (organizationId == null || userId == null) {
+            return null;
+        }
+
+        try {
+            return restClient.get()
+                    .uri("/internal/{organizationId}/members/{userId}", organizationId, userId)
+                    .retrieve()
+                    .body(OrganizationMemberResponse.class);
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(404))
+                    || exception.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(400))) {
+                return null;
+            }
+            throw new RuntimeException("Unable to load organization member", exception);
+        } catch (RestClientException exception) {
+            throw new RuntimeException("Unable to load organization member", exception);
+        }
+    }
+
+    public void updateMemberRole(Long organizationId, Long userId, String role) {
+        if (organizationId == null || userId == null) {
+            return;
+        }
+
+        try {
+            restClient.patch()
+                    .uri("/internal/{organizationId}/members/{userId}/role", organizationId, userId)
+                    .body(java.util.Map.of("role", role))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException exception) {
+            throw new RuntimeException("Unable to update member role", exception);
+        }
+    }
+
+    public void removeMember(Long organizationId, Long userId) {
+        if (organizationId == null || userId == null) {
+            return;
+        }
+
+        try {
+            restClient.delete()
+                    .uri("/internal/{organizationId}/members/{userId}", organizationId, userId)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException exception) {
+            // Silently ignore if member doesn't exist in org-service
         }
     }
 }
