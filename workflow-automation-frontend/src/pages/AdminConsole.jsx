@@ -4,11 +4,13 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  Mail,
   Search,
   Shield,
   Trash2,
   UserCircle2,
   UserPlus,
+  X,
 } from 'lucide-react';
 import Toast from '../components/ui/Toast';
 import authService, { API } from '../services/authService';
@@ -74,6 +76,15 @@ const AdminConsole = () => {
   const [deletingUserId, setDeletingUserId] = React.useState(null);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
   const [showRoleGuide, setShowRoleGuide] = React.useState(false);
+  const [showInviteForm, setShowInviteForm] = React.useState(false);
+  const [inviteLoading, setInviteLoading] = React.useState(false);
+  const [inviteForm, setInviteForm] = React.useState({
+    name: '',
+    email: '',
+    department: '',
+    jobTitle: '',
+    role: 'USER',
+  });
   const { user } = useAuthStore();
 
   const showToast = React.useCallback((message, tone = 'info') => {
@@ -121,18 +132,44 @@ const AdminConsole = () => {
       showToast('You cannot remove yourself.', 'error');
       return;
     }
-    if (!window.confirm(`Remove ${member.name || member.email} from the organization?`)) return;
+    if (!window.confirm(`Remove ${member.name || member.email} from the organization? This action cannot be undone.`)) return;
 
     setDeletingUserId(memberId);
     try {
-      const orgId = user?.organizationId;
-      await API.delete(`/organizations/${orgId}/members/${memberId}`);
+      await authService.deleteUser(memberId);
       setMembers((prev) => prev.filter((m) => m.id !== memberId));
-      showToast(`${member.name || member.email} removed.`, 'success');
+      showToast(`${member.name || member.email} has been removed.`, 'success');
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to remove member.', 'error');
     } finally {
       setDeletingUserId(null);
+    }
+  };
+
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    if (!inviteForm.name.trim() || !inviteForm.email.trim()) {
+      showToast('Name and email are required.', 'error');
+      return;
+    }
+
+    setInviteLoading(true);
+    try {
+      const invited = await authService.inviteUser({
+        name: inviteForm.name.trim(),
+        email: inviteForm.email.trim(),
+        department: inviteForm.department.trim() || undefined,
+        jobTitle: inviteForm.jobTitle.trim() || undefined,
+        role: inviteForm.role,
+      });
+      setMembers((prev) => [...prev, invited]);
+      setShowInviteForm(false);
+      setInviteForm({ name: '', email: '', department: '', jobTitle: '', role: 'USER' });
+      showToast(`${invited.name || invited.email} has been invited.`, 'success');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to invite member.', 'error');
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -150,13 +187,130 @@ const AdminConsole = () => {
 
   return (
     <div className="space-y-5 font-urbanist">
-      <div>
-        <h1 className="text-3xl font-bold text-[#292D32]">Admin Console</h1>
-        <p className="mt-1 text-sm text-[#5C5C5C]">
-          Manage your organization's members, assign roles, and enforce access policies.
-        </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-[#292D32]">Admin Console</h1>
+          <p className="mt-1 text-sm text-[#5C5C5C]">
+            Manage your organization's members, assign roles, and enforce access policies.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowInviteForm(true)}
+          className="flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44]"
+        >
+          <UserPlus size={16} />
+          Invite Member
+        </button>
       </div>
 
+      {/* Invite Member Modal */}
+      {showInviteForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#292D32]">Invite New Member</h2>
+              <button
+                type="button"
+                onClick={() => setShowInviteForm(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Full Name *</label>
+                <input
+                  type="text"
+                  value={inviteForm.name}
+                  onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="John Doe"
+                  required
+                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Email Address *</label>
+                <input
+                  type="email"
+                  value={inviteForm.email}
+                  onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="john@company.com"
+                  required
+                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Department</label>
+                  <input
+                    type="text"
+                    value={inviteForm.department}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, department: e.target.value }))}
+                    placeholder="Engineering"
+                    className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Job Title</label>
+                  <input
+                    type="text"
+                    value={inviteForm.jobTitle}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, jobTitle: e.target.value }))}
+                    placeholder="Developer"
+                    className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Role</label>
+                <select
+                  value={inviteForm.role}
+                  onChange={(e) => setInviteForm((f) => ({ ...f, role: e.target.value }))}
+                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                >
+                  {ROLE_OPTIONS.map((role) => (
+                    <option key={role} value={role}>{formatRole(role)}</option>
+                  ))}
+                </select>
+              </div>
+
+              <p className="text-xs text-[#5C5C5C]">
+                An invitation email will be sent with a temporary password and a verification link.
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInviteForm(false)}
+                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={inviteLoading}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44] disabled:opacity-60"
+                >
+                  {inviteLoading ? 'Sending...' : (
+                    <>
+                      <Mail size={14} />
+                      Send Invitation
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Role Guide */}
       <section className="enterprise-card overflow-hidden">
         <button
           type="button"
@@ -178,6 +332,7 @@ const AdminConsole = () => {
               <p><strong className="text-[#292D32]">First user</strong> who creates an organization is automatically assigned the <strong className="text-[#292D32]">Admin</strong> role.</p>
               <p>All subsequent users who sign up join as <strong className="text-[#292D32]">Member</strong> by default.</p>
               <p>Only an <strong className="text-[#292D32]">Admin</strong> can change a member's role to Admin, Member, or Viewer using the dropdown below.</p>
+              <p>Use the <strong className="text-[#292D32]">Invite Member</strong> button to add new members directly to your organization.</p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
@@ -201,6 +356,7 @@ const AdminConsole = () => {
         )}
       </section>
 
+      {/* Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="enterprise-card p-5">
           <p className="text-sm text-[#5C5C5C]">Total Members</p>
@@ -229,6 +385,7 @@ const AdminConsole = () => {
         </div>
       </div>
 
+      {/* Member List */}
       <section className="enterprise-card overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">

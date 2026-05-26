@@ -2,6 +2,7 @@ package com.workflow_automation.auth_service.service;
 
 import com.workflow_automation.auth_service.dto.*;
 import com.workflow_automation.auth_service.entity.*;
+import com.workflow_automation.auth_service.dto.InviteRequest;
 import com.workflow_automation.auth_service.dto.organization.OrganizationMemberSyncRequest;
 import com.workflow_automation.auth_service.repository.UserRepository;
 import com.workflow_automation.auth_service.security.JwtUtil;
@@ -11,11 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-<<<<<<< Updated upstream
-
-=======
 import org.springframework.web.server.ResponseStatusException;
->>>>>>> Stashed changes
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.UUID;
@@ -32,6 +29,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final OrganizationClient organizationClient;
+    private final EmailValidationService emailValidationService;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -42,16 +40,16 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         String email = request.getEmail().trim().toLowerCase();
 
+        // Validate email format, domain, and MX records
+        String emailError = emailValidationService.validate(email);
+        if (emailError != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, emailError);
+        }
+
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email already exists");
         }
 
-<<<<<<< Updated upstream
-        OrganizationSummary organization = organizationClient.resolveOrganization(
-                request.getOrganizationName().trim(),
-                extractDomain(email)
-        );
-=======
         String domain = extractDomain(email);
         if (domain == null || domain.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -66,7 +64,6 @@ public class AuthService {
             organization = organizationClient.resolveOrganization("", domain);
         }
 
->>>>>>> Stashed changes
         Role assignedRole = isFirstOrganizationMember(organization) ? Role.ADMIN : Role.USER;
         log.info("Registration: email={}, assignedRole={}, orgId={}, orgMemberCount={}",
                 email, assignedRole,
@@ -76,9 +73,9 @@ public class AuthService {
         String verificationToken = UUID.randomUUID().toString();
 
         User user = User.builder()
-                .name(request.getName().trim())
+                .name(request.getName() != null ? request.getName().trim() : null)
                 .email(email)
-                .department(request.getDepartment().trim())
+                .department(request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned")
                 .jobTitle(trimToNull(request.getJobTitle()))
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(assignedRole)
@@ -91,10 +88,6 @@ public class AuthService {
         User savedUser = userRepository.save(user);
         log.info("Registration saved: userId={}, role={}", savedUser.getId(), savedUser.getRole());
 
-<<<<<<< Updated upstream
-        String verificationLink = backendUrl + "/api/auth/verify?token=" + verificationToken;
-        emailService.sendVerificationEmail(savedUser.getEmail(), verificationLink);
-=======
         String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
         try {
             emailService.sendVerificationEmail(savedUser.getEmail(), verificationLink);
@@ -104,7 +97,6 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Impossible d'envoyer l'email de vérification. Veuillez vérifier que l'adresse email est valide.");
         }
->>>>>>> Stashed changes
 
         return toAuthResponse(savedUser, null);
     }
@@ -329,5 +321,76 @@ public class AuthService {
                 .stream()
                 .map(user -> toAuthResponse(user, null))
                 .collect(Collectors.toList());
+    }
+
+    public void deleteUser(Long targetUserId, Long adminOrganizationId, Long adminUserId) {
+        if (targetUserId.equals(adminUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot remove yourself");
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (!adminOrganizationId.equals(target.getOrganizationId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Cannot remove users outside your organization");
+        }
+
+        try {
+            organizationClient.removeMember(target.getOrganizationId(), target.getId());
+        } catch (Exception e) {
+            log.warn("Failed to remove org member for userId={}: {}", targetUserId, e.getMessage());
+        }
+
+        userRepository.delete(target);
+        log.info("User deleted: userId={}, by adminId={}", targetUserId, adminUserId);
+    }
+
+    public AuthResponse inviteUser(InviteRequest request, Long adminOrganizationId) {
+        String email = request.getEmail().trim().toLowerCase();
+
+        String emailError = emailValidationService.validate(email);
+        if (emailError != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, emailError);
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
+        }
+
+        Role assignedRole = parseRole(request.getRole());
+
+        String tempPassword = UUID.randomUUID().toString().substring(0, 12);
+        String verificationToken = UUID.randomUUID().toString();
+
+        User user = User.builder()
+                .name(request.getName() != null ? request.getName().trim() : email)
+                .email(email)
+                .department(request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned")
+                .jobTitle(trimToNull(request.getJobTitle()))
+                .password(passwordEncoder.encode(tempPassword))
+                .role(assignedRole)
+                .organizationId(adminOrganizationId)
+                .enabled(false)
+                .verificationToken(verificationToken)
+                .verificationTokenExpiresAt(LocalDateTime.now().plusHours(72))
+                .build();
+
+        User savedUser = userRepository.save(user);
+
+        String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
+        try {
+            emailService.sendInvitationEmail(savedUser.getEmail(), savedUser.getName(), verificationLink, tempPassword);
+        } catch (Exception e) {
+            log.error("Invitation email failed for {}, deleting user: {}", email, e.getMessage());
+            userRepository.delete(savedUser);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Impossible d'envoyer l'email d'invitation. Veuillez vérifier que l'adresse email est valide.");
+        }
+
+        syncOrganizationMember(savedUser);
+        log.info("User invited: userId={}, role={}, orgId={}", savedUser.getId(), assignedRole, adminOrganizationId);
+
+        return toAuthResponse(savedUser, null);
     }
 }

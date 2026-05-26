@@ -32,15 +32,6 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-<<<<<<< Updated upstream
-                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
-                        .requestMatchers(
-                                "/api/auth/register",
-                                "/api/auth/login",
-                                "/api/auth/verify",
-                                "/api/auth/health"
-                        ).permitAll()
-=======
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
@@ -49,7 +40,6 @@ public class SecurityConfig {
                                 "/api/auth/resend-verification"
                         ).permitAll()
                         .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
->>>>>>> Stashed changes
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -61,7 +51,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfig() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 

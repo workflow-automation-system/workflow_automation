@@ -42,4 +42,28 @@ public class EmailService {
                     ". Veuillez vérifier que l'adresse email est valide.", e);
         }
     }
+
+    public void sendInvitationEmail(String to, String name, String verificationLink, String tempPassword) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("You've been invited to Workflow Automation");
+        message.setText(
+                "Bonjour " + name + ",\n\n" +
+                        "Vous avez été invité(e) à rejoindre la plateforme Workflow Automation.\n\n" +
+                        "Votre mot de passe temporaire : " + tempPassword + "\n\n" +
+                        "Cliquez sur ce lien pour activer votre compte :\n" +
+                        verificationLink + "\n\n" +
+                        "Ce lien expire dans 72 heures.\n\n" +
+                        "Une fois connecté(e), vous pourrez changer votre mot de passe dans les paramètres."
+        );
+
+        try {
+            mailSender.send(message);
+            log.info("Invitation email sent to {}", to);
+        } catch (MailException e) {
+            log.error("Failed to send invitation email to {}: {}", to, e.getMessage());
+            throw new RuntimeException("Failed to send invitation email to " + to, e);
+        }
+    }
 }

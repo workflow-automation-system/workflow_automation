@@ -148,42 +148,42 @@ const Register = () => {
             />
 
             <Field
-              label="Password"
-              icon={Lock}
-              type="password"
-              value={formData.password}
-              onChange={(value) => setFormData((prev) => ({ ...prev, password: value }))}
-            />
-            {formErrors.password && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.password}</span>}
+    label="Password"
+    icon={Lock}
+    type="password"
+    value={formData.password}
+    onChange={(value) => setFormData((prev) => ({ ...prev, password: value }))}
+  />
+  { formErrors.password && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.password}</span> }
 
-            <Field
-              label="Confirm Password"
-              icon={Lock}
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(value) => setFormData((prev) => ({ ...prev, confirmPassword: value }))}
-            />
-            {formErrors.confirmPassword && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.confirmPassword}</span>}
+  <Field
+    label="Confirm Password"
+    icon={Lock}
+    type="password"
+    value={formData.confirmPassword}
+    onChange={(value) => setFormData((prev) => ({ ...prev, confirmPassword: value }))}
+  />
+  { formErrors.confirmPassword && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.confirmPassword}</span> }
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#292D32] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
-            >
-              {isLoading ? 'Creating account...' : 'Create Account'}
-              <ArrowRight size={14} />
-            </button>
-          </form>
+  <button
+    type="submit"
+    disabled={isLoading}
+    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#292D32] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
+  >
+    {isLoading ? 'Creating account...' : 'Create Account'}
+    <ArrowRight size={14} />
+  </button>
+          </form >
 
-          <p className="mt-5 text-center text-sm text-[#5C5C5C]">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-[#292D32] hover:underline">
-              Sign in
-            </Link>
-          </p>
-        </div>
-      </section>
-    </div>
+  <p className="mt-5 text-center text-sm text-[#5C5C5C]">
+    Already have an account?{' '}
+    <Link to="/login" className="font-semibold text-[#292D32] hover:underline">
+      Sign in
+    </Link>
+  </p>
+        </div >
+      </section >
+    </div >
   );
 };
 

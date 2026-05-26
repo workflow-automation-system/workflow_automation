@@ -13,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.server.ResponseStatusException;
+
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -80,5 +82,39 @@ public class AuthController {
         }
         authService.updateUserRole(userId, newRole, admin.getOrganizationId());
         return ResponseEntity.ok(Map.of("message", "Role updated successfully"));
+    }
+
+    @DeleteMapping("/admin/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUser(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
+        authService.deleteUser(userId, admin.getOrganizationId(), admin.getId());
+        return ResponseEntity.ok(Map.of("message", "User removed successfully"));
+    }
+
+    @PostMapping("/admin/invite")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> inviteUser(
+            @Valid @RequestBody InviteRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
+        AuthResponse invited = authService.inviteUser(request, admin.getOrganizationId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(invited);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<?> handleResponseStatus(ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(Map.of("message", ex.getReason() != null ? ex.getReason() : "An error occurred"));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<?> handleRuntime(RuntimeException ex) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "An error occurred"));
     }
 }

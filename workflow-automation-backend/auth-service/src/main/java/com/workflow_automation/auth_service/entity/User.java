@@ -25,12 +25,12 @@ public class User {
 
     private String name;
 
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
     private String department;
 
     private String jobTitle;
-
-    @Enumerated(EnumType.STRING)
-    private Role role;
 
     @Column(name = "organization_id")
     private Long organizationId;
@@ -48,6 +48,5 @@ public class User {
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
         if (this.role == null) this.role = Role.USER;
-        this.enabled = false;
     }
 }

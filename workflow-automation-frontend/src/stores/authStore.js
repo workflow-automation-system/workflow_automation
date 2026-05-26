@@ -76,23 +76,7 @@ export const useAuthStore = create(
         set({ isLoading: true, error: null });
         try {
           const response = await authService.login(email, password);
-<<<<<<< Updated upstream
-          localStorage.setItem('token', response.token);
-          
-          const user = {
-            id: response.id,
-            email: response.email,
-            name: response.name,
-            role: response.role,
-            department: response.department,
-            jobTitle: response.jobTitle,
-            organization: response.organization,
-          };
-          
-          set({ user, isAuthenticated: true, isLoading: false });
-=======
           applySession(response, set);
->>>>>>> Stashed changes
           return { success: true };
         } catch (error) {
           const status = error.response?.status;

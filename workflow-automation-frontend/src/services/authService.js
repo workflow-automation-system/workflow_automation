@@ -58,6 +58,16 @@ const authService = {
     const res = await API.patch(`/auth/admin/users/${userId}/role`, { role });
     return res.data;
   },
+
+  deleteUser: async (userId) => {
+    const res = await API.delete(`/auth/admin/users/${userId}`);
+    return res.data;
+  },
+
+  inviteUser: async (payload) => {
+    const res = await API.post('/auth/admin/invite', payload);
+    return res.data;
+  },
 };
 
 export { API };
