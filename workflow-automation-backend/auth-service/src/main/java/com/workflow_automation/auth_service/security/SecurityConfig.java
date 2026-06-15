@@ -16,7 +16,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.*;
 import org.springframework.security.config.Customizer;
 import java.util.List;
-import org.springframework.security.config.Customizer;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -37,6 +36,8 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/verify-email",
                                 "/api/auth/verify",
+                                "/api/auth/accept-invitation",
+                                "/api/auth/invitations/accept",
                                 "/api/auth/resend-verification"
                         ).permitAll()
                         .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")

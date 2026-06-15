@@ -203,7 +203,7 @@ const Organisation = () => {
           <h1 className="text-3xl font-bold text-[#292D32]">Organisation</h1>
           <p className="mt-1 text-sm text-[#5C5C5C]">
             {orgMeta?.name
-              ? `${orgMeta.name} — members, roles, and enterprise access governance.`
+              ? `${orgMeta.name} - members, roles, and enterprise access governance.`
               : 'Manage enterprise teams, permissions, and department-level workflow governance.'}
           </p>
         </div>
@@ -303,7 +303,7 @@ const Organisation = () => {
               </div>
 
               <p className="text-xs text-[#5C5C5C]">
-                An invitation email will be sent with a temporary password and a verification link.
+                An invitation email will be sent with a secure link to choose a password.
               </p>
 
               <div className="flex gap-3 pt-2">

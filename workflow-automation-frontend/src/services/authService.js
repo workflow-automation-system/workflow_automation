@@ -7,7 +7,7 @@ const API = axios.create({
 });
 
 
-// Intercepteur — ajoute le token JWT automatiquement à chaque requête
+// Add the JWT token to every API request when a session exists.
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -16,7 +16,7 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
-// Intercepteur — redirige vers /login si token expiré
+// Clear stale sessions when the API reports an invalid or expired token.
 API.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -41,6 +41,11 @@ const authService = {
 
   verifyEmail: async (token) => {
     const res = await API.post('/auth/verify-email', { token });
+    return res.data;
+  },
+
+  acceptInvitation: async (token, password) => {
+    const res = await API.post('/auth/accept-invitation', { token, password });
     return res.data;
   },
 

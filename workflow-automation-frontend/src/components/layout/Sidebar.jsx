@@ -76,7 +76,7 @@ const Sidebar = () => {
           <div className="relative">
             <button
               type="button"
-              title={`${user?.name || 'User'} (${role}) — View Profile`}
+              title={`${user?.name || 'User'} (${role}) - View Profile`}
               onClick={() => navigate('/profile')}
               className="flex h-11 w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#292D32] transition-colors hover:border-[#D0FFA4]"
             >

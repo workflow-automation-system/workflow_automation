@@ -5,6 +5,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import EmailVerification from './pages/auth/EmailVerification';
 import VerifyEmail from './pages/auth/VerifyEmail';
+import AcceptInvitation from './pages/auth/AcceptInvitation';
 import Dashboard from './pages/Dashboard';
 import Organisation from './pages/Organisation';
 import AppConnections from './pages/AppConnections';
@@ -124,6 +125,14 @@ function App() {
             element={
               <PublicRoute>
                 <VerifyEmail />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/accept-invitation"
+            element={
+              <PublicRoute>
+                <AcceptInvitation />
               </PublicRoute>
             }
           />

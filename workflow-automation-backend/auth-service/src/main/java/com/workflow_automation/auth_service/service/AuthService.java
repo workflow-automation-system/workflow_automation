@@ -95,7 +95,7 @@ public class AuthService {
             log.error("Email send failed for userId={}, deleting user", savedUser.getId());
             userRepository.delete(savedUser);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Impossible d'envoyer l'email de vérification. Veuillez vérifier que l'adresse email est valide.");
+                    "Impossible d'envoyer l'email de verification. Veuillez verifier que l'adresse email est valide.");
         }
 
         return toAuthResponse(savedUser, null);
@@ -113,7 +113,7 @@ public class AuthService {
 
         if (!user.isEnabled()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Veuillez vérifier votre email avant de vous connecter");
+                    "Veuillez verifier votre email avant de vous connecter");
         }
 
         user = ensureOrganization(user);
@@ -149,6 +149,26 @@ public class AuthService {
         return "Account verified successfully";
     }
 
+    public AuthResponse acceptInvitation(AcceptInvitationRequest request) {
+        User user = userRepository.findByVerificationToken(request.getToken())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid invitation link"));
+
+        if (user.getVerificationTokenExpiresAt() == null ||
+                user.getVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invitation link expired");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setEnabled(true);
+        user.setVerificationToken(null);
+        user.setVerificationTokenExpiresAt(null);
+        userRepository.save(user);
+        syncOrganizationMember(user);
+        log.info("Invitation accepted: userId={}, role={}, orgId={}", user.getId(), user.getRole(), user.getOrganizationId());
+
+        return toAuthResponse(user, null);
+    }
+
     public String resendVerificationEmail(String email) {
         User user = userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new RuntimeException("Email not found"));
@@ -174,7 +194,7 @@ public class AuthService {
 
         if (!user.isEnabled()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Veuillez vérifier votre email avant de vous connecter");
+                    "Veuillez verifier votre email avant de vous connecter");
         }
 
         user = ensureOrganization(user);
@@ -360,7 +380,7 @@ public class AuthService {
 
         Role assignedRole = parseRole(request.getRole());
 
-        String tempPassword = UUID.randomUUID().toString().substring(0, 12);
+        String initialPassword = UUID.randomUUID().toString().substring(0, 12);
         String verificationToken = UUID.randomUUID().toString();
 
         User user = User.builder()
@@ -368,7 +388,7 @@ public class AuthService {
                 .email(email)
                 .department(request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned")
                 .jobTitle(trimToNull(request.getJobTitle()))
-                .password(passwordEncoder.encode(tempPassword))
+                .password(passwordEncoder.encode(initialPassword))
                 .role(assignedRole)
                 .organizationId(adminOrganizationId)
                 .enabled(false)
@@ -378,14 +398,14 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
+        String invitationLink = frontendUrl + "/accept-invitation?token=" + verificationToken;
         try {
-            emailService.sendInvitationEmail(savedUser.getEmail(), savedUser.getName(), verificationLink, tempPassword);
+            emailService.sendInvitationEmail(savedUser.getEmail(), savedUser.getName(), invitationLink);
         } catch (Exception e) {
             log.error("Invitation email failed for {}, deleting user: {}", email, e.getMessage());
             userRepository.delete(savedUser);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Impossible d'envoyer l'email d'invitation. Veuillez vérifier que l'adresse email est valide.");
+                    "Impossible d'envoyer l'email d'invitation. Veuillez verifier que l'adresse email est valide.");
         }
 
         syncOrganizationMember(savedUser);

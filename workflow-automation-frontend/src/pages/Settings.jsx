@@ -1,8 +1,8 @@
 import React from 'react';
-import { Bell, Building2, Check, Copy, Eye, KeyRound, Monitor, Moon, Shield, Sun, UserCircle2, Workflow } from 'lucide-react';
+import { Bell, Building2, Check, Copy, KeyRound, Monitor, Moon, Shield, Sun } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
-import { getRole, isAdmin, isViewer } from '../utils/rbac';
+import { getRole } from '../utils/rbac';
 
 const ROLE_DESCRIPTIONS = {
   ADMIN: {

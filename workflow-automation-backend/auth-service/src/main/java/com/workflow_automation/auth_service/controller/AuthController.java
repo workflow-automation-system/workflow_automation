@@ -44,6 +44,11 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", authService.verifyEmail(request.getToken())));
     }
 
+    @PostMapping("/accept-invitation")
+    public ResponseEntity<?> acceptInvitation(@Valid @RequestBody AcceptInvitationRequest request) {
+        return ResponseEntity.ok(authService.acceptInvitation(request));
+    }
+
     @PostMapping("/resend-verification")
     public ResponseEntity<?> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
         return ResponseEntity.ok(Map.of("message", authService.resendVerificationEmail(request.getEmail())));
@@ -53,6 +58,13 @@ public class AuthController {
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(URI.create(frontendUrl + "/verify-email?token=" + token));
+        return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
+    @GetMapping("/invitations/accept")
+    public ResponseEntity<?> acceptInvitationRedirect(@RequestParam String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(URI.create(frontendUrl + "/accept-invitation?token=" + token));
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 

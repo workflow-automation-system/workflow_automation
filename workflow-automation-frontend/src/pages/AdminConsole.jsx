@@ -281,7 +281,7 @@ const AdminConsole = () => {
               </div>
 
               <p className="text-xs text-[#5C5C5C]">
-                An invitation email will be sent with a temporary password and a verification link.
+                An invitation email will be sent with a secure link to choose a password.
               </p>
 
               <div className="flex gap-3 pt-2">

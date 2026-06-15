@@ -13,7 +13,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
-import { canCreateWorkflow, isViewer, isAdmin, getRole } from '../utils/rbac';
+import { canCreateWorkflow, isAdmin, getRole } from '../utils/rbac';
 
 const graphData = [62, 58, 68, 64, 74, 70, 78, 75, 82, 79, 86, 84];
 
@@ -192,14 +192,20 @@ const Dashboard = () => {
             />
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/app-connections')}
-             className="mt-5 inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#292D32] transition-colors hover:border-[#D0FFA4] hover:bg-[#F6F5FA]"
-          >
-            See All
-            <ArrowRight size={14} />
-          </button>
+          {isAdmin(user) ? (
+            <button
+              type="button"
+              onClick={() => navigate('/app-connections')}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#292D32] transition-colors hover:border-[#D0FFA4] hover:bg-[#F6F5FA]"
+            >
+              See All
+              <ArrowRight size={14} />
+            </button>
+          ) : (
+            <p className="mt-5 rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-4 py-3 text-sm text-[#5E6672]">
+              App connection settings are managed by organization admins.
+            </p>
+          )}
         </article>
       </section>
     </div>
