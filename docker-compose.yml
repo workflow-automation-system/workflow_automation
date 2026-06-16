@@ -100,6 +100,25 @@ services:
       - pfa-network
 
   # ==========================================
+  # Audit Service
+  # ==========================================
+  audit-service:
+    build:
+      context: ./workflow-automation-backend/audit-service
+      dockerfile: Dockerfile
+    container_name: pfa-audit-service
+    ports:
+      - "8086:8085"
+    env_file:
+      - ./workflow-automation-backend/audit-service/.env
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/workflow_db
+    depends_on:
+      - postgres
+    networks:
+      - pfa-network
+
+  # ==========================================
   # Frontend : React Application (Dev mode avec HMR)
   # ==========================================
   frontend:
