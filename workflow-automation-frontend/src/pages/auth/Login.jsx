@@ -38,31 +38,21 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F5FA] font-urbanist lg:grid lg:grid-cols-2">
-      <section className="hidden bg-gradient-to-br from-[#D0FFA4] to-[#D0FFA4] p-12 lg:flex lg:flex-col lg:justify-between">
-        <div>
-          <div className="mb-12 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-soft">
-              <Workflow size={24} className="text-[#292D32]" />
-            </div>
-            <span className="text-2xl font-bold text-[#292D32]">FlowForge</span>
+    <div className="min-h-screen bg-[#F6F5FA] font-urbanist lg:grid lg:grid-cols-[1fr_2fr]">
+      <section className="hidden bg-[#D0FFA4] p-16 lg:flex lg:flex-col lg:justify-center relative">
+        <div className="max-w-sm mx-auto">
+          <div className="mb-10 flex items-center gap-3">
+            <Workflow size={28} className="text-[#292D32]" />
+            <span className="text-2xl font-bold tracking-tight text-[#292D32]">FlowForge</span>
           </div>
-          <h1 className="text-4xl font-bold leading-tight text-[#292D32]">Business Automation for Enterprise</h1>
-          <p className="mt-4 max-w-md text-lg text-[#5C5C5C]">
+
+          <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-[#292D32]">
+            Business Automation for Enterprise.
+          </h1>
+
+          <p className="mt-4 text-base leading-relaxed text-[#292D32]/80">
             Build secure, scalable automations across teams with enterprise orchestration and robust execution controls.
           </p>
-        </div>
-
-        <div className="rounded-2xl bg-white/60 p-6 backdrop-blur-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0FFA4]">
-              <Building2 size={18} className="text-[#292D32]" />
-            </div>
-            <div>
-              <p className="font-semibold text-[#292D32]">Trusted by Enterprise Teams</p>
-              <p className="text-sm text-[#5C5C5C]">Secure automation for mission-critical operations.</p>
-            </div>
-          </div>
         </div>
       </section>
 
