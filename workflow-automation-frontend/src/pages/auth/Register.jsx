@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BriefcaseBusiness, Building2, Check, Lock, Mail, User, Workflow } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Building2, Check, Lock, Mail, User, Workflow, Users } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const Register = () => {
   const navigate = useNavigate();
   const { clearError, error, isAuthenticated, isLoading, register } = useAuthStore();
   const [step, setStep] = React.useState(1);
+  const [accountType, setAccountType] = React.useState(null); // 'admin' or 'member'
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -26,15 +27,17 @@ const Register = () => {
     clearError();
   }, [clearError]);
 
-  const validateStep1 = () => {
+  const validateStep2 = () => {
     const errors = {};
-    if (!formData.organizationName.trim()) errors.organizationName = 'Organization name is required';
+    if (!formData.organizationName.trim()) {
+      errors.organizationName = 'Organization name is required';
+    }
     if (!formData.department.trim()) errors.department = 'Department is required';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const validateStep2 = () => {
+  const validateStep3 = () => {
     const errors = {};
     if (!formData.name.trim()) errors.name = 'Full name is required';
 
@@ -55,14 +58,21 @@ const Register = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (step === 1) {
-      if (validateStep1()) setStep(2);
+      if (accountType) setStep(2);
       return;
     }
-    if (!validateStep2()) return;
+    if (step === 2) {
+      if (validateStep2()) setStep(3);
+      return;
+    }
+    if (!validateStep3()) return;
+    
+    const submitOrgName = formData.organizationName.trim();
+
     const result = await register({
       name: formData.name.trim(),
       email: formData.email.trim(),
-      organizationName: formData.organizationName.trim(),
+      organizationName: submitOrgName,
       department: formData.department.trim(),
       jobTitle: formData.jobTitle.trim(),
       password: formData.password,
@@ -99,35 +109,25 @@ const Register = () => {
           </div>
 
           <h2 className="text-2xl font-bold text-[#292D32]">Create account</h2>
-          <p className="mt-1 text-sm text-[#5C5C5C]">Create your enterprise workspace and start building governed workflows.</p>
+          <p className="mt-1 text-sm text-[#5C5C5C]">
+            {step === 1 && "Choose your role to get started."}
+            {step === 2 && "Provide your organization details."}
+            {step === 3 && "Complete your user profile."}
+          </p>
 
-          <form onSubmit={handleSubmit} className="enterprise-card mt-6 space-y-4 p-6">
-            {/* Step/Progress Indicator */}
+          <form onSubmit={handleSubmit} className="enterprise-card mt-6 space-y-4 p-6 shadow-sm">
+            {/* Step Indicator */}
             <div className="mb-6 flex items-center justify-between border-b border-[#E7EBF1] pb-4">
-              <div className="flex items-center gap-2">
-                <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${step > 1
-                  ? 'bg-[#D0FFA4] text-[#292D32]'
-                  : 'bg-[#292D32] text-white'
-                  }`}>
-                  {step > 1 ? <Check size={12} /> : '1'}
-                </div>
-                <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${step === 1 ? 'text-[#292D32]' : 'text-[#8D95A1]'
-                  }`}>
-                  Organization
-                </span>
+              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${step > 1 ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-[#292D32] text-white'}`}>
+                {step > 1 ? <Check size={12} /> : '1'}
               </div>
-              <div className="mx-4 h-[2px] flex-1 bg-[#E7EBF1]" />
-              <div className="flex items-center gap-2">
-                <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${step === 2
-                  ? 'bg-[#292D32] text-white'
-                  : 'border border-[#E2E8F0] bg-white text-[#8D95A1]'
-                  }`}>
-                  2
-                </div>
-                <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${step === 2 ? 'text-[#292D32]' : 'text-[#8D95A1]'
-                  }`}>
-                  User Info
-                </span>
+              <div className="mx-2 h-[2px] flex-1 bg-[#E7EBF1]" />
+              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${step > 2 ? 'bg-[#D0FFA4] text-[#292D32]' : step === 2 ? 'bg-[#292D32] text-white' : 'border border-[#E2E8F0] bg-white text-[#8D95A1]'}`}>
+                {step > 2 ? <Check size={12} /> : '2'}
+              </div>
+              <div className="mx-2 h-[2px] flex-1 bg-[#E7EBF1]" />
+              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${step === 3 ? 'bg-[#292D32] text-white' : 'border border-[#E2E8F0] bg-white text-[#8D95A1]'}`}>
+                3
               </div>
             </div>
 
@@ -135,8 +135,51 @@ const Register = () => {
 
             {step === 1 && (
               <div className="space-y-4 animate-fadeIn">
+                <div 
+                  onClick={() => setAccountType('admin')}
+                  className={`cursor-pointer rounded-2xl border p-4 transition-all ${accountType === 'admin' ? 'border-[#D0FFA4] bg-[#F8FFEE]' : 'border-[#E2E8F0] hover:border-[#292D32]'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accountType === 'admin' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-[#F6F5FA] text-[#8D95A1]'}`}>
+                      <Building2 size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-[#292D32] text-sm">Create New Workspace</h3>
+                      <p className="text-xs text-[#5C5C5C]">I am setting up the platform</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setAccountType('member')}
+                  className={`cursor-pointer rounded-2xl border p-4 transition-all ${accountType === 'member' ? 'border-[#D0FFA4] bg-[#F8FFEE]' : 'border-[#E2E8F0] hover:border-[#292D32]'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accountType === 'member' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-[#F6F5FA] text-[#8D95A1]'}`}>
+                      <Users size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-[#292D32] text-sm">Join Existing Workspace</h3>
+                      <p className="text-xs text-[#5C5C5C]">I am joining my team</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!accountType}
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#292D32] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-50"
+                >
+                  Continue
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-4 animate-fadeIn">
                 <Field
-                  label="Organization Name"
+                  label={accountType === 'admin' ? "New Organization Name" : "Existing Organization Name"}
                   icon={Building2}
                   value={formData.organizationName}
                   onChange={(value) => setFormData((prev) => ({ ...prev, organizationName: value }))}
@@ -161,17 +204,26 @@ const Register = () => {
                   placeholder="Automation Lead"
                 />
 
-                <button
-                  type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#292D32] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249]"
-                >
-                  Next Step
-                  <ArrowRight size={14} />
-                </button>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#292D32] hover:bg-[#F6F5FA]"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249]"
+                  >
+                    Next Step
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
               </div>
             )}
 
-            {step === 2 && (
+            {step === 3 && (
               <div className="space-y-4 animate-fadeIn">
                 <Field
                   label="Full Name"
@@ -215,7 +267,7 @@ const Register = () => {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(2)}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#292D32] hover:bg-[#F6F5FA]"
                   >
                     Back
@@ -241,7 +293,7 @@ const Register = () => {
           </p>
         </div >
       </section >
-    </div >
+    </div>
   );
 };
 
