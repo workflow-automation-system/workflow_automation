@@ -26,7 +26,9 @@ import {
   normalizeWorkflow,
 } from '../services/workflowConverter';
 import AiGeneratorModal from '../components/workflow/AiGeneratorModal';
+import { useAuthStore } from '../stores/authStore';
 import useWorkflowStore from '../stores/workflowStore';
+import { canCreateWorkflow, canEditWorkflow } from '../utils/rbac';
 
 const ALLOWED_STATUSES = ['ACTIVE', 'INACTIVE'];
 
@@ -35,6 +37,7 @@ const CreateWorkflow = () => {
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
   const { createWorkflow, fetchWorkflowById, getWorkflowById, updateWorkflow } = useWorkflowStore();
+  const user = useAuthStore((state) => state.user);
 
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -60,6 +63,10 @@ const CreateWorkflow = () => {
   );
   const [reactFlowInstance, setReactFlowInstance] = React.useState(null);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
+  const existingWorkflow = workflowId ? getWorkflowById(workflowId) : null;
+  const isCreateMode = !workflowId;
+  const canCreate = canCreateWorkflow(user);
+  const editorReadOnly = workflowId ? Boolean(existingWorkflow && !canEditWorkflow(existingWorkflow, user)) : false;
 
   const showToast = React.useCallback((message, tone = 'info') => {
     setToast({ open: true, message, tone });
@@ -201,6 +208,7 @@ const CreateWorkflow = () => {
 
   const onConnect = React.useCallback(
     (connection) => {
+      if (editorReadOnly) return;
       setEdges((eds) =>
         addEdge(
           {
@@ -215,11 +223,12 @@ const CreateWorkflow = () => {
         )
       );
     },
-    [setEdges]
+    [editorReadOnly, setEdges]
   );
 
   const onDrop = React.useCallback(
     (event) => {
+      if (editorReadOnly) return;
       event.preventDefault();
       const type = event.dataTransfer.getData('application/reactflow');
       if (!type || !reactFlowInstance) return;
@@ -242,10 +251,20 @@ const CreateWorkflow = () => {
         },
       ]);
     },
-    [reactFlowInstance, setNodes, workflowConfiguration]
+    [editorReadOnly, reactFlowInstance, setNodes, workflowConfiguration]
   );
 
   const handleSave = async () => {
+    if (isCreateMode && !canCreate) {
+      showToast('Viewer accounts cannot create workflows.', 'error');
+      return;
+    }
+
+    if (!isCreateMode && editorReadOnly) {
+      showToast('You do not have permission to modify this workflow.', 'error');
+      return;
+    }
+
     const trimmedName = name.trim();
     const normalizedStatus = String(status || '').toUpperCase();
 
@@ -286,7 +305,7 @@ const CreateWorkflow = () => {
   };
 
   const handleDeleteNode = () => {
-    if (!selectedNode) return;
+    if (!selectedNode || editorReadOnly) return;
 
     setNodes((currentNodes) => currentNodes.filter((node) => node.id !== selectedNode.id));
     setEdges((currentEdges) =>
@@ -296,6 +315,7 @@ const CreateWorkflow = () => {
   };
 
   const handleUpdateNodeData = (nodeId, updatedData) => {
+    if (editorReadOnly) return;
     const nextData = updatedData && typeof updatedData === 'object' ? updatedData : {};
     const nextNodeType = nextData.__nodeType;
     const sanitizedData = { ...nextData };
@@ -326,6 +346,18 @@ const CreateWorkflow = () => {
 
   return (
     <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4 font-urbanist">
+      {isCreateMode && !canCreate ? (
+        <div className="enterprise-card p-5 text-sm text-[#5C5C5C]">
+          Viewer accounts cannot create workflows. You can still open shared workflows in read-only mode from the workflow list.
+        </div>
+      ) : null}
+
+      {editorReadOnly ? (
+        <div className="enterprise-card p-5 text-sm text-[#5C5C5C]">
+          Read only mode is active for this workflow. Drag-and-drop, node edits, and save actions are disabled by RBAC.
+        </div>
+      ) : null}
+
       <header className="enterprise-card p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
@@ -346,6 +378,7 @@ const CreateWorkflow = () => {
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
+                disabled={!isCreateMode && editorReadOnly}
                 placeholder="Untitled Workflow"
                 className="w-full bg-transparent text-lg font-semibold text-[#292D32] outline-none placeholder:text-[#8A8A8A]"
               />
@@ -356,6 +389,7 @@ const CreateWorkflow = () => {
             <select
               value={status}
               onChange={(event) => setStatus(event.target.value.toUpperCase())}
+              disabled={!isCreateMode && editorReadOnly}
               className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-semibold text-[#292D32]"
             >
               <option value="ACTIVE">ACTIVE</option>
@@ -379,7 +413,7 @@ const CreateWorkflow = () => {
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving || loadingWorkflow || loadingConfiguration}
+              disabled={saving || loadingWorkflow || loadingConfiguration || (isCreateMode ? !canCreate : editorReadOnly)}
               className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
             >
               <Save size={14} />
@@ -390,7 +424,7 @@ const CreateWorkflow = () => {
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[290px_1fr_320px]">
-        <NodeSidebar workflowConfiguration={workflowConfiguration} />
+        <NodeSidebar workflowConfiguration={workflowConfiguration} disabled={isCreateMode ? !canCreate : editorReadOnly} />
 
         <section className="enterprise-card flex min-h-[520px] flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-[#E2E8F0] bg-[#F6F5FA] px-4 py-3">
@@ -408,17 +442,20 @@ const CreateWorkflow = () => {
               nodes={nodes}
               edges={edges}
               onInit={setReactFlowInstance}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
+              onNodesChange={isCreateMode ? (canCreate ? onNodesChange : undefined) : (editorReadOnly ? undefined : onNodesChange)}
+              onEdgesChange={isCreateMode ? (canCreate ? onEdgesChange : undefined) : (editorReadOnly ? undefined : onEdgesChange)}
               onConnect={onConnect}
               onNodeClick={(_, node) => setSelectedNode(node)}
               onPaneClick={() => setSelectedNode(null)}
               onDrop={onDrop}
               onDragOver={(event) => {
                 event.preventDefault();
-                event.dataTransfer.dropEffect = 'move';
+                event.dataTransfer.dropEffect = (isCreateMode ? canCreate : !editorReadOnly) ? 'move' : 'none';
               }}
               nodeTypes={nodeTypesMap}
+              nodesDraggable={isCreateMode ? canCreate : !editorReadOnly}
+              nodesConnectable={isCreateMode ? canCreate : !editorReadOnly}
+              elementsSelectable
               fitView
               defaultEdgeOptions={{
                 style: { stroke: '#D0FFA4', strokeWidth: 2.2 },
@@ -457,6 +494,7 @@ const CreateWorkflow = () => {
             onUpdate={handleUpdateNodeData}
             onDelete={handleDeleteNode}
             workflowConfiguration={workflowConfiguration}
+            readOnly={isCreateMode ? !canCreate : editorReadOnly}
           />
         ) : (
           <aside className="enterprise-card hidden p-4 text-sm text-[#5C5C5C] xl:block">
@@ -476,6 +514,7 @@ const CreateWorkflow = () => {
         <input
           value={description}
           onChange={(event) => setDescription(event.target.value)}
+          disabled={!isCreateMode && editorReadOnly}
           placeholder="Describe business intent, owner, and fallback behavior..."
           className="flex-1 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
         />

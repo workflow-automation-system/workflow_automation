@@ -6,6 +6,7 @@ import java.util.List;
 @Data
 public class CreateWorkflowRequest {
     private Long userId;
+    private Long organizationId;
     private String name;
     private String description;
     private String status;

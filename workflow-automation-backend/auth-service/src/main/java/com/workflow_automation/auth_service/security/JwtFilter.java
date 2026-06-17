@@ -1,7 +1,7 @@
 package com.workflow_automation.auth_service.security;
 
-
 import com.workflow_automation.auth_service.service.UserDetailsServiceImpl;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,15 +39,20 @@ public class JwtFilter extends OncePerRequestFilter {
         String token = header.substring(7);
 
         if (jwtUtil.isValid(token)) {
-            String email = jwtUtil.extractEmail(token);
+
+            Claims claims = jwtUtil.extractClaims(token);
+            String email = claims.getSubject();
+
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities()
-                    );
-            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(auth);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         chain.doFilter(request, response);

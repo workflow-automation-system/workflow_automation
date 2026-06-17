@@ -1,10 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Mail, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+import authService from '../../services/authService';
 
 const EmailVerification = () => {
+  const location = useLocation();
   const { clearError } = useAuthStore();
+  const [email, setEmail] = React.useState(location.state?.email || '');
   const [resendStatus, setResendStatus] = React.useState(null);
 
   React.useEffect(() => {
@@ -12,11 +15,14 @@ const EmailVerification = () => {
   }, [clearError]);
 
   const handleResendVerification = async () => {
+    if (!email) {
+      setResendStatus('error');
+      return;
+    }
+
     setResendStatus('sending');
     try {
-      // Here you would call your backend API to resend verification email
-      // For now, we'll simulate success
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await authService.resendVerification(email);
       setResendStatus('sent');
       setTimeout(() => setResendStatus(null), 5000);
     } catch (error) {
@@ -55,6 +61,8 @@ const EmailVerification = () => {
             {resendStatus === 'sending' ? 'Sending...' : 'resend verification link'}
           </button>
         </p>
+
+
 
         {resendStatus === 'sent' && (
           <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">

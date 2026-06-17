@@ -26,7 +26,7 @@ const nodeColor = {
 const inputStyle =
   'w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none';
 
-const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration }) => {
+const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration, readOnly = false }) => {
   const activeConfiguration =
     Array.isArray(workflowConfiguration?.functions) && workflowConfiguration.functions.length > 0
       ? workflowConfiguration
@@ -46,10 +46,12 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
   const functionOptions = availableFunctions.length ? availableFunctions : activeConfiguration.functions;
 
   const update = (field, value) => {
+    if (readOnly) return;
     onUpdate(node.id, { [field]: value });
   };
 
   const updateNodeFunction = (entity, functionKey) => {
+    if (readOnly) return;
     const nextFunction =
       getFunctionDefinition(activeConfiguration, functionKey) ||
       getFirstFunctionForEntity(activeConfiguration, entity);
@@ -70,6 +72,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <select
                 value={node.data?.eventType || 'manual'}
                 onChange={(event) => update('eventType', event.target.value)}
+                disabled={readOnly}
                 className={inputStyle}
               >
                 <option value="manual">Manual Trigger</option>
@@ -88,6 +91,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.expression || ''}
                 onChange={(event) => update('expression', event.target.value)}
+                disabled={readOnly}
                 placeholder="order.total > 1000"
                 className={inputStyle}
               />
@@ -96,6 +100,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.truePath || ''}
                 onChange={(event) => update('truePath', event.target.value)}
+                disabled={readOnly}
                 placeholder="High value"
                 className={inputStyle}
               />
@@ -104,6 +109,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.falsePath || ''}
                 onChange={(event) => update('falsePath', event.target.value)}
+                disabled={readOnly}
                 placeholder="Standard"
                 className={inputStyle}
               />
@@ -117,6 +123,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.source || ''}
                 onChange={(event) => update('source', event.target.value)}
+                disabled={readOnly}
                 placeholder="payload.customer"
                 className={inputStyle}
               />
@@ -125,6 +132,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.target || ''}
                 onChange={(event) => update('target', event.target.value)}
+                disabled={readOnly}
                 placeholder="crm.contact"
                 className={inputStyle}
               />
@@ -133,6 +141,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <select
                 value={node.data?.mappingMode || 'strict'}
                 onChange={(event) => update('mappingMode', event.target.value)}
+                disabled={readOnly}
                 className={inputStyle}
               >
                 <option value="strict">Strict</option>
@@ -148,6 +157,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <select
                 value={node.data?.policy || 'retry'}
                 onChange={(event) => update('policy', event.target.value)}
+                disabled={readOnly}
                 className={inputStyle}
               >
                 <option value="retry">Retry</option>
@@ -160,6 +170,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
                 type="number"
                 value={node.data?.retries ?? 3}
                 onChange={(event) => update('retries', Number(event.target.value) || 0)}
+                disabled={readOnly}
                 className={inputStyle}
               />
             </Field>
@@ -172,6 +183,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <select
                 value={node.data?.action || 'create_page'}
                 onChange={(event) => update('action', event.target.value)}
+                disabled={readOnly}
                 className={inputStyle}
               >
                 <option value="create_page">Create Page</option>
@@ -183,6 +195,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.database || ''}
                 onChange={(event) => update('database', event.target.value)}
+                disabled={readOnly}
                 placeholder="notion_database_id"
                 className={inputStyle}
               />
@@ -196,6 +209,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.spreadsheetId || ''}
                 onChange={(event) => update('spreadsheetId', event.target.value)}
+                disabled={readOnly}
                 placeholder="sheet_id"
                 className={inputStyle}
               />
@@ -204,6 +218,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.worksheet || ''}
                 onChange={(event) => update('worksheet', event.target.value)}
+                disabled={readOnly}
                 placeholder="Sheet1"
                 className={inputStyle}
               />
@@ -217,6 +232,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <select
                 value={node.data?.model || 'gpt-5.4-mini'}
                 onChange={(event) => update('model', event.target.value)}
+                disabled={readOnly}
                 className={inputStyle}
               >
                 <option value="gpt-5.4-mini">gpt-5.4-mini</option>
@@ -227,6 +243,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <textarea
                 value={node.data?.prompt || ''}
                 onChange={(event) => update('prompt', event.target.value)}
+                disabled={readOnly}
                 placeholder="Summarize incident details and propose next actions."
                 className={`${inputStyle} min-h-[90px] resize-y`}
               />
@@ -240,6 +257,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.channel || ''}
                 onChange={(event) => update('channel', event.target.value)}
+                disabled={readOnly}
                 placeholder="#ops-alerts"
                 className={inputStyle}
               />
@@ -248,6 +266,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <textarea
                 value={node.data?.message || ''}
                 onChange={(event) => update('message', event.target.value)}
+                disabled={readOnly}
                 placeholder="Incident detected. Investigating now."
                 className={`${inputStyle} min-h-[90px] resize-y`}
               />
@@ -264,6 +283,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
                   type="email"
                   value={node.data?.to || ''}
                   onChange={(event) => update('to', event.target.value)}
+                  disabled={readOnly}
                   placeholder="recipient@example.com"
                   className={inputStyle}
                 />
@@ -272,6 +292,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
                 <input
                   value={node.data?.subject || ''}
                   onChange={(event) => update('subject', event.target.value)}
+                  disabled={readOnly}
                   placeholder="Workflow update"
                   className={inputStyle}
                 />
@@ -280,6 +301,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
                 <textarea
                   value={node.data?.body || ''}
                   onChange={(event) => update('body', event.target.value)}
+                  disabled={readOnly}
                   placeholder="Email content"
                   className={`${inputStyle} min-h-[90px] resize-y`}
                 />
@@ -293,6 +315,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
                 <input
                   value={node.data?.query || ''}
                   onChange={(event) => update('query', event.target.value)}
+                  disabled={readOnly}
                   placeholder="is:unread"
                   className={inputStyle}
                 />
@@ -303,6 +326,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
                   type="number"
                   value={node.data?.maxResults ?? 10}
                   onChange={(event) => update('maxResults', Number(event.target.value) || 1)}
+                  disabled={readOnly}
                   className={inputStyle}
                 />
               </Field>
@@ -316,6 +340,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <input
                 value={node.data?.url || ''}
                 onChange={(event) => update('url', event.target.value)}
+                disabled={readOnly}
                 placeholder="https://api.example.com/endpoint"
                 className={inputStyle}
               />
@@ -324,6 +349,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <select
                 value={node.data?.method || 'GET'}
                 onChange={(event) => update('method', event.target.value)}
+                disabled={readOnly}
                 className={inputStyle}
               >
                 <option value="GET">GET</option>
@@ -343,6 +369,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
                 type="number"
                 value={node.data?.duration ?? 5}
                 onChange={(event) => update('duration', Number(event.target.value) || 0)}
+                disabled={readOnly}
                 className={inputStyle}
               />
             </Field>
@@ -350,6 +377,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
               <select
                 value={node.data?.unit || 'minutes'}
                 onChange={(event) => update('unit', event.target.value)}
+                disabled={readOnly}
                 className={inputStyle}
               >
                 <option value="seconds">Seconds</option>
@@ -366,6 +394,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
             <textarea
               value={JSON.stringify(node.data || {}, null, 2)}
               onChange={(event) => {
+                if (readOnly) return;
                 try {
                   const parsed = JSON.parse(event.target.value);
                   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -413,10 +442,12 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
           <select
             value={selectedEntity}
             onChange={(event) => {
+              if (readOnly) return;
               const nextEntity = event.target.value;
               const firstFunction = getFirstFunctionForEntity(activeConfiguration, nextEntity);
               updateNodeFunction(nextEntity, firstFunction?.key);
             }}
+            disabled={readOnly}
             className={inputStyle}
           >
             {availableEntities.map((entity) => (
@@ -430,6 +461,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
           <select
             value={activeFunctionKey}
             onChange={(event) => updateNodeFunction(selectedEntity, event.target.value)}
+            disabled={readOnly}
             className={inputStyle}
           >
             {functionOptions.map((item) => (
@@ -443,6 +475,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
           <input
             value={node.data?.label || ''}
             onChange={(event) => update('label', event.target.value)}
+            disabled={readOnly}
             placeholder="Node label"
             className={inputStyle}
           />
@@ -451,14 +484,16 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration 
       </div>
 
       <div className="border-t border-[#E2E8F0] p-4">
-        <button
-          type="button"
-          onClick={onDelete}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-[#EF4444] hover:bg-red-100"
-        >
-          <Trash2 size={14} />
-          Delete Node
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-[#EF4444] hover:bg-red-100"
+          >
+            <Trash2 size={14} />
+            Delete Node
+          </button>
+        )}
       </div>
     </aside>
   );

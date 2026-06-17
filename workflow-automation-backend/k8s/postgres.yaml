@@ -67,6 +67,7 @@ data:
   init-db.sql: |
     CREATE DATABASE auth_db;
     CREATE DATABASE workflow_db;
+    CREATE DATABASE organization_db;
 
 ---
 apiVersion: v1

@@ -21,9 +21,16 @@ import Toast from '../components/ui/Toast';
 import Pagination from '../components/ui/Pagination';
 import CustomNode from '../components/workflow/nodes/CustomNode';
 import StatCard from '../components/workflow/StatCard';
+import PermissionManager from '../components/workflow/PermissionManager';
 import useWorkflowStore from '../stores/workflowStore';
 import ExecuteWorkflowModal from '../components/workflow/ExecuteWorkflowModal';
 import ExecutionStepsModal from '../components/workflow/ExecutionStepsModal';
+import { useAuthStore } from '../stores/authStore';
+import {
+  canDeleteWorkflow,
+  canEditWorkflow,
+  canExecuteWorkflow,
+} from '../utils/rbac';
 
 const formatDate = (value) => {
   if (!value) return 'Never';
@@ -56,6 +63,7 @@ const WorkflowDetail = () => {
   const [action, setAction] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
+  const { user } = useAuthStore();
 
   React.useEffect(() => {
     setCurrentPage(1);
@@ -226,10 +234,18 @@ const WorkflowDetail = () => {
       </div>
     );
   }
-
+  const canEdit = canEditWorkflow(workflow, user);
+  const canDelete = canDeleteWorkflow(workflow, user);
+  const canExecute = canExecuteWorkflow(workflow, user);
 
   return (
     <div className="space-y-5 font-urbanist">
+      {workflow.readOnly ? (
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm font-medium text-[#5C5C5C]">
+          Read only mode is active for this workflow. Edit, delete, and builder mutations are blocked by RBAC.
+        </div>
+      ) : null}
+
       <header className="enterprise-card p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
@@ -261,45 +277,55 @@ const WorkflowDetail = () => {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setShowExecuteModal(true)}
-              disabled={action !== ''}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
-            >
-              <Play size={14} />
-              {action === 'execute' ? 'Executing...' : 'Execute'}
-            </button>
-            <button
-              type="button"
-              onClick={handleToggleStatus}
-              disabled={action !== ''}
-              className={[
-                'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-60',
-                isActive
-                  ? 'border border-[#E2E8F0] bg-white text-[#5C5C5C] hover:border-[#D0FFA4]'
-                  : 'bg-[#D0FFA4] text-[#292D32] hover:bg-[#BDEB94]',
-              ].join(' ')}
-            >
-              {isActive ? <Pause size={14} /> : <Play size={14} />}
-              {isActive ? 'Disable' : 'Enable'}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/create-workflow?id=${workflow.id}`)}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#292D32] hover:border-[#D0FFA4]"
-            >
-              <Edit size={14} />
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowDeleteModal(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-[#EF4444] hover:bg-red-100"
-            >
-              <Trash2 size={14} />
-              Delete
-            </button>
+            {canExecute ? (
+              <button
+                type="button"
+                onClick={() => setShowExecuteModal(true)}
+                disabled={action !== ''}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
+              >
+                <Play size={14} />
+                {action === 'execute' ? 'Executing...' : 'Execute'}
+              </button>
+            ) : null}
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={handleToggleStatus}
+                disabled={action !== ''}
+                className={[
+                  'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-60',
+                  isActive
+                    ? 'border border-[#E2E8F0] bg-white text-[#5C5C5C] hover:border-[#D0FFA4]'
+                    : 'bg-[#D0FFA4] text-[#292D32] hover:bg-[#BDEB94]',
+                ].join(' ')}
+              >
+                {isActive ? <Pause size={14} /> : <Play size={14} />}
+                {isActive ? 'Disable' : 'Enable'}
+              </button>
+            ) : null}
+            {canEdit && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/create-workflow?id=${workflow.id}`)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#292D32] hover:border-[#D0FFA4]"
+                >
+                  <Edit size={14} />
+                  Edit
+                </button>
+                {canDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-[#EF4444] hover:bg-red-100"
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -431,6 +457,12 @@ const WorkflowDetail = () => {
           </div>
         )}
       </section>
+
+      {workflow.canShare ? (
+        <section className="enterprise-card p-5">
+          <PermissionManager workflowId={workflow.id} canManagePermissions={workflow.canShare} />
+        </section>
+      ) : null}
 
       <ExecuteWorkflowModal 
         isOpen={showExecuteModal} 

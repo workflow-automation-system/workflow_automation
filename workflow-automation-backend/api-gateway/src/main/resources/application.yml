@@ -1,6 +1,9 @@
 server:
   port: 8085
 
+jwt:
+  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+
 spring:
   application:
     name: api_gateway
@@ -22,6 +25,7 @@ spring:
               - GET
               - POST
               - PUT
+              - PATCH
               - DELETE
               - OPTIONS
             allowedHeaders: "*"

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -13,12 +13,49 @@ import CreateWorkflow from './pages/CreateWorkflow';
 import WorkflowDetail from './pages/WorkflowDetail';
 import Workflows from './pages/Workflows';
 import Settings from './pages/Settings';
-import Landing from './pages/Landing';
+import PermissionDenied from './pages/PermissionDenied';
+import AdminConsole from './pages/AdminConsole';
+import AuditLogs from './pages/AuditLogs';
+import Profile from './pages/Profile';
 import { useAuthStore } from './stores/authStore';
 import { useThemeStore } from './stores/themeStore';
-// Protected Route wrapper
+import { ROLES } from './utils/rbac';
+
+const AuthBoot = ({ children }) => {
+  const { initTheme } = useThemeStore();
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
+
+  React.useEffect(() => {
+    initTheme();
+    initializeAuth();
+  }, [initTheme, initializeAuth]);
+
+  React.useEffect(() => {
+    const refreshSession = () => {
+      if (document.visibilityState === 'visible' && localStorage.getItem('token')) {
+        initializeAuth();
+      }
+    };
+
+    document.addEventListener('visibilitychange', refreshSession);
+    return () => document.removeEventListener('visibilitychange', refreshSession);
+  }, [initializeAuth]);
+
+  return children;
+};
+
+const LoadingScreen = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#F6F5FA] font-urbanist text-sm text-[#5C5C5C]">
+    Loading workspace access...
+  </div>
+);
+
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isInitialized } = useAuthStore();
+
+  if (!isInitialized) {
+    return <LoadingScreen />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -27,9 +64,12 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Public Route wrapper (redirects to dashboard if authenticated)
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isInitialized } = useAuthStore();
+
+  if (!isInitialized) {
+    return <LoadingScreen />;
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -38,81 +78,125 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// Landing Page controller for root URL
-const LandingController = () => {
-  const { isAuthenticated } = useAuthStore();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />;
+const RoleGuard = ({ allowedRoles, children }) => {
+  const location = useLocation();
+  const user = useAuthStore((state) => state.user);
+  const role = String(user?.role || ROLES.USER).toUpperCase();
+
+  if (!allowedRoles.map((value) => value.toUpperCase()).includes(role)) {
+    return <Navigate to="/forbidden" replace state={{ from: location }} />;
+  }
+
+  return children;
 };
 
 function App() {
-  const { initTheme } = useThemeStore();
-
-  // Initialize theme on app load
-  React.useEffect(() => {
-    initTheme();
-  }, [initTheme]);
-
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public routes */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/email-verification"
-          element={
-            <PublicRoute>
-              <EmailVerification />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/verify-email"
-          element={
-            <PublicRoute>
-              <VerifyEmail />
-            </PublicRoute>
-          }
-        />        {/* Public root router */}
-        <Route path="/" element={<LandingController />} />
+    <AuthBoot>
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/email-verification"
+            element={
+              <PublicRoute>
+                <EmailVerification />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/verify-email"
+            element={
+              <PublicRoute>
+                <VerifyEmail />
+              </PublicRoute>
+            }
+          />
 
-        {/* Protected routes with layout */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/organisation" element={<Organisation />} />
-          <Route path="/workflows" element={<Workflows />} />
-          <Route path="/app-connections" element={<AppConnections />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/create-workflow" element={<CreateWorkflow />} />
-          <Route path="/workflow/:id" element={<WorkflowDetail />} />
-          <Route path="/workflows/:id" element={<WorkflowDetail />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
+          <Route
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/workflows" element={<Workflows />} />
+            <Route
+              path="/create-workflow"
+              element={
+                <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.USER]}>
+                  <CreateWorkflow />
+                </RoleGuard>
+              }
+            />
+            <Route path="/workflow/:id" element={<WorkflowDetail />} />
+            <Route path="/workflows/:id" element={<WorkflowDetail />} />
+            <Route path="/templates" element={<Templates />} />
+            <Route path="/forbidden" element={<PermissionDenied />} />
+            <Route path="/profile" element={<Profile />} />
 
-        {/* Catch all - redirect to dashboard or login */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+            <Route
+              path="/organisation"
+              element={
+                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+                  <Organisation />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/app-connections"
+              element={
+                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+                  <AppConnections />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+                  <Settings />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+                  <AdminConsole />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/audit"
+              element={
+                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+                  <AuditLogs />
+                </RoleGuard>
+              }
+            />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthBoot>
   );
 }
 

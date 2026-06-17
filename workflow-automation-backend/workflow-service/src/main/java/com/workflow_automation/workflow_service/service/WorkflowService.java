@@ -4,24 +4,25 @@ import com.workflow_automation.workflow_service.dto.request.CreateWorkflowReques
 import com.workflow_automation.workflow_service.dto.request.UpdateWorkflowRequest;
 import com.workflow_automation.workflow_service.dto.response.WorkflowConfigurationResponse;
 import com.workflow_automation.workflow_service.dto.response.WorkflowResponse;
+import com.workflow_automation.workflow_service.security.AccessContext;
 
 import java.util.List;
 
 public interface WorkflowService {
 
-    WorkflowResponse create(CreateWorkflowRequest request);
+    WorkflowResponse create(CreateWorkflowRequest request, AccessContext accessContext);
 
-    List<WorkflowResponse> getAll();
+    List<WorkflowResponse> getAll(AccessContext accessContext);
 
-    List<WorkflowResponse> getByUserId(Long userId);
+    List<WorkflowResponse> getByUserId(Long userId, AccessContext accessContext);
 
-    WorkflowResponse getById(Long workflowId);
+    WorkflowResponse getById(Long workflowId, AccessContext accessContext);
 
-    WorkflowResponse getByIdAndUserId(Long workflowId, Long userId);
+    WorkflowResponse getByIdAndUserId(Long workflowId, Long userId, AccessContext accessContext);
 
-    WorkflowResponse update(Long workflowId, Long userId, UpdateWorkflowRequest request);
+    WorkflowResponse update(Long workflowId, UpdateWorkflowRequest request, AccessContext accessContext);
 
-    void delete(Long workflowId, Long userId);
+    void delete(Long workflowId, AccessContext accessContext);
 
     WorkflowConfigurationResponse getConfiguration();
 }

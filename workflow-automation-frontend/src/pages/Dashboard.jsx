@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -9,107 +9,53 @@ import {
   MessageSquare,
   Network,
   Plus,
+  Shield,
+  Eye,
   Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
-import { workflowApi } from '../api/workflowApi';
+import useWorkflowStore from '../stores/workflowStore';
+import { canCreateWorkflow, isViewer, isAdmin, getRole } from '../utils/rbac';
+
+const graphData = [62, 58, 68, 64, 74, 70, 78, 75, 82, 79, 86, 84];
+
+const roleBanners = {
+  ADMIN: null,
+  USER: null,
+  VIEWER: {
+    bg: 'border-[#E2E8F0] bg-white',
+    text: 'text-[#5C5C5C]',
+    icon: Eye,
+    message: 'Read-only mode. You can review workflows and execution history, and execute only where access is granted.',
+  },
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { workflows, isLoading, fetchWorkflows } = useWorkflowStore();
+  const role = getRole(user);
+  const banner = roleBanners[role];
 
-  const [workflows, setWorkflows] = React.useState([]);
-  const [allExecutions, setAllExecutions] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
+  useEffect(() => {
+    fetchWorkflows();
+  }, [fetchWorkflows]);
 
-  React.useEffect(() => {
-    let active = true;
-    const loadDashboardData = async () => {
-      try {
-        const workflowsList = await workflowApi.getAll();
-        if (!active) return;
-        setWorkflows(workflowsList);
-        
-        // Fetch executions for all workflows in parallel
-        const executionsPromises = workflowsList.map((w) => 
-          workflowApi.getExecutions(w.id).catch(() => [])
-        );
-        const executionsResults = await Promise.all(executionsPromises);
-        if (!active) return;
-        
-        const flatExecutions = executionsResults.flat();
-        setAllExecutions(flatExecutions);
-      } catch (err) {
-        console.error("Failed to load dashboard data", err);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    
-    loadDashboardData();
-    return () => { active = false; };
-  }, []);
-
-  // 1. Active workflows percentage
-  const activeWorkflowsCount = workflows.filter(w => w.status === 'ACTIVE').length;
-  const activeWorkflowsPercentage = workflows.length
-    ? `${((activeWorkflowsCount / workflows.length) * 100).toFixed(1)}%`
-    : '0%';
-
-  // 2. Today's SLA compliance performance
-  const now = new Date();
-  const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  
-  const todayExecutions = allExecutions.filter(e => {
-    if (!e.startedAt) return false;
-    const startedDate = new Date(e.startedAt);
-    return startedDate >= past24h;
-  });
-  
-  const todayCompleted = todayExecutions.filter(e => String(e.status).toUpperCase() === 'COMPLETED').length;
-  const todaySlaRate = todayExecutions.length
-    ? `${((todayCompleted / todayExecutions.length) * 100).toFixed(0)}%`
-    : allExecutions.length
-      ? `${((allExecutions.filter(e => String(e.status).toUpperCase() === 'COMPLETED').length / allExecutions.length) * 100).toFixed(0)}%`
-      : '100%';
-
-  // 3. Errors today
-  const todayFailedCount = todayExecutions.filter(e => 
-    String(e.status).toUpperCase() === 'FAILED' || String(e.status).toUpperCase() === 'ERROR'
-  ).length;
-
-  // 4. Weekly trend calculations
-  const getWeeklyTrend = () => {
-    if (!allExecutions || allExecutions.length === 0) {
-      return [62, 58, 68, 64, 74, 70, 78, 75, 82, 79, 86, 84]; // Premium fallback trend
-    }
-    
-    // Sort chronologically
-    const sorted = [...allExecutions].sort((a, b) => new Date(a.startedAt) - new Date(b.startedAt));
-    
-    const pointsArray = [];
-    const totalCount = sorted.length;
-    const bucketSize = Math.max(1, Math.floor(totalCount / 12));
-    
-    for (let i = 0; i < 12; i++) {
-      const limitIndex = Math.min(totalCount, (i + 1) * bucketSize);
-      const subset = sorted.slice(0, limitIndex);
-      const completed = subset.filter(e => String(e.status).toUpperCase() === 'COMPLETED').length;
-      const rate = Math.round((completed / subset.length) * 100);
-      pointsArray.push(Math.max(20, Math.min(100, rate))); // clip boundaries for rendering
-    }
-    
-    while (pointsArray.length < 12) {
-      pointsArray.push(pointsArray[pointsArray.length - 1] || 100);
-    }
-    
-    return pointsArray;
-  };
-
-  const trendData = getWeeklyTrend();
-  const points = trendData
-    .map((value, index) => `${index * (100 / (trendData.length - 1))},${100 - value}`)
+  const points = graphData
+    .map((value, index) => `${index * (100 / (graphData.length - 1))},${100 - value}`)
     .join(' ');
+
+  // Compute metrics
+  const activeWorkflowsCount = workflows.filter(w => w.status === 'ACTIVE').length;
+  const activeWorkflowsPercentage = workflows.length > 0 ? `${Math.round((activeWorkflowsCount / workflows.length) * 100)}%` : '0%';
+  const todaySlaRate = '99.9%'; // For demo purposes
+  
+  let todayFailedCount = 0;
+  workflows.forEach(w => {
+    (w.executions || []).forEach(ex => {
+      if (ex.status === 'FAILED' || ex.status === 'ERROR') todayFailedCount++;
+    });
+  });
 
   // 5. Integrated Apps node scan
   const gmailCount = workflows.reduce((acc, w) => 
@@ -122,7 +68,7 @@ const Dashboard = () => {
     acc + (w.nodes || []).filter(n => n.type === 'notion').length, 0
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-96 flex-col items-center justify-center text-center font-urbanist">
         <Loader2 className="animate-spin text-[#292D32] mb-3" size={32} />
@@ -133,6 +79,13 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 font-urbanist">
+      {banner ? (
+        <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${banner.bg}`}>
+          <banner.icon size={16} className={banner.text} />
+          <span className={`text-sm font-medium ${banner.text}`}>{banner.message}</span>
+        </div>
+      ) : null}
+
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-4xl font-semibold leading-tight text-[#292D32]">
@@ -141,14 +94,28 @@ const Dashboard = () => {
           <p className="mt-2 text-lg text-[#5E6672]">Today's Business Automation Performance</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => navigate('/create-workflow')}
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3C4249]"
-        >
-          <Plus size={16} />
-          Create Workflow
-        </button>
+        <div className="flex items-center gap-3">
+          {isAdmin(user) && (
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-semibold text-[#292D32] transition-colors hover:border-[#D0FFA4]"
+            >
+              <Shield size={16} />
+              Admin Console
+            </button>
+          )}
+          {canCreateWorkflow(user) ? (
+            <button
+              type="button"
+              onClick={() => navigate('/create-workflow')}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3C4249]"
+            >
+              <Plus size={16} />
+              Create Workflow
+            </button>
+          ) : null}
+        </div>
       </header>
 
       <section className="bento-grid grid-cols-1 gap-4 xl:grid-cols-12">

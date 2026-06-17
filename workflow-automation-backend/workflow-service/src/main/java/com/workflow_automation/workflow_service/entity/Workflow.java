@@ -17,6 +17,7 @@ public class Workflow {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long userId;
+    private Long organizationId;
     private String name;
 
     private String description;
@@ -37,4 +38,7 @@ public class Workflow {
      @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL,orphanRemoval = true)
     private List<Connection> connections;
 
+    @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkflowPermission> permissions;
 }
+

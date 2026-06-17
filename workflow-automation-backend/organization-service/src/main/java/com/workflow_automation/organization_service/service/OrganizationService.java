@@ -19,131 +19,179 @@ public class OrganizationService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
 
-    public OrganizationSummary resolveOrganization(OrganizationResolveRequest request) {
-        String normalizedName = request.getName().trim();
-        String normalizedDomain = trimToNull(request.getDomain());
+    // ================= ORGANIZATION =================
 
-        Organization organization = (normalizedDomain == null
-                ? organizationRepository.findByNameIgnoreCase(normalizedName)
-                : organizationRepository.findByDomainIgnoreCase(normalizedDomain)
-                    .or(() -> organizationRepository.findByNameIgnoreCase(normalizedName)))
+    public OrganizationSummary resolveOrganization(OrganizationResolveRequest request) {
+
+        String name = request.getName().trim();
+        String domain = request.getDomain() != null ? normalizeDomain(request.getDomain()) : null;
+
+        Organization org = (domain == null
+                ? organizationRepository.findByNameIgnoreCase(name)
+                : organizationRepository.findByDomainIgnoreCase(domain)
+                .or(() -> organizationRepository.findByNameIgnoreCase(name)))
                 .orElseGet(() -> organizationRepository.save(
                         Organization.builder()
-                                .name(normalizedName)
-                                .domain(normalizedDomain)
+                                .name(name)
+                                .domain(domain)
                                 .build()
                 ));
 
-        boolean changed = false;
-        if ((organization.getDomain() == null || organization.getDomain().isBlank()) && normalizedDomain != null) {
-            organization.setDomain(normalizedDomain);
-            changed = true;
-        }
-        if (organization.getName() == null || organization.getName().isBlank()) {
-            organization.setName(normalizedName);
-            changed = true;
-        }
-
-        if (changed) {
-            organization = organizationRepository.save(organization);
-        }
-
-        return toSummary(organization);
+        return toSummary(org);
     }
 
-    public OrganizationSummary getOrganizationSummary(Long organizationId) {
-        Organization organization = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new NoSuchElementException("Organization not found"));
-
-        return toSummary(organization);
+    public OrganizationSummary getOrganizationSummary(Long id) {
+        return toSummary(findOrganization(id));
     }
 
-    public OrganizationResponse getOrganization(Long organizationId) {
-        Organization organization = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new NoSuchElementException("Organization not found"));
+    public OrganizationResponse getOrganization(Long id) {
+        Organization org = findOrganization(id);
 
-        List<OrganizationMember> members = organizationMemberRepository.findAllByOrganization_IdOrderByCreatedAtAsc(organizationId);
-        return toResponse(organization, members);
+        List<OrganizationMember> members =
+                organizationMemberRepository.findAllByOrganization_IdOrderByCreatedAtAsc(id);
+
+        return toResponse(org, members);
     }
+
+    // ================= MEMBERS =================
 
     public OrganizationSummary syncMember(Long organizationId, OrganizationMemberSyncRequest request) {
-        Organization organization = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new NoSuchElementException("Organization not found"));
 
-        OrganizationMember member = organizationMemberRepository.findByUserId(request.getUserId())
-                .orElseGet(OrganizationMember::new);
+        Organization org = findOrganization(organizationId);
+
+        OrganizationMember member = organizationMemberRepository
+                .findByUserId(request.getUserId())
+                .orElse(new OrganizationMember());
 
         member.setUserId(request.getUserId());
-        member.setOrganization(organization);
+        member.setOrganization(org);
         member.setName(request.getName().trim());
         member.setEmail(request.getEmail().trim().toLowerCase());
-        member.setRole(request.getRole().trim());
+        member.setRole(resolveSyncedRole(member, request.getRole()));
         member.setDepartment(defaultIfBlank(request.getDepartment(), "Unassigned"));
         member.setJobTitle(defaultIfBlank(request.getJobTitle(), "Team Member"));
         member.setStatus(defaultIfBlank(request.getStatus(), "Pending"));
 
         organizationMemberRepository.save(member);
-        return toSummary(organization);
+
+        return toSummary(org);
     }
 
-    private OrganizationSummary toSummary(Organization organization) {
+    public OrganizationMemberResponse getMember(Long organizationId, Long userId) {
+        OrganizationMember member = organizationMemberRepository
+                .findByOrganization_IdAndUserId(organizationId, userId)
+                .orElseThrow(() -> new NoSuchElementException("Member not found"));
+
+        return toMemberResponse(member);
+    }
+
+    public List<OrganizationMemberResponse> getMembers(Long organizationId) {
+
+        return organizationMemberRepository
+                .findAllByOrganization_Id(organizationId)
+                .stream()
+                .map(this::toMemberResponse)
+                .toList();
+    }
+
+    public void removeMember(Long organizationId, Long userId) {
+
+        OrganizationMember member = organizationMemberRepository.findByUserId(userId)
+                .orElseThrow(() -> new NoSuchElementException("Member not found"));
+
+        if (!member.getOrganization().getId().equals(organizationId)) {
+            throw new RuntimeException("Member does not belong to organization");
+        }
+
+        organizationMemberRepository.delete(member);
+    }
+
+    public void updateRole(Long organizationId, Long userId, String role) {
+
+        OrganizationMember member = organizationMemberRepository.findByUserId(userId)
+                .orElseThrow(() -> new NoSuchElementException("Member not found"));
+
+        if (!member.getOrganization().getId().equals(organizationId)) {
+            throw new RuntimeException("Member does not belong to organization");
+        }
+
+        member.setRole(sanitizeRole(role));
+        organizationMemberRepository.save(member);
+    }
+
+    // ================= MAPPERS =================
+
+    private Organization findOrganization(Long id) {
+        return organizationRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Organization not found"));
+    }
+
+    private OrganizationSummary toSummary(Organization org) {
         return OrganizationSummary.builder()
-                .id(organization.getId())
-                .name(organization.getName())
-                .domain(organization.getDomain())
-                .memberCount(organizationMemberRepository.countByOrganization_Id(organization.getId()))
+                .id(org.getId())
+                .name(org.getName())
+                .domain(org.getDomain())
+                .memberCount(organizationMemberRepository.countByOrganization_Id(org.getId()))
                 .build();
     }
 
-    private OrganizationResponse toResponse(Organization organization, List<OrganizationMember> members) {
-        List<OrganizationMember> sortedMembers = members.stream()
-                .sorted(Comparator.comparing(OrganizationMember::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+    private OrganizationResponse toResponse(Organization org, List<OrganizationMember> members) {
+
+        List<OrganizationMember> sorted = members.stream()
+                .sorted(Comparator.comparing(
+                        OrganizationMember::getName,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+                ))
                 .toList();
 
-        long activeMemberCount = sortedMembers.stream()
-                .filter(member -> "Active".equalsIgnoreCase(member.getStatus()))
-                .count();
-        long privilegedRoleCount = sortedMembers.stream()
-                .filter(member -> "ADMIN".equalsIgnoreCase(member.getRole()))
-                .count();
-
         return OrganizationResponse.builder()
-                .id(organization.getId())
-                .name(organization.getName())
-                .domain(organization.getDomain())
-                .createdAt(organization.getCreatedAt())
-                .memberCount((long) sortedMembers.size())
-                .activeMemberCount(activeMemberCount)
-                .privilegedRoleCount(privilegedRoleCount)
-                .members(sortedMembers.stream()
+                .id(org.getId())
+                .name(org.getName())
+                .domain(org.getDomain())
+                .createdAt(org.getCreatedAt())
+                .memberCount((long) sorted.size())
+                .activeMemberCount(sorted.stream()
+                        .filter(m -> "ACTIVE".equalsIgnoreCase(m.getStatus()))
+                        .count())
+                .privilegedRoleCount(sorted.stream()
+                        .filter(m -> "ADMIN".equalsIgnoreCase(m.getRole()))
+                        .count())
+                .members(sorted.stream()
                         .map(this::toMemberResponse)
                         .toList())
                 .build();
     }
 
-    private OrganizationMemberResponse toMemberResponse(OrganizationMember member) {
+    private OrganizationMemberResponse toMemberResponse(OrganizationMember m) {
         return OrganizationMemberResponse.builder()
-                .id(member.getId())
-                .userId(member.getUserId())
-                .name(member.getName())
-                .email(member.getEmail())
-                .role(member.getRole())
-                .department(member.getDepartment())
-                .jobTitle(member.getJobTitle())
-                .status(member.getStatus())
+                .id(m.getId())
+                .userId(m.getUserId())
+                .name(m.getName())
+                .email(m.getEmail())
+                .role(m.getRole())
+                .department(m.getDepartment())
+                .jobTitle(m.getJobTitle())
+                .status(m.getStatus())
                 .build();
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
+    // ================= UTIL =================
 
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed.toLowerCase();
+    private String normalizeDomain(String domain) {
+        return domain.trim().toLowerCase().replace("www.", "");
+    }
+
+    private String sanitizeRole(String role) {
+        if (role == null) return "USER";
+        role = role.trim().toUpperCase();
+        return (role.equals("ADMIN") || role.equals("USER") || role.equals("VIEWER")) ? role : "USER";
+    }
+
+    private String resolveSyncedRole(OrganizationMember existingMember, String requestedRole) {
+        return sanitizeRole(requestedRole);
     }
 
     private String defaultIfBlank(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value.trim();
+        return (value == null || value.isBlank()) ? fallback : value.trim();
     }
 }

@@ -8,3 +8,5 @@ data:
   POSTGRES_PORT: "5432"
   AUTH_SERVICE_URI: http://auth-service:8081
   WORKFLOW_SERVICE_URI: http://workflow-service:8082
+  ORGANIZATION_SERVICE_URI: http://organization-service:8083
+  ORGANIZATION_SERVICE_URL: http://organization-service:8083/api/organizations

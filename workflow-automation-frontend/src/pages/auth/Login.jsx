@@ -34,7 +34,11 @@ const Login = () => {
     if (!validate()) return;
 
     const result = await login(formData.email, formData.password);
-    if (result.success) navigate('/');
+    if (result.success) {
+      navigate('/');
+    } else if (result.needsVerification) {
+      navigate('/email-verification', { state: { email: formData.email } });
+    }
   };
 
   return (

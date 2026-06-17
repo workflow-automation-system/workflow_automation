@@ -1,6 +1,10 @@
 package com.workflow_automation.auth_service.security;
 
-import io.jsonwebtoken.*;
+import com.workflow_automation.auth_service.entity.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -21,32 +25,39 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(String email) {
+    public String generateToken(User user) {
+
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + expiration);
+
         return Jwts.builder()
-                .subject(email)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey())
+                .subject(user.getEmail())
+                .claim("userId", user.getId())
+                .claim("role", user.getRole().name())
+                .claim("organizationId", user.getOrganizationId())
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public String extractEmail(String token) {
+    public Claims extractClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .setSigningKey(getSigningKey())
                 .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    public String extractEmail(String token) {
+        return extractClaims(token).getSubject();
     }
 
     public boolean isValid(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
+            extractClaims(token);
             return true;
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
