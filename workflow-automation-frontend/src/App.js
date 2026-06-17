@@ -5,6 +5,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import EmailVerification from './pages/auth/EmailVerification';
 import VerifyEmail from './pages/auth/VerifyEmail';
+import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Organisation from './pages/Organisation';
 import AppConnections from './pages/AppConnections';
@@ -96,6 +97,14 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route
+            path="/"
+            element={
+              <PublicRoute>
+                <Landing />
+              </PublicRoute>
+            }
+          />
+          <Route
             path="/login"
             element={
               <PublicRoute>
@@ -135,7 +144,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/workflows" element={<Workflows />} />
             <Route
               path="/create-workflow"
@@ -193,7 +202,7 @@ function App() {
             />
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthBoot>
