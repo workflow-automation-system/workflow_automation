@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -31,5 +32,8 @@ public class Execution {
     @ManyToOne
     @JoinColumn(name = "workflow_id")
     private Workflow workflow;
+
+    @OneToMany(mappedBy = "execution", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ExecutionStep> steps;
 
 }

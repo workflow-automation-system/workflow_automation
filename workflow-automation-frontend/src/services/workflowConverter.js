@@ -328,6 +328,15 @@ export const buildBackendNodeConfig = (nodeData = {}, nodeType = '') => {
       maxResults: settings.maxResults ?? 10,
     };
   }
+  if (functionKey === 'slack') {
+    return {
+      functionKey,
+      application: 'slack',
+      action: 'send_message',
+      channel: settings.channel || '',
+      message: settings.message || '',
+    };
+  }
 
   return { functionKey, settings };
 };
@@ -380,7 +389,7 @@ const parseNodeFromBackendShape = (rawNode, index, configuration) => {
   const parsedConfig = parseBackendNodeConfig(rawNode?.config);
   const settings = isObject(parsedConfig.settings)
     ? parsedConfig.settings
-    : isObject(parsedConfig.data)
+      : isObject(parsedConfig.data)
       ? parsedConfig.data
       : parsedConfig.application === 'gmail'
         ? {
@@ -388,12 +397,21 @@ const parseNodeFromBackendShape = (rawNode, index, configuration) => {
             to: parsedConfig.to,
             subject: parsedConfig.subject,
             body: parsedConfig.body,
+            query: parsedConfig.query,
+            maxResults: parsedConfig.maxResults,
           }
-        : {};
+        : parsedConfig.application === 'slack'
+          ? {
+              action: parsedConfig.action,
+              channel: parsedConfig.channel,
+              message: parsedConfig.message,
+            }
+          : {};
   const functionKey = normalizeKey(
     parsedConfig.functionKey || 
     parsedConfig.function || 
     (parsedConfig.application === 'gmail' ? 'email' : undefined) ||
+    (parsedConfig.application === 'slack' ? 'slack' : undefined) ||
     rawNode?.type
   );
   const functionDefinition =
