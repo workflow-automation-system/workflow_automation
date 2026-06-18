@@ -60,7 +60,7 @@ const Workflows = () => {
   const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('ALL');
-  const [currentPage, setCurrentPage] = React.useState(1);
+  const [, setCurrentPage] = React.useState(1);
   const [actionWorkflowId, setActionWorkflowId] = React.useState(null);
   const [deleteModal, setDeleteModal] = React.useState({ open: false, workflow: null });
   const [executeModal, setExecuteModal] = React.useState({ open: false, workflow: null });
