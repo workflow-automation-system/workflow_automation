@@ -165,8 +165,8 @@ const Settings = () => {
           <SecretField
             icon={KeyRound}
             label="Webhook URL"
-            value="https://api.flowforge.io/webhooks/wh_****************************"
-            onCopy={() => copy('https://api.flowforge.io/webhooks/example', 'webhook')}
+            value="https://api.AutoFlow.io/webhooks/wh_****************************"
+            onCopy={() => copy('https://api.AutoFlow.io/webhooks/example', 'webhook')}
             copied={copied === 'webhook'}
           />
         </div>

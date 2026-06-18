@@ -47,7 +47,7 @@ const Login = () => {
         <div className="max-w-sm mx-auto">
           <div className="mb-10 flex items-center gap-3">
             <Workflow size={28} className="text-[#292D32]" />
-            <span className="text-2xl font-bold tracking-tight text-[#292D32]">FlowForge</span>
+            <span className="text-2xl font-bold tracking-tight text-[#292D32]">AutoFlow</span>
           </div>
 
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-[#292D32]">
@@ -67,7 +67,7 @@ const Login = () => {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#D0FFA4]">
               <Workflow size={26} className="text-[#292D32]" />
             </div>
-            <h1 className="mt-3 text-2xl font-bold text-[#292D32]">FlowForge</h1>
+            <h1 className="mt-3 text-2xl font-bold text-[#292D32]">AutoFlow</h1>
           </div>
 
           <h2 className="text-2xl font-bold text-[#292D32]">Welcome back</h2>

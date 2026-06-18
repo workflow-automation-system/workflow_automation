@@ -100,7 +100,7 @@ const Landing = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0FFA4]">
               <Sparkles size={20} className="text-[#292D32]" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-white">FlowForge</span>
+            <span className="text-xl font-bold tracking-tight text-white">AutoFlow</span>
           </div>
 
           <nav className="hidden items-center gap-8 text-sm font-semibold text-slate-400 md:flex">
@@ -202,7 +202,7 @@ const Landing = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
 
             <div className="lg:col-span-5 space-y-6">
-              <h2 className="text-3xl md:text-4xl font-bold leading-tight text-white">FlowForge in Action</h2>
+              <h2 className="text-3xl md:text-4xl font-bold leading-tight text-white">AutoFlow in Action</h2>
               <p className="text-slate-400">Understand the simplified, bulletproof three-step workflow that powers enterprise operations on our platform.</p>
 
               <div className="mt-8 space-y-4">
@@ -334,7 +334,7 @@ const Landing = () => {
       <section id="ai-preview" className="mx-auto max-w-6xl px-6 py-20 relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-white">Try Our AI Generator</h2>
-          <p className="text-slate-400 mt-4">Select a prompt template below to simulate how the FlowForge AI compiles custom workflows in real-time.</p>
+          <p className="text-slate-400 mt-4">Select a prompt template below to simulate how the AutoFlow AI compiles custom workflows in real-time.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -404,7 +404,7 @@ const Landing = () => {
               {(aiStage === 'typing' || aiStage === 'generating') && (
                 <div className="text-center space-y-3">
                   <div className="h-10 w-10 border-2 border-t-[#D0FFA4] border-r-transparent border-slate-700 rounded-full animate-spin mx-auto" />
-                  <p className="text-sm text-slate-400">FlowForge AI is mapping node connections...</p>
+                  <p className="text-sm text-slate-400">AutoFlow AI is mapping node connections...</p>
                 </div>
               )}
 
@@ -444,7 +444,7 @@ const Landing = () => {
         <div className="mx-auto max-w-6xl px-6 text-center">
           <div className="max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white">Connect Your Entire Tool Stack</h2>
-            <p className="text-slate-400 mt-4">FlowForge links natively with key workspace suites out of the box, with zero plugin installations required.</p>
+            <p className="text-slate-400 mt-4">AutoFlow links natively with key workspace suites out of the box, with zero plugin installations required.</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 max-w-5xl mx-auto">
@@ -464,7 +464,7 @@ const Landing = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-[#D0FFA4]/10 to-blue-500/5 pointer-events-none" />
 
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white">Ready to Forge Your Automations?</h2>
-          <p className="text-slate-400 mt-4 max-w-xl mx-auto font-light">Join product and engineering teams using FlowForge to run reliable, governed logic flows powered by Gemini AI.</p>
+          <p className="text-slate-400 mt-4 max-w-xl mx-auto font-light">Join product and engineering teams using AutoFlow to run reliable, governed logic flows powered by Gemini AI.</p>
 
           <div className="mt-8 flex justify-center gap-4">
             <button
@@ -488,9 +488,9 @@ const Landing = () => {
         <div className="mx-auto max-w-7xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-[#D0FFA4]" />
-            <span className="font-bold text-white">FlowForge Inc.</span>
+            <span className="font-bold text-white">AutoFlow Inc.</span>
           </div>
-          <p>© 2026 FlowForge Inc. All rights reserved. Secure enterprise automation orchestration.</p>
+          <p>© 2026 AutoFlow Inc. All rights reserved. Secure enterprise automation orchestration.</p>
         </div>
       </footer>
 
