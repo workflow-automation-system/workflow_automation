@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import useWorkflowStore from '../stores/workflowStore';
-import { canCreateWorkflow, isViewer, isAdmin, getRole } from '../utils/rbac';
+import { canCreateWorkflow, isAdmin, getRole } from '../utils/rbac';
 
 const graphData = [62, 58, 68, 64, 74, 70, 78, 75, 82, 79, 86, 84];
 

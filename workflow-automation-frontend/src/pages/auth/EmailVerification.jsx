@@ -7,7 +7,7 @@ import authService from '../../services/authService';
 const EmailVerification = () => {
   const location = useLocation();
   const { clearError } = useAuthStore();
-  const [email, setEmail] = React.useState(location.state?.email || '');
+  const [email] = React.useState(location.state?.email || '');
   const [resendStatus, setResendStatus] = React.useState(null);
 
   React.useEffect(() => {

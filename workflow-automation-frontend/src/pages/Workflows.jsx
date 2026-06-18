@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import Toast from '../components/ui/Toast';
-import Pagination from '../components/ui/Pagination';
 import WorkflowCard from '../components/workflow/WorkflowCard';
 import WorkflowCardSkeleton from '../components/workflow/WorkflowCardSkeleton';
 import useWorkflowStore from '../stores/workflowStore';
@@ -122,12 +121,7 @@ const Workflows = () => {
     return { total, active, executions };
   }, [workflows]);
 
-  const totalPages = Math.ceil(filteredWorkflows.length / 6);
 
-  const displayedWorkflows = React.useMemo(() => {
-    const start = (currentPage - 1) * 6;
-    return filteredWorkflows.slice(start, start + 6);
-  }, [filteredWorkflows, currentPage]);
 
   const handleDeleteWorkflow = async () => {
     const workflowId = deleteModal.workflow?.id;
