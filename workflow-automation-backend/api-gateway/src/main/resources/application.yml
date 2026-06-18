@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8085}
+  port: 8085
 
 jwt:
   secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
@@ -12,25 +12,10 @@ spring:
       # This cleans up any duplicate headers if they occur
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
-
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOriginPatterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
-              - "https://*.vercel.app"
-              - "https://auto-flow0.vercel.app"
-              - "https://workflow-automation-navy-xi.vercel.app"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - PATCH
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
 
       routes:
         - id: auth-service
