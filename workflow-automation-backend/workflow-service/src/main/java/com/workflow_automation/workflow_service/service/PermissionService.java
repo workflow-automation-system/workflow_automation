@@ -1,5 +1,6 @@
 package com.workflow_automation.workflow_service.service;
 
+import com.workflow_automation.workflow_service.dto.audit.AuditLogRequest;
 import com.workflow_automation.workflow_service.dto.GrantPermissionRequest;
 import com.workflow_automation.workflow_service.dto.WorkflowPermissionDTO;
 import com.workflow_automation.workflow_service.dto.organization.OrganizationMemberResponse;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,6 +35,7 @@ public class PermissionService {
     private final WorkflowPermissionRepository permissionRepository;
     private final WorkflowAccessService workflowAccessService;
     private final OrganizationDirectoryClient organizationDirectoryClient;
+    private final AuditClient auditClient;
 
     @Transactional
     public WorkflowPermissionDTO grantPermission(GrantPermissionRequest request, AccessContext accessContext) {
@@ -52,6 +55,14 @@ public class PermissionService {
         permission.setPermissions(sanitizePermissions(request.getPermissions()));
         permission.setGrantedBy(accessContext.getUserId());
         WorkflowPermission saved = permissionRepository.save(permission);
+        recordPermissionAudit(
+                "WORKFLOW_PERMISSION_GRANTED",
+                workflow,
+                request.getUserId(),
+                accessContext,
+                List.of(),
+                saved.getPermissions().stream().map(Enum::name).toList()
+        );
 
         return convertToDTO(saved);
     }
@@ -66,6 +77,14 @@ public class PermissionService {
         }
 
         permissionRepository.deleteByWorkflow_IdAndUserId(workflowId, userId);
+        recordPermissionAudit(
+                "WORKFLOW_PERMISSION_REVOKED",
+                workflow,
+                userId,
+                accessContext,
+                List.of(),
+                List.of()
+        );
     }
 
     @Transactional
@@ -83,10 +102,19 @@ public class PermissionService {
         WorkflowPermission permission = permissionRepository
                 .findByWorkflow_IdAndUserId(workflowId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Permission not found"));
+        List<String> previousPermissions = permission.getPermissions().stream().map(Enum::name).toList();
 
         permission.setPermissions(sanitizePermissions(permissions));
         permission.setGrantedBy(accessContext.getUserId());
         WorkflowPermission updated = permissionRepository.save(permission);
+        recordPermissionAudit(
+                "WORKFLOW_PERMISSION_UPDATED",
+                workflow,
+                userId,
+                accessContext,
+                previousPermissions,
+                updated.getPermissions().stream().map(Enum::name).toList()
+        );
 
         return convertToDTO(updated);
     }
@@ -195,6 +223,33 @@ public class PermissionService {
 
     private Set<PermissionType> sanitizePermissions(List<PermissionType> permissions) {
         return sanitizePermissions(permissions == null ? Set.of() : Set.copyOf(permissions));
+    }
+
+    private void recordPermissionAudit(
+            String action,
+            Workflow workflow,
+            Long targetUserId,
+            AccessContext accessContext,
+            List<String> previousPermissions,
+            List<String> permissions
+    ) {
+        auditClient.record(AuditLogRequest.builder()
+                .userId(accessContext.getUserId())
+                .organizationId(accessContext.getOrganizationId())
+                .action(action)
+                .entityType("WORKFLOW_PERMISSION")
+                .entityId(workflow.getId())
+                .outcome("SUCCESS")
+                .ipAddress(accessContext.getIpAddress())
+                .userAgent(accessContext.getUserAgent())
+                .metadata(Map.of(
+                        "workflowId", workflow.getId(),
+                        "workflowName", workflow.getName() != null ? workflow.getName() : "",
+                        "targetUserId", targetUserId,
+                        "previousPermissions", previousPermissions,
+                        "permissions", permissions
+                ))
+                .build());
     }
 
     private WorkflowPermissionDTO convertToDTO(WorkflowPermission permission) {

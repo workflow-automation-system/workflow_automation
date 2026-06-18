@@ -73,6 +73,21 @@ const authService = {
     const res = await API.post('/auth/admin/invite', payload);
     return res.data;
   },
+
+  updateProfile: async (payload) => {
+    const res = await API.put('/auth/profile', payload);
+    return res.data;
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    const res = await API.put('/auth/change-password', { currentPassword, newPassword });
+    return res.data;
+  },
+
+  deleteSelf: async () => {
+    const res = await API.delete('/auth/me');
+    return res.data;
+  },
 };
 
 export { API };

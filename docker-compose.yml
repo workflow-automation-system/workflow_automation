@@ -32,6 +32,7 @@ services:
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/auth_db
       - ORGANIZATION_SERVICE_URL=http://organization-service:8083/api/organizations
+      - AUDIT_SERVICE_URL=http://audit-service:8085/api/audit
     depends_on:
       - postgres
       - organization-service
@@ -71,6 +72,7 @@ services:
       - ./workflow-automation-backend/workflow-service/.env
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/workflow_db
+      - AUDIT_SERVICE_URL=http://audit-service:8085/api/audit
     depends_on:
       - postgres
     networks:
@@ -92,6 +94,7 @@ services:
       - AUTH_SERVICE_URI=http://auth-service:8081
       - ORGANIZATION_SERVICE_URI=http://organization-service:8083
       - WORKFLOW_SERVICE_URI=http://workflow-service:8082
+      - AUDIT_SERVICE_URI=http://audit-service:8085
     depends_on:
       - auth-service
       - organization-service

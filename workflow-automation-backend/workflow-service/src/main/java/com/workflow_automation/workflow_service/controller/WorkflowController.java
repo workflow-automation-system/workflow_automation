@@ -11,6 +11,7 @@ import com.workflow_automation.workflow_service.security.AccessContext;
 import com.workflow_automation.workflow_service.service.NodeService;
 import com.workflow_automation.workflow_service.service.WorkflowAccessService;
 import com.workflow_automation.workflow_service.service.WorkflowService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,18 +32,20 @@ public class WorkflowController {
             @RequestBody CreateWorkflowRequest request,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(workflowService.create(request, accessContext(userId, organizationId, role)));
+        return ResponseEntity.ok(workflowService.create(request, accessContext(userId, organizationId, role, httpRequest)));
     }
 
     @GetMapping
     public ResponseEntity<List<WorkflowResponse>> getAll(
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(workflowService.getAll(accessContext(userId, organizationId, role)));
+        return ResponseEntity.ok(workflowService.getAll(accessContext(userId, organizationId, role, httpRequest)));
     }
 
     @GetMapping("/configuration")
@@ -55,9 +58,10 @@ public class WorkflowController {
             @PathVariable Long userId,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(workflowService.getByUserId(userId, accessContext(currentUserId, organizationId, role)));
+        return ResponseEntity.ok(workflowService.getByUserId(userId, accessContext(currentUserId, organizationId, role, httpRequest)));
     }
 
     @GetMapping("/{workflowId:\\d+}")
@@ -65,9 +69,10 @@ public class WorkflowController {
             @PathVariable Long workflowId,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(workflowService.getById(workflowId, accessContext(userId, organizationId, role)));
+        return ResponseEntity.ok(workflowService.getById(workflowId, accessContext(userId, organizationId, role, httpRequest)));
     }
 
     @GetMapping("/{workflowId:\\d+}/user/{userId:\\d+}")
@@ -76,10 +81,11 @@ public class WorkflowController {
             @PathVariable Long userId,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
         return ResponseEntity.ok(
-                workflowService.getByIdAndUserId(workflowId, userId, accessContext(currentUserId, organizationId, role))
+                workflowService.getByIdAndUserId(workflowId, userId, accessContext(currentUserId, organizationId, role, httpRequest))
         );
     }
 
@@ -89,9 +95,10 @@ public class WorkflowController {
             @RequestBody UpdateWorkflowRequest request,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(workflowService.update(workflowId, request, accessContext(userId, organizationId, role)));
+        return ResponseEntity.ok(workflowService.update(workflowId, request, accessContext(userId, organizationId, role, httpRequest)));
     }
 
     @PutMapping("/{workflowId:\\d+}/user/{userId:\\d+}")
@@ -101,9 +108,10 @@ public class WorkflowController {
             @RequestBody UpdateWorkflowRequest request,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(workflowService.update(workflowId, request, accessContext(currentUserId, organizationId, role)));
+        return ResponseEntity.ok(workflowService.update(workflowId, request, accessContext(currentUserId, organizationId, role, httpRequest)));
     }
 
     @DeleteMapping("/{workflowId:\\d+}")
@@ -111,9 +119,10 @@ public class WorkflowController {
             @PathVariable Long workflowId,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        workflowService.delete(workflowId, accessContext(userId, organizationId, role));
+        workflowService.delete(workflowId, accessContext(userId, organizationId, role, httpRequest));
         return ResponseEntity.noContent().build();
     }
 
@@ -123,9 +132,10 @@ public class WorkflowController {
             @PathVariable Long userId,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        workflowService.delete(workflowId, accessContext(currentUserId, organizationId, role));
+        workflowService.delete(workflowId, accessContext(currentUserId, organizationId, role, httpRequest));
         return ResponseEntity.noContent().build();
     }
 
@@ -135,10 +145,11 @@ public class WorkflowController {
             @RequestBody NodeRequest request,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role));
-        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role));
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role, httpRequest));
+        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role, httpRequest));
         return ResponseEntity.ok(nodeService.addNode(workflowId, request));
     }
 
@@ -149,10 +160,11 @@ public class WorkflowController {
             @RequestBody NodeRequest request,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role));
-        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role));
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role, httpRequest));
+        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role, httpRequest));
         return ResponseEntity.ok(nodeService.updateNode(workflowId, nodeId, request));
     }
 
@@ -162,15 +174,28 @@ public class WorkflowController {
             @PathVariable Long nodeId,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role));
-        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role));
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext(userId, organizationId, role, httpRequest));
+        workflowAccessService.assertCanEdit(workflow, accessContext(userId, organizationId, role, httpRequest));
         nodeService.deleteNode(workflowId, nodeId);
         return ResponseEntity.noContent().build();
     }
 
     private AccessContext accessContext(Long userId, Long organizationId, String role) {
         return AccessContext.of(userId, organizationId, role);
+    }
+
+    private AccessContext accessContext(Long userId, Long organizationId, String role, HttpServletRequest request) {
+        return AccessContext.of(userId, organizationId, role, clientIp(request), request.getHeader("User-Agent"));
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

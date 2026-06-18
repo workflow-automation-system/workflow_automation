@@ -9,6 +9,7 @@ import com.workflow_automation.workflow_service.repository.ExecutionStepReposito
 import com.workflow_automation.workflow_service.security.AccessContext;
 import com.workflow_automation.workflow_service.service.ExecutionService;
 import com.workflow_automation.workflow_service.service.WorkflowAccessService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,9 +32,10 @@ public class ExecutionController {
             @RequestBody ExecuteWorkflowRequest request,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        executionService.executeWorkflow(workflowId, AccessContext.of(userId, organizationId, role), request.getInput());
+        executionService.executeWorkflow(workflowId, accessContext(userId, organizationId, role, httpRequest), request.getInput());
         return ResponseEntity.accepted().build();
     }
 
@@ -92,5 +94,17 @@ public class ExecutionController {
                 "executedAt", step.getExecutedAt(),
                 "logMessage", step.getLogMessage() != null ? step.getLogMessage() : ""
         );
+    }
+
+    private AccessContext accessContext(Long userId, Long organizationId, String role, HttpServletRequest request) {
+        return AccessContext.of(userId, organizationId, role, clientIp(request), request.getHeader("User-Agent"));
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

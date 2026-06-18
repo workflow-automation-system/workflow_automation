@@ -1,6 +1,7 @@
 package com.workflow_automation.auth_service.service;
 
 import com.workflow_automation.auth_service.dto.*;
+import com.workflow_automation.auth_service.dto.audit.AuditLogRequest;
 import com.workflow_automation.auth_service.entity.*;
 import com.workflow_automation.auth_service.dto.InviteRequest;
 import com.workflow_automation.auth_service.dto.organization.OrganizationMemberSyncRequest;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +32,7 @@ public class AuthService {
     private final EmailService emailService;
     private final OrganizationClient organizationClient;
     private final EmailValidationService emailValidationService;
+    private final AuditClient auditClient;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -102,16 +105,58 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        return login(request, null, null);
+    }
+
+    public AuthResponse login(LoginRequest request, String ipAddress, String userAgent) {
         String email = request.getEmail().trim().toLowerCase();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cet email n'existe pas"));
+                .orElseThrow(() -> {
+                    recordAuthAudit(
+                            null,
+                            email,
+                            null,
+                            "USER_LOGIN_FAILED",
+                            "USER",
+                            null,
+                            "FAILURE",
+                            ipAddress,
+                            userAgent,
+                            Map.of("reason", "EMAIL_NOT_FOUND")
+                    );
+                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cet email n'existe pas");
+                });
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            recordAuthAudit(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getOrganizationId(),
+                    "USER_LOGIN_FAILED",
+                    "USER",
+                    user.getId(),
+                    "FAILURE",
+                    ipAddress,
+                    userAgent,
+                    Map.of("reason", "INVALID_PASSWORD")
+            );
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Mot de passe incorrect");
         }
 
         if (!user.isEnabled()) {
+            recordAuthAudit(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getOrganizationId(),
+                    "USER_LOGIN_FAILED",
+                    "USER",
+                    user.getId(),
+                    "FAILURE",
+                    ipAddress,
+                    userAgent,
+                    Map.of("reason", "EMAIL_NOT_VERIFIED")
+            );
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Veuillez verifier votre email avant de vous connecter");
         }
@@ -121,6 +166,18 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(user);
         log.info("Login: JWT generated with role={}", user.getRole());
+        recordAuthAudit(
+                user.getId(),
+                user.getEmail(),
+                user.getOrganizationId(),
+                "USER_LOGIN",
+                "USER",
+                user.getId(),
+                "SUCCESS",
+                ipAddress,
+                userAgent,
+                Map.of("role", resolveRole(user).name())
+        );
 
         return toAuthResponse(user, token);
     }
@@ -202,6 +259,18 @@ public class AuthService {
     }
 
     public void updateUserRole(Long targetUserId, String newRole, Long adminOrganizationId) {
+        updateUserRole(targetUserId, newRole, adminOrganizationId, null, null, null, null);
+    }
+
+    public void updateUserRole(
+            Long targetUserId,
+            String newRole,
+            Long adminOrganizationId,
+            Long adminUserId,
+            String adminEmail,
+            String ipAddress,
+            String userAgent
+    ) {
         User target = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -210,6 +279,7 @@ public class AuthService {
                     "Cannot modify users outside your organization");
         }
 
+        Role previousRole = resolveRole(target);
         Role role = parseRole(newRole);
         target.setRole(role);
         userRepository.save(target);
@@ -217,6 +287,23 @@ public class AuthService {
 
         organizationClient.updateMemberRole(adminOrganizationId, targetUserId, role.name());
         log.info("Role updated: userId={}, newRole={}, by orgId={}", targetUserId, role, adminOrganizationId);
+        recordAuthAudit(
+                adminUserId,
+                adminEmail,
+                adminOrganizationId,
+                "USER_ROLE_CHANGED",
+                "ORGANIZATION_MEMBER",
+                targetUserId,
+                "SUCCESS",
+                ipAddress,
+                userAgent,
+                Map.of(
+                        "targetUserId", targetUserId,
+                        "targetEmail", target.getEmail(),
+                        "previousRole", previousRole.name(),
+                        "newRole", role.name()
+                )
+        );
     }
 
     private User ensureOrganization(User user) {
@@ -344,6 +431,17 @@ public class AuthService {
     }
 
     public void deleteUser(Long targetUserId, Long adminOrganizationId, Long adminUserId) {
+        deleteUser(targetUserId, adminOrganizationId, adminUserId, null, null, null);
+    }
+
+    public void deleteUser(
+            Long targetUserId,
+            Long adminOrganizationId,
+            Long adminUserId,
+            String adminEmail,
+            String ipAddress,
+            String userAgent
+    ) {
         if (targetUserId.equals(adminUserId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot remove yourself");
         }
@@ -364,9 +462,36 @@ public class AuthService {
 
         userRepository.delete(target);
         log.info("User deleted: userId={}, by adminId={}", targetUserId, adminUserId);
+        recordAuthAudit(
+                adminUserId,
+                adminEmail,
+                adminOrganizationId,
+                "ORGANIZATION_MEMBER_REMOVED",
+                "ORGANIZATION_MEMBER",
+                targetUserId,
+                "SUCCESS",
+                ipAddress,
+                userAgent,
+                Map.of(
+                        "targetUserId", targetUserId,
+                        "targetEmail", target.getEmail(),
+                        "role", resolveRole(target).name()
+                )
+        );
     }
 
     public AuthResponse inviteUser(InviteRequest request, Long adminOrganizationId) {
+        return inviteUser(request, adminOrganizationId, null, null, null, null);
+    }
+
+    public AuthResponse inviteUser(
+            InviteRequest request,
+            Long adminOrganizationId,
+            Long adminUserId,
+            String adminEmail,
+            String ipAddress,
+            String userAgent
+    ) {
         String email = request.getEmail().trim().toLowerCase();
 
         String emailError = emailValidationService.validate(email);
@@ -410,7 +535,107 @@ public class AuthService {
 
         syncOrganizationMember(savedUser);
         log.info("User invited: userId={}, role={}, orgId={}", savedUser.getId(), assignedRole, adminOrganizationId);
+        recordAuthAudit(
+                adminUserId,
+                adminEmail,
+                adminOrganizationId,
+                "ORGANIZATION_MEMBER_INVITED",
+                "ORGANIZATION_MEMBER",
+                savedUser.getId(),
+                "SUCCESS",
+                ipAddress,
+                userAgent,
+                Map.of(
+                        "targetUserId", savedUser.getId(),
+                        "targetEmail", savedUser.getEmail(),
+                        "role", assignedRole.name(),
+                        "status", "Pending"
+                )
+        );
 
         return toAuthResponse(savedUser, null);
+    }
+
+    public AuthResponse updateProfile(String email, UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        user.setName(request.getName().trim());
+        user.setDepartment(request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned");
+        user.setJobTitle(trimToNull(request.getJobTitle()));
+
+        User savedUser = userRepository.save(user);
+        syncOrganizationMember(savedUser);
+
+        log.info("Profile updated: userId={}", savedUser.getId());
+        return toAuthResponse(savedUser, jwtUtil.generateToken(savedUser));
+    }
+
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mot de passe actuel incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        log.info("Password changed for userId={}", user.getId());
+    }
+
+    public void deleteSelf(String email, String ipAddress, String userAgent) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        try {
+            organizationClient.removeMember(user.getOrganizationId(), user.getId());
+        } catch (Exception e) {
+            log.warn("Failed to remove org member for userId={}: {}", user.getId(), e.getMessage());
+        }
+
+        userRepository.delete(user);
+        log.info("User deleted self: userId={}", user.getId());
+        recordAuthAudit(
+                user.getId(),
+                user.getEmail(),
+                user.getOrganizationId(),
+                "USER_SELF_DELETED",
+                "USER",
+                user.getId(),
+                "SUCCESS",
+                ipAddress,
+                userAgent,
+                Map.of(
+                        "userId", user.getId(),
+                        "email", user.getEmail()
+                )
+        );
+    }
+
+    private void recordAuthAudit(
+            Long actorUserId,
+            String actorEmail,
+            Long organizationId,
+            String action,
+            String entityType,
+            Long entityId,
+            String outcome,
+            String ipAddress,
+            String userAgent,
+            Map<String, Object> metadata
+    ) {
+        auditClient.record(AuditLogRequest.builder()
+                .userId(actorUserId)
+                .actorEmail(actorEmail)
+                .organizationId(organizationId)
+                .action(action)
+                .entityType(entityType)
+                .entityId(entityId)
+                .outcome(outcome)
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .metadata(metadata)
+                .build());
     }
 }

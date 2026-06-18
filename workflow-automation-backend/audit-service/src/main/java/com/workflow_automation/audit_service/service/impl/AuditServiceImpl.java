@@ -23,10 +23,14 @@ public class AuditServiceImpl implements AuditService {
     public AuditLog record(AuditLogRequest request) {
         AuditLog log = AuditLog.builder()
                 .userId(request.getUserId())
+                .actorEmail(request.getActorEmail())
                 .organizationId(request.getOrganizationId())
                 .action(request.getAction())
                 .entityType(request.getEntityType())
                 .entityId(request.getEntityId())
+                .outcome(normalizeOutcome(request.getOutcome()))
+                .ipAddress(request.getIpAddress())
+                .userAgent(request.getUserAgent())
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -44,5 +48,12 @@ public class AuditServiceImpl implements AuditService {
     @Override
     public List<AuditLog> findByOrganization(Long organizationId) {
         return repository.findByOrganizationIdOrderByTimestampDesc(organizationId);
+    }
+
+    private String normalizeOutcome(String outcome) {
+        if (outcome == null || outcome.isBlank()) {
+            return "SUCCESS";
+        }
+        return outcome.trim().toUpperCase();
     }
 }

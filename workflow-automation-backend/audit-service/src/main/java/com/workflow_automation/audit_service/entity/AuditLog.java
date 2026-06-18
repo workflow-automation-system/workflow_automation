@@ -20,6 +20,10 @@ public class AuditLog {
     private Long id;
 
     private Long userId;
+
+    @Column(length = 320)
+    private String actorEmail;
+
     private Long organizationId;
 
     @Column(length = 512, nullable = false)
@@ -28,8 +32,17 @@ public class AuditLog {
     private String entityType;
     private Long entityId;
 
+    @Column(length = 32, nullable = false)
+    private String outcome;
+
+    @Column(length = 64)
+    private String ipAddress;
+
+    @Column(length = 512)
+    private String userAgent;
+
     private LocalDateTime timestamp;
 
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "TEXT")
     private String metadata;
 }

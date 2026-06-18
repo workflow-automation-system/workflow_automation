@@ -15,3 +15,4 @@ export const API_BASE_URL = explicitBaseUrl
 export const WORKFLOWS_ENDPOINT = '/workflows';
 export const WORKFLOW_CONFIGURATION_ENDPOINT = '/workflows/configuration';
 export const EXECUTIONS_ENDPOINT = '/executions';
+export const AUDIT_ENDPOINT = '/audit';

@@ -11,6 +11,7 @@ import {
   Plus,
   Shield,
   Eye,
+  Building2,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { canCreateWorkflow, isAdmin, getRole } from '../utils/rbac';
@@ -64,11 +65,11 @@ const Dashboard = () => {
           {isAdmin(user) && (
             <button
               type="button"
-              onClick={() => navigate('/admin')}
+              onClick={() => navigate('/organisation')}
               className="inline-flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-semibold text-[#292D32] transition-colors hover:border-[#D0FFA4]"
             >
-              <Shield size={16} />
-              Admin Console
+              <Building2 size={16} />
+              Organisation
             </button>
           )}
           {canCreateWorkflow(user) ? (

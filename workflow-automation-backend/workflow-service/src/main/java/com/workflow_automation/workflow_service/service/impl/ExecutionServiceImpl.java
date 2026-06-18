@@ -1,5 +1,6 @@
 package com.workflow_automation.workflow_service.service.impl;
 
+import com.workflow_automation.workflow_service.dto.audit.AuditLogRequest;
 import com.workflow_automation.workflow_service.entity.Connection;
 import com.workflow_automation.workflow_service.entity.Execution;
 import com.workflow_automation.workflow_service.entity.ExecutionStep;
@@ -9,6 +10,7 @@ import com.workflow_automation.workflow_service.entity.enums.ExecutionStatus;
 import com.workflow_automation.workflow_service.entity.enums.NodeType;
 import com.workflow_automation.workflow_service.repository.ExecutionRepository;
 import com.workflow_automation.workflow_service.repository.ExecutionStepRepository;
+import com.workflow_automation.workflow_service.service.AuditClient;
 import com.workflow_automation.workflow_service.service.ExecutionService;
 import com.workflow_automation.workflow_service.service.WorkflowAccessService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final ApplicationActionRegistry actionRegistry;
     private final ObjectMapper objectMapper;
     private final WorkflowAccessService workflowAccessService;
+    private final AuditClient auditClient;
 
     @Override
     @Transactional
@@ -78,6 +81,7 @@ public class ExecutionServiceImpl implements ExecutionService {
             execution.setFinishedAt(LocalDateTime.now());
         } finally {
             executionRepository.save(execution);
+            recordExecutionAudit(workflow, execution, accessContext);
         }
     }
 
@@ -222,5 +226,26 @@ public class ExecutionServiceImpl implements ExecutionService {
         } catch (Exception exception) {
             return String.valueOf(value);
         }
+    }
+
+    private void recordExecutionAudit(Workflow workflow, Execution execution, AccessContext accessContext) {
+        String status = execution.getStatus() != null ? execution.getStatus().name() : "UNKNOWN";
+        auditClient.record(AuditLogRequest.builder()
+                .userId(accessContext.getUserId())
+                .organizationId(accessContext.getOrganizationId())
+                .action("WORKFLOW_MANUAL_TRIGGERED")
+                .entityType("WORKFLOW_EXECUTION")
+                .entityId(execution.getId())
+                .outcome(execution.getStatus() == ExecutionStatus.COMPLETED ? "SUCCESS" : "FAILURE")
+                .ipAddress(accessContext.getIpAddress())
+                .userAgent(accessContext.getUserAgent())
+                .metadata(Map.of(
+                        "workflowId", workflow.getId(),
+                        "workflowName", workflow.getName() != null ? workflow.getName() : "",
+                        "executionStatus", status,
+                        "startedAt", execution.getStartedAt() != null ? execution.getStartedAt().toString() : "",
+                        "finishedAt", execution.getFinishedAt() != null ? execution.getFinishedAt().toString() : ""
+                ))
+                .build());
     }
 }

@@ -13,9 +13,7 @@ import Templates from './pages/Templates';
 import CreateWorkflow from './pages/CreateWorkflow';
 import WorkflowDetail from './pages/WorkflowDetail';
 import Workflows from './pages/Workflows';
-import Settings from './pages/Settings';
 import PermissionDenied from './pages/PermissionDenied';
-import AdminConsole from './pages/AdminConsole';
 import AuditLogs from './pages/AuditLogs';
 import Profile from './pages/Profile';
 import { useAuthStore } from './stores/authStore';
@@ -176,22 +174,7 @@ function App() {
                 </RoleGuard>
               }
             />
-            <Route
-              path="/settings"
-              element={
-                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
-                  <Settings />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
-                  <AdminConsole />
-                </RoleGuard>
-              }
-            />
+
             <Route
               path="/audit"
               element={

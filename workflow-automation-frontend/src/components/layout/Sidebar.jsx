@@ -6,8 +6,6 @@ import {
   Layers,
   LogOut,
   Plug,
-  Settings,
-  Shield,
   ScrollText,
   UserCircle2,
   Workflow,
@@ -37,11 +35,9 @@ const Sidebar = () => {
   const items = [
     ...navItems,
     ...(isAdmin(user) ? [
-      { path: '/organisation', icon: Building2, label: 'Organisation' },
-      { path: '/app-connections', icon: Plug, label: 'App Connections' },
-      { path: '/admin', icon: Shield, label: 'Admin' },
-      { path: '/audit', icon: ScrollText, label: 'Audit' },
-      { path: '/settings', icon: Settings, label: 'Settings' },
+      {path: '/organisation', icon: Building2, label: 'Organisation'},
+      {path: '/app-connections', icon: Plug, label: 'App Connections'},
+      {path: '/audit', icon: ScrollText, label: 'Audit'},
     ] : []),
   ];
 

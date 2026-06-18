@@ -4,6 +4,7 @@ import com.workflow_automation.workflow_service.dto.request.ConnectionRequest;
 import com.workflow_automation.workflow_service.dto.request.CreateWorkflowRequest;
 import com.workflow_automation.workflow_service.dto.request.NodeRequest;
 import com.workflow_automation.workflow_service.dto.request.UpdateWorkflowRequest;
+import com.workflow_automation.workflow_service.dto.audit.AuditLogRequest;
 import com.workflow_automation.workflow_service.dto.response.NodeResponse;
 import com.workflow_automation.workflow_service.dto.response.WorkflowConfigurationResponse;
 import com.workflow_automation.workflow_service.dto.response.WorkflowFunctionResponse;
@@ -19,6 +20,7 @@ import com.workflow_automation.workflow_service.entity.enums.WorkflowStatus;
 import com.workflow_automation.workflow_service.exception.WorkflowNotFoundException;
 import com.workflow_automation.workflow_service.repository.ConnectionRepository;
 import com.workflow_automation.workflow_service.repository.WorkflowRepository;
+import com.workflow_automation.workflow_service.service.AuditClient;
 import com.workflow_automation.workflow_service.service.WorkflowService;
 import com.workflow_automation.workflow_service.service.PermissionService;
 import com.workflow_automation.workflow_service.service.WorkflowAccessService;
@@ -187,6 +189,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     private final ConnectionRepository connectionRepository;
     private final PermissionService permissionService;
     private final WorkflowAccessService workflowAccessService;
+    private final AuditClient auditClient;
 
     @Override
     public WorkflowResponse create(CreateWorkflowRequest request, AccessContext accessContext) {
@@ -210,6 +213,16 @@ public class WorkflowServiceImpl implements WorkflowService {
         
         workflow = workflowRepository.save(workflow);
         permissionService.ensureOwnerPermissions(workflow);
+        recordWorkflowAudit(
+                "WORKFLOW_CREATED",
+                workflow,
+                accessContext,
+                Map.of(
+                        "name", defaultString(workflow.getName()),
+                        "status", workflow.getStatus() != null ? workflow.getStatus().name() : "",
+                        "nodeCount", workflow.getNodes() != null ? workflow.getNodes().size() : 0
+                )
+        );
 
         return toWorkflowResponse(workflow, accessContext);
     }
@@ -251,6 +264,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     public WorkflowResponse update(Long workflowId, UpdateWorkflowRequest request, AccessContext accessContext) {
         Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
         workflowAccessService.assertCanEdit(workflow, accessContext);
+        WorkflowStatus previousStatus = workflow.getStatus();
 
         workflow.setName(request.getName());
         workflow.setDescription(request.getDescription());
@@ -259,6 +273,18 @@ public class WorkflowServiceImpl implements WorkflowService {
         Map<String, Node> clientNodes = applyNodes(workflow, request.getNodes());
         applyConnections(workflow, request.getConnections(), clientNodes);
         workflow = workflowRepository.save(workflow);
+        WorkflowStatus nextStatus = workflow.getStatus();
+        recordWorkflowAudit(
+                resolveUpdateAction(previousStatus, nextStatus),
+                workflow,
+                accessContext,
+                Map.of(
+                        "name", defaultString(workflow.getName()),
+                        "previousStatus", previousStatus != null ? previousStatus.name() : "",
+                        "status", nextStatus != null ? nextStatus.name() : "",
+                        "nodeCount", workflow.getNodes() != null ? workflow.getNodes().size() : 0
+                )
+        );
         return toWorkflowResponse(workflow, accessContext);
     }
 
@@ -271,6 +297,15 @@ public class WorkflowServiceImpl implements WorkflowService {
         permissionService.deleteWorkflowPermissions(workflowId);
 
         workflowRepository.delete(workflow);
+        recordWorkflowAudit(
+                "WORKFLOW_DELETED",
+                workflow,
+                accessContext,
+                Map.of(
+                        "name", defaultString(workflow.getName()),
+                        "status", workflow.getStatus() != null ? workflow.getStatus().name() : ""
+                )
+        );
     }
 
     @Override
@@ -428,6 +463,39 @@ public class WorkflowServiceImpl implements WorkflowService {
         } catch (IllegalArgumentException exception) {
             return fallback != null ? fallback : WorkflowStatus.INACTIVE;
         }
+    }
+
+    private String resolveUpdateAction(WorkflowStatus previousStatus, WorkflowStatus nextStatus) {
+        if (previousStatus != nextStatus && nextStatus == WorkflowStatus.ACTIVE) {
+            return "WORKFLOW_ACTIVATED";
+        }
+        if (previousStatus != nextStatus && nextStatus == WorkflowStatus.INACTIVE) {
+            return "WORKFLOW_DEACTIVATED";
+        }
+        return "WORKFLOW_UPDATED";
+    }
+
+    private void recordWorkflowAudit(
+            String action,
+            Workflow workflow,
+            AccessContext accessContext,
+            Map<String, Object> metadata
+    ) {
+        auditClient.record(AuditLogRequest.builder()
+                .userId(accessContext.getUserId())
+                .organizationId(accessContext.getOrganizationId())
+                .action(action)
+                .entityType("WORKFLOW")
+                .entityId(workflow.getId())
+                .outcome("SUCCESS")
+                .ipAddress(accessContext.getIpAddress())
+                .userAgent(accessContext.getUserAgent())
+                .metadata(metadata)
+                .build());
+    }
+
+    private String defaultString(String value) {
+        return value != null ? value : "";
     }
 
     private NodeType resolveNodeType(String rawType) {

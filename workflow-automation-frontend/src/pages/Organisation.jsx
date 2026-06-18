@@ -2,6 +2,10 @@ import React from 'react';
 import {
   Building2,
   BriefcaseBusiness,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Info,
   Mail,
   Search,
   Shield,
@@ -34,6 +38,38 @@ const roleBadgeClass = (role) => {
 
 const ROLE_OPTIONS = [ROLES.ADMIN, ROLES.USER, ROLES.VIEWER];
 
+const ROLE_INFO = [
+  {
+    role: 'Admin',
+    badge: 'bg-[#292D32] text-white',
+    permissions: [
+      'Full platform access',
+      'Manage members and assign roles',
+      'Create, edit, delete workflows',
+      'Manage integrations and settings',
+      'View audit logs',
+    ],
+  },
+  {
+    role: 'Member',
+    badge: 'bg-[#D0FFA4] text-[#292D32]',
+    permissions: [
+      'Create and edit own workflows',
+      'Execute permitted workflows',
+      'View templates',
+    ],
+  },
+  {
+    role: 'Viewer',
+    badge: 'bg-[#E2E8F0] text-[#5C5C5C]',
+    permissions: [
+      'View workflows (read-only)',
+      'View execution history',
+      'Execute where granted',
+    ],
+  },
+];
+
 const Organisation = () => {
   const [orgMeta, setOrgMeta] = React.useState(null);
   const [members, setMembers] = React.useState([]);
@@ -52,6 +88,7 @@ const Organisation = () => {
     jobTitle: '',
     role: 'USER',
   });
+  const [showRoleGuide, setShowRoleGuide] = React.useState(false);
   const { user } = useAuthStore();
   const currentUserIsAdmin = isAdmin(user);
 
@@ -383,6 +420,52 @@ const Organisation = () => {
           </div>
         </section>
       )}
+
+      {/* Role Guide */}
+      <section className="enterprise-card overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowRoleGuide((v) => !v)}
+          className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-[#F6F5FA]"
+        >
+          <div className="flex items-center gap-2">
+            <Info size={16} className="text-[#292D32]" />
+            <span className="text-sm font-semibold text-[#292D32]">How roles work</span>
+          </div>
+          {showRoleGuide
+            ? <ChevronUp size={16} className="text-[#5C5C5C]" />
+            : <ChevronDown size={16} className="text-[#5C5C5C]" />}
+        </button>
+
+        {showRoleGuide && (
+          <div className="border-t border-[#E2E8F0] p-5 space-y-4">
+            <div className="rounded-2xl border border-[#E2E8F0] bg-[#F6F5FA] p-4 text-sm text-[#5C5C5C] space-y-2">
+              <p><strong className="text-[#292D32]">First user</strong> who creates an organization is automatically assigned the <strong className="text-[#292D32]">Admin</strong> role.</p>
+              <p>All subsequent users who sign up join as <strong className="text-[#292D32]">Member</strong> by default.</p>
+              <p>Only an <strong className="text-[#292D32]">Admin</strong> can change a member's role to Admin, Member, or Viewer using the dropdown below.</p>
+              <p>Use the <strong className="text-[#292D32]">Invite Member</strong> button to add new members directly to your organization.</p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {ROLE_INFO.map((info) => (
+                <div key={info.role} className="rounded-2xl border border-[#E2E8F0] bg-white p-4">
+                  <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${info.badge}`}>
+                    {info.role}
+                  </span>
+                  <ul className="mt-3 space-y-1.5">
+                    {info.permissions.map((perm) => (
+                      <li key={perm} className="flex items-start gap-2 text-xs text-[#5C5C5C]">
+                        <Check size={12} className="mt-0.5 shrink-0 text-[#292D32]" />
+                        {perm}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Team Directory */}
       <section className="enterprise-card overflow-hidden">

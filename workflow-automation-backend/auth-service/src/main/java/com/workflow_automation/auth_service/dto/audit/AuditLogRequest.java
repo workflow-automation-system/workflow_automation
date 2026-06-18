@@ -1,10 +1,12 @@
-package com.workflow_automation.audit_service.dto;
+package com.workflow_automation.auth_service.dto.audit;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.Map;
 
 @Data
+@Builder
 public class AuditLogRequest {
     private Long userId;
     private String actorEmail;
