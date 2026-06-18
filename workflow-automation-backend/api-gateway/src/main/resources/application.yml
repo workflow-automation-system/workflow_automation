@@ -21,6 +21,7 @@ spring:
               - "http://127.0.0.1:*"
               - "https://*.vercel.app"
               - "https://auto-flow0.vercel.app"
+              - "https://workflow-automation-navy-xi.vercel.app"
             allowedMethods:
               - GET
               - POST
