@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Check, Copy, KeyRound, Monitor, Moon, Shield, Sun } from 'lucide-react';
+import { Bell, Building2, Check, Copy, KeyRound, Monitor, Moon, Shield, Sun } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
 import { getRole } from '../utils/rbac';
