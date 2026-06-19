@@ -80,7 +80,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(assignedRole)
                 .organizationId(organization != null ? organization.getId() : null)
-                .enabled(true) // Automatically enable the user since Railway blocks SMTP
+                .enabled(false) // User must verify email via Brevo
                 .verificationToken(verificationToken)
                 .verificationTokenExpiresAt(LocalDateTime.now().plusHours(24))
                 .build();

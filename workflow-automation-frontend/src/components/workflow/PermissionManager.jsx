@@ -139,13 +139,15 @@ const PermissionManager = ({ workflowId, canManagePermissions }) => {
 
       {/* Header / Actions */}
       {!showModal && (
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#D0FFA4] px-4 py-2.5 text-sm font-semibold text-[#292D32] transition-colors hover:bg-[#BDEB94]"
-        >
-          <UserPlus size={16} />
-          Grant Access
-        </button>
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 rounded-lg bg-[#D0FFA4] px-3 py-2 text-xs font-bold text-[#292D32] transition-colors hover:bg-[#BDEB94]"
+          >
+            <UserPlus size={14} />
+            Grant Access
+          </button>
+        </div>
       )}
 
       {/* Grant Permission Form */}
