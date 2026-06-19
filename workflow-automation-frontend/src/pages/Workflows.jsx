@@ -113,14 +113,6 @@ const Workflows = () => {
     return result;
   }, [debouncedSearchQuery, statusFilter, workflows]);
 
-  const stats = React.useMemo(() => {
-    const total = workflows.length;
-    const active = workflows.filter((w) => w.status === 'ACTIVE').length;
-    const executions = workflows.reduce((acc, w) => acc + (w.executionCount || 0), 0);
-
-    return { total, active, executions };
-  }, [workflows]);
-
 
 
   const handleDeleteWorkflow = async () => {
@@ -197,20 +189,7 @@ const Workflows = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="enterprise-card border-[#D0FFA4] p-5">
-          <p className="text-sm text-[#5C5C5C]">Total Workflows</p>
-          <p className="mt-2 text-3xl font-bold text-[#292D32]">{stats.total}</p>
-        </div>
-        <div className="enterprise-card p-5">
-          <p className="text-sm text-[#5C5C5C]">Active Scenarios</p>
-          <p className="mt-2 text-3xl font-bold text-[#292D32]">{stats.active}</p>
-        </div>
-        <div className="enterprise-card p-5">
-          <p className="text-sm text-[#5C5C5C]">Execution Count</p>
-          <p className="mt-2 text-3xl font-bold text-[#292D32]">{stats.executions.toLocaleString()}</p>
-        </div>
-      </div>
+
 
       <div className="flex flex-col gap-3 md:flex-row">
         <div className="relative flex-1">

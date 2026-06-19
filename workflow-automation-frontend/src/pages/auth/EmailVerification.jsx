@@ -32,7 +32,7 @@ const EmailVerification = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F5FA] font-urbanist flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white font-urbanist flex items-center justify-center p-6">
       <div className="w-full max-w-md text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#D0FFA4] mb-6">
           <Mail size={32} className="text-[#292D32]" />

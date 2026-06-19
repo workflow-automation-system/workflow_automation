@@ -11,6 +11,7 @@ import {
   PERMISSION_LABELS,
   PERMISSION_DESCRIPTIONS,
 } from '../../api/permissionApi';
+import organizationService from '../../services/organizationService';
 
 const PermissionManager = ({ workflowId, canManagePermissions }) => {
   const [showModal, setShowModal] = useState(false);
@@ -19,6 +20,7 @@ const PermissionManager = ({ workflowId, canManagePermissions }) => {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [members, setMembers] = useState([]);
 
   const {
     workflowPermissions,
@@ -36,6 +38,9 @@ const PermissionManager = ({ workflowId, canManagePermissions }) => {
       fetchWorkflowPermissions(workflowId).catch((err) =>
         setError(`Failed to load permissions: ${err.message}`)
       );
+      organizationService.getMembers()
+        .then(setMembers)
+        .catch(err => console.error('Failed to fetch org members', err));
     }
   }, [workflowId, canManagePermissions, fetchWorkflowPermissions]);
 
@@ -132,35 +137,37 @@ const PermissionManager = ({ workflowId, canManagePermissions }) => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-[#292D32]">Workflow Access</h3>
-        {!showModal && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#D0FFA4] text-[#292D32] rounded-lg font-medium hover:bg-[#B8FF7D] transition-colors"
-          >
-            <UserPlus size={18} />
-            Grant Access
-          </button>
-        )}
-      </div>
+      {/* Header / Actions */}
+      {!showModal && (
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#D0FFA4] px-4 py-2.5 text-sm font-semibold text-[#292D32] transition-colors hover:bg-[#BDEB94]"
+        >
+          <UserPlus size={16} />
+          Grant Access
+        </button>
+      )}
 
       {/* Grant Permission Form */}
       {showModal && (
         <div className="border border-[#E2E8F0] rounded-lg p-4 bg-[#F8FAFC] space-y-4">
           <div>
             <label className="block text-sm font-medium text-[#292D32] mb-2">
-              User ID
+              User
             </label>
-            <input
-              type="number"
+            <select
               value={selectedUser}
               onChange={(e) => setSelectedUser(e.target.value)}
               disabled={editingId !== null}
-              placeholder="Enter user ID"
-              className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg text-[#292D32] focus:outline-none focus:ring-2 focus:ring-[#D0FFA4]"
-            />
+              className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg text-[#292D32] focus:outline-none focus:ring-2 focus:ring-[#D0FFA4] bg-white disabled:opacity-50"
+            >
+              <option value="" disabled>Select a user</option>
+              {members.map(member => (
+                <option key={member.userId} value={member.userId}>
+                  {member.name} ({member.email})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -219,44 +226,53 @@ const PermissionManager = ({ workflowId, canManagePermissions }) => {
           permissions.map((permission) => (
             <div
               key={permission.id}
-              className="border border-[#E2E8F0] rounded-lg p-4 bg-white hover:bg-[#F8FAFC] transition-colors"
+              className="group rounded-xl border border-[#E2E8F0] bg-white p-4 transition-all hover:border-[#CBD5E1] hover:shadow-sm"
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <p className="font-medium text-[#292D32]">User ID: {permission.userId}</p>
-                  <p className="text-xs text-[#64748B] mt-1">
-                    Granted by User {permission.grantedBy} on{' '}
-                    {new Date(permission.grantedAt).toLocaleDateString()}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {permission.permissions.map((perm) => (
-                      <span
-                        key={perm}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-[#D0FFA4] text-[#292D32] text-xs font-medium rounded"
-                      >
-                        <Check size={12} />
-                        {PERMISSION_LABELS[perm]}
-                      </span>
-                    ))}
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E2E8F0] bg-[#FAFAFC] text-sm font-bold uppercase text-[#292D32]">
+                    {(members.find(m => m.userId === permission.userId)?.name || 'U').charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[#292D32]">
+                      {members.find(m => m.userId === permission.userId)?.name || `User ID ${permission.userId}`}
+                    </p>
+                    {members.find(m => m.userId === permission.userId)?.email && (
+                      <p className="mt-0.5 text-xs text-[#5C5C5C]">
+                        {members.find(m => m.userId === permission.userId).email}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
                     onClick={() => handleEditClick(permission)}
-                    className="p-2 text-[#64748B] hover:text-[#292D32] hover:bg-[#E2E8F0] rounded-lg transition-colors"
+                    className="rounded-lg p-1.5 text-[#64748B] transition-colors hover:bg-[#F8FAFC] hover:text-[#292D32]"
                     title="Edit permissions"
                   >
-                    <Edit2 size={16} />
+                    <Edit2 size={14} />
                   </button>
                   <button
                     onClick={() => handleRevokePermission(permission.userId)}
-                    className="p-2 text-[#EF4444] hover:bg-red-50 rounded-lg transition-colors"
+                    className="rounded-lg p-1.5 text-[#EF4444] transition-colors hover:bg-red-50"
                     title="Revoke permissions"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {permission.permissions.map((perm) => (
+                  <span
+                    key={perm}
+                    className="inline-flex items-center gap-1 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-0.5 text-[11px] font-bold text-[#292D32]"
+                  >
+                    <Check size={10} className="text-[#64748B]" />
+                    {PERMISSION_LABELS[perm]}
+                  </span>
+                ))}
               </div>
             </div>
           ))

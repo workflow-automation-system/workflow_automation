@@ -42,7 +42,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F5FA] font-urbanist lg:grid lg:grid-cols-[1fr_2fr]">
+    <div className="min-h-screen bg-white font-urbanist lg:grid lg:grid-cols-[1fr_2fr]">
       <section className="hidden bg-[#D0FFA4] p-16 lg:flex lg:flex-col lg:justify-center relative">
         <div className="max-w-sm mx-auto">
           <div className="mb-10 flex items-center gap-3">

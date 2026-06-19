@@ -45,13 +45,10 @@ const NodeSidebar = ({ workflowConfiguration, disabled = false }) => {
   return (
     <aside className="enterprise-card h-full w-full min-w-[270px] max-w-[290px] overflow-hidden">
       <div className="border-b border-[#E2E8F0] p-5">
-        <div className="mb-1 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[#292D32]" />
-          <h3 className="text-sm font-semibold text-[#292D32]">Entities & Functions</h3>
+          <h3 className="text-sm font-semibold text-[#292D32]">Nodes</h3>
         </div>
-        <p className="text-xs text-[#5C5C5C]">
-          Drag backend-defined functions into the canvas to compose enterprise automation flows.
-        </p>
       </div>
 
       <div className="max-h-[calc(100vh-18rem)] space-y-2 overflow-y-auto p-4">
@@ -85,13 +82,13 @@ const NodeSidebar = ({ workflowConfiguration, disabled = false }) => {
         })}
       </div>
 
-      <div className="border-t border-[#E2E8F0] p-4">
-        <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 text-xs text-[#5C5C5C]">
-          {disabled
-            ? 'Read only mode is active. Drag-and-drop is disabled for this workflow.'
-            : 'Functions and entities are loaded from backend workflow configuration.'}
+      {disabled && (
+        <div className="border-t border-[#E2E8F0] p-4">
+          <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 text-xs text-[#5C5C5C]">
+            Read only mode is active. Drag-and-drop is disabled for this workflow.
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 };

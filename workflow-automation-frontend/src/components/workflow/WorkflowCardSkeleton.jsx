@@ -1,5 +1,3 @@
-import React from 'react';
-
 const WorkflowCardSkeleton = () => (
   <article className="enterprise-card overflow-hidden">
     <div className="space-y-4 p-5">

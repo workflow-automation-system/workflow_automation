@@ -106,7 +106,7 @@ const ExecuteWorkflowModal = ({ isOpen, onClose, onExecute, workflow, workflowNa
               setError(null);
             }}
             rows={8}
-            className="w-full rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] p-3 font-mono text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+            className="w-full rounded-xl border border-[#E2E8F0] bg-[#E2E8F0] p-3 font-mono text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
             placeholder="{}"
           />
           {error && <p className="text-xs text-red-500">{error}</p>}

@@ -86,7 +86,7 @@ const Profile = () => {
       <div className="enterprise-card divide-y divide-[#E2E8F0]">
         {infoItems.map((item) => (
           <div key={item.label} className="flex items-center gap-4 px-6 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F6F5FA]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E2E8F0]">
               <item.icon size={18} className="text-[#292D32]" />
             </div>
             <div>

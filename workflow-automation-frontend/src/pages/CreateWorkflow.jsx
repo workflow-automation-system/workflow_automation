@@ -5,13 +5,12 @@ import {
   Background,
   Controls,
   MarkerType,
-  MiniMap,
   ReactFlow,
   useEdgesState,
   useNodesState,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, FileText, Play, Save, ShieldCheck, SplitSquareVertical, Sparkles } from 'lucide-react';
+import { ArrowLeft, FileText, Play, Save, Sparkles } from 'lucide-react';
 import ConfigPanel from '../components/workflow/ConfigPanel';
 import NodeSidebar from '../components/workflow/NodeSidebar';
 import CustomNode from '../components/workflow/nodes/CustomNode';
@@ -176,8 +175,8 @@ const CreateWorkflow = () => {
             Array.isArray(existingWorkflow.edges)
               ? existingWorkflow.edges
               : Array.isArray(existingWorkflow.connections)
-              ? existingWorkflow.connections
-              : []
+                ? existingWorkflow.connections
+                : []
           );
         }
       } catch (err) {
@@ -325,10 +324,10 @@ const CreateWorkflow = () => {
       currentNodes.map((node) =>
         node.id === nodeId
           ? {
-              ...node,
-              type: nextNodeType || node.type,
-              data: { ...node.data, ...sanitizedData },
-            }
+            ...node,
+            type: nextNodeType || node.type,
+            data: { ...node.data, ...sanitizedData },
+          }
           : node
       )
     );
@@ -336,10 +335,10 @@ const CreateWorkflow = () => {
     setSelectedNode((current) =>
       current?.id === nodeId
         ? {
-            ...current,
-            type: nextNodeType || current.type,
-            data: { ...current.data, ...sanitizedData },
-          }
+          ...current,
+          type: nextNodeType || current.type,
+          data: { ...current.data, ...sanitizedData },
+        }
         : current
     );
   };
@@ -358,9 +357,9 @@ const CreateWorkflow = () => {
         </div>
       ) : null}
 
-      <header className="enterprise-card p-4">
+      <header className="enterprise-card flex flex-col gap-4 p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-1 items-center gap-3">
             <button
               type="button"
               onClick={() => navigate('/workflows')}
@@ -370,11 +369,11 @@ const CreateWorkflow = () => {
               <ArrowLeft size={16} />
             </button>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#E2E8F0] bg-[#D0FFA4]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E2E8F0] bg-[#D0FFA4]">
               <Play size={16} className="text-[#292D32]" />
             </div>
 
-            <div>
+            <div className="flex flex-1 flex-col justify-center min-w-[300px]">
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -386,6 +385,14 @@ const CreateWorkflow = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAiModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#D0FFA4] px-4 py-2 text-sm font-semibold text-[#292D32] hover:bg-[#BDEB94] transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_12px_rgba(208,255,164,0.3)] focus:outline-none focus:ring-2 focus:ring-[#D0FFA4] focus:ring-offset-2"
+            >
+              <Sparkles size={14} className="text-[#292D32]" />
+              Generate with AI
+            </button>
             <select
               value={status}
               onChange={(event) => setStatus(event.target.value.toUpperCase())}
@@ -395,21 +402,7 @@ const CreateWorkflow = () => {
               <option value="ACTIVE">ACTIVE</option>
               <option value="INACTIVE">INACTIVE</option>
             </select>
-            <button
-              type="button"
-              onClick={() => setAiModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#D0FFA4] px-4 py-2 text-sm font-semibold text-[#292D32] hover:bg-[#BDEB94] transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_12px_rgba(208,255,164,0.3)] focus:outline-none focus:ring-2 focus:ring-[#D0FFA4] focus:ring-offset-2 mr-1"
-            >
-              <Sparkles size={14} className="text-[#292D32]" />
-              Generate with AI
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/workflows')}
-              className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
-            >
-              Cancel
-            </button>
+
             <button
               type="button"
               onClick={handleSave}
@@ -421,21 +414,28 @@ const CreateWorkflow = () => {
             </button>
           </div>
         </div>
+        
+        <div className="h-px w-full bg-[#E2E8F0]"></div>
+        
+        <div className="flex items-center gap-2 text-sm text-[#5C5C5C]">
+          <FileText size={15} className="text-[#8A8A8A]" />
+          <span className="font-semibold text-[#292D32]">Workflow Description</span>
+          <input
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            disabled={!isCreateMode && editorReadOnly}
+            placeholder="Describe business intent, owner, and fallback behavior..."
+            className="flex-1 bg-transparent text-sm text-[#292D32] focus:outline-none placeholder:text-[#8A8A8A] ml-2"
+          />
+        </div>
       </header>
+
 
       <div className="grid gap-4 xl:grid-cols-[290px_1fr_320px]">
         <NodeSidebar workflowConfiguration={workflowConfiguration} disabled={isCreateMode ? !canCreate : editorReadOnly} />
 
         <section className="enterprise-card flex min-h-[520px] flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#E2E8F0] bg-[#F6F5FA] px-4 py-3">
-            <div className="flex items-center gap-2">
-              <SplitSquareVertical size={16} className="text-[#292D32]" />
-              <p className="text-sm font-semibold text-[#292D32]">Workflow Canvas</p>
-            </div>
-            <span className="text-xs text-[#5C5C5C]">
-              {nodes.length} nodes, {edges.length} connections
-            </span>
-          </div>
+
 
           <div className="canvas-grid-bg relative flex-1 bg-white">
             <ReactFlow
@@ -462,28 +462,9 @@ const CreateWorkflow = () => {
                 markerEnd: { type: MarkerType.ArrowClosed, color: '#D0FFA4' },
               }}
             >
-              <Background gap={24} color="#E2E8F0" />
+              <Background gap={24} color="#E2E8F0" variant="lines" />
               <Controls />
-              <MiniMap nodeColor="#D0FFA4" maskColor="rgba(246, 245, 250, 0.7)" />
             </ReactFlow>
-
-            <button
-              type="button"
-              className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#292D32] shadow-sm transition-colors hover:border-[#D0FFA4]"
-            >
-              AI + Help
-            </button>
-
-            <div className="absolute bottom-4 right-4 space-y-2">
-              <div className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs shadow-sm">
-                <p className="font-semibold text-[#292D32]">Scenario 1</p>
-                <p className="text-[#5E6672]">Data mapping healthy</p>
-              </div>
-              <div className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs shadow-sm">
-                <p className="font-semibold text-[#292D32]">Scenario 2</p>
-                <p className="text-[#5E6672]">Fallback branch standby</p>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -505,24 +486,6 @@ const CreateWorkflow = () => {
           </aside>
         )}
       </div>
-
-      <footer className="enterprise-card flex flex-col gap-3 p-4 md:flex-row md:items-center">
-        <div className="flex items-center gap-2 text-sm text-[#5C5C5C]">
-          <FileText size={15} className="text-[#292D32]" />
-          Workflow Description
-        </div>
-        <input
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          disabled={!isCreateMode && editorReadOnly}
-          placeholder="Describe business intent, owner, and fallback behavior..."
-          className="flex-1 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-        />
-        <div className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-3 py-1 text-xs font-semibold text-[#292D32]">
-          <ShieldCheck size={12} />
-          Enterprise-ready
-        </div>
-      </footer>
 
       {loadingWorkflow && workflowId ? (
         <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">

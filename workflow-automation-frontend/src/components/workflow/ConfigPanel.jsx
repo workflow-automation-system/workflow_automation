@@ -20,7 +20,7 @@ const nodeColor = {
   gmail: '#D0FFA4',
   email: '#D0FFA4',
   webhook: '#E2E8F0',
-  delay: '#F6F5FA',
+  delay: '#E2E8F0',
 };
 
 const inputStyle =

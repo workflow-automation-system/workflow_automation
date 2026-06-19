@@ -49,101 +49,36 @@ const fallbackFunctions = [
     },
   },
   {
-    key: 'data_mapper',
-    label: 'Data Mapper',
+    key: 'delay',
+    label: 'Delay',
     entity: 'ACTION',
-    description: 'Normalize source payloads to destination schemas',
-    icon: 'Table2',
+    description: 'Pause execution before the next workflow step',
+    icon: 'Clock',
+    color: '#F6F5FA',
+    defaultData: {
+      label: 'Wait',
+      duration: 5,
+      unit: 'minutes',
+    },
+  },
+  {
+    key: 'webhook',
+    label: 'Webhook',
+    entity: 'ACTION',
+    description: 'Call an external API or internal endpoint',
+    icon: 'Globe',
     color: '#E2E8F0',
     defaultData: {
-      label: 'Map Fields',
-      source: 'payload.customer',
-      target: 'crm.contact',
-      mappingMode: 'strict',
-    },
-  },
-  {
-    key: 'error_handler',
-    label: 'Error Handler',
-    entity: 'ACTION',
-    description: 'Capture failures and execute retry or fallback policy',
-    icon: 'ShieldAlert',
-    color: '#D0FFA4',
-    defaultData: {
-      label: 'Handle Errors',
-      policy: 'retry',
-      retries: 3,
-    },
-  },
-  {
-    key: 'notion',
-    label: 'Notion',
-    entity: 'ACTION',
-    description: 'Read and write pages or databases in Notion',
-    icon: 'BookCopy',
-    color: '#D0FFA4',
-    defaultData: {
-      label: 'Update Notion',
-      action: 'create_page',
-      database: '',
-    },
-  },
-  {
-    key: 'google_sheets',
-    label: 'Google Sheets',
-    entity: 'ACTION',
-    description: 'Append rows and manage tabular data workflows',
-    icon: 'Sheet',
-    color: '#D0FFA4',
-    defaultData: {
-      label: 'Append Row',
-      spreadsheetId: '',
-      worksheet: 'Sheet1',
-    },
-  },
-  {
-    key: 'chatgpt',
-    label: 'ChatGPT',
-    entity: 'ACTION',
-    description: 'Generate or classify content with secure prompts',
-    icon: 'Bot',
-    color: '#D0FFA4',
-    defaultData: {
-      label: 'Generate Summary',
-      model: 'gpt-5.4-mini',
-      prompt: '',
-    },
-  },
-  {
-    key: 'slack',
-    label: 'Slack',
-    entity: 'ACTION',
-    description: 'Send channel messages and incident updates',
-    icon: 'MessageSquare',
-    color: '#D0FFA4',
-    defaultData: {
-      label: 'Notify Channel',
-      channel: '#ops-alerts',
-      message: '',
-    },
-  },
-  {
-    key: 'email',
-    label: 'Email',
-    entity: 'ACTION',
-    description: 'Send an email notification',
-    icon: 'Mail',
-    color: '#D0FFA4',
-    defaultData: {
-      label: 'Send Email',
-      to: '',
-      subject: '',
+      label: 'HTTP Request',
+      url: '',
+      method: 'GET',
+      headers: {},
       body: '',
     },
   },
   {
     key: 'gmail',
-    label: 'Email',
+    label: 'Send Email',
     entity: 'ACTION',
     description: 'Send an email through Gmail',
     icon: 'Mail',
@@ -170,31 +105,16 @@ const fallbackFunctions = [
     },
   },
   {
-    key: 'webhook',
-    label: 'Webhook',
+    key: 'slack',
+    label: 'Slack',
     entity: 'ACTION',
-    description: 'Call an external API or internal endpoint',
-    icon: 'Globe',
-    color: '#E2E8F0',
+    description: 'Send channel messages and incident updates',
+    icon: 'MessageSquare',
+    color: '#D0FFA4',
     defaultData: {
-      label: 'HTTP Request',
-      url: '',
-      method: 'GET',
-      headers: {},
-      body: '',
-    },
-  },
-  {
-    key: 'delay',
-    label: 'Delay',
-    entity: 'ACTION',
-    description: 'Pause execution before the next workflow step',
-    icon: 'Clock',
-    color: '#F6F5FA',
-    defaultData: {
-      label: 'Wait',
-      duration: 5,
-      unit: 'minutes',
+      label: 'Notify Channel',
+      channel: '#ops-alerts',
+      message: '',
     },
   },
 ];
@@ -306,16 +226,6 @@ export const buildBackendNodeConfig = (nodeData = {}, nodeType = '') => {
   const functionKey = normalizeKey(nodeData.functionKey || nodeType);
   const settings = stripNodeMetaFields(nodeData);
 
-  if (functionKey === 'gmail' || functionKey === 'email') {
-    return {
-      functionKey,
-      application: 'gmail',
-      action: settings.action || 'send_email',
-      to: settings.to || '',
-      subject: settings.subject || '',
-      body: settings.body || '',
-    };
-  }
   if (functionKey === 'gmail' || functionKey === 'email' || functionKey === 'gmail_read') {
     return {
       functionKey,
@@ -324,8 +234,10 @@ export const buildBackendNodeConfig = (nodeData = {}, nodeType = '') => {
       to: settings.to || '',
       subject: settings.subject || '',
       body: settings.body || '',
-      query: settings.query || 'is:unread',
-      maxResults: settings.maxResults ?? 10,
+      ...(functionKey === 'gmail_read' && {
+        query: settings.query || 'is:unread',
+        maxResults: settings.maxResults ?? 10,
+      }),
     };
   }
 
@@ -384,15 +296,15 @@ const parseNodeFromBackendShape = (rawNode, index, configuration) => {
       ? parsedConfig.data
       : parsedConfig.application === 'gmail'
         ? {
-            action: parsedConfig.action,
-            to: parsedConfig.to,
-            subject: parsedConfig.subject,
-            body: parsedConfig.body,
-          }
+          action: parsedConfig.action,
+          to: parsedConfig.to,
+          subject: parsedConfig.subject,
+          body: parsedConfig.body,
+        }
         : {};
   const functionKey = normalizeKey(
-    parsedConfig.functionKey || 
-    parsedConfig.function || 
+    parsedConfig.functionKey ||
+    parsedConfig.function ||
     (parsedConfig.application === 'gmail' ? 'email' : undefined) ||
     rawNode?.type
   );
@@ -486,8 +398,8 @@ export const normalizeWorkflow = (workflow = {}, configuration = FALLBACK_WORKFL
     edges: (Array.isArray(workflow.edges)
       ? workflow.edges
       : Array.isArray(workflow.connections)
-      ? workflow.connections
-      : []
+        ? workflow.connections
+        : []
     ).map(normalizeWorkflowEdge),
     nodeCount,
     executionCount: Number.isFinite(workflow.executionCount) ? workflow.executionCount : 0,

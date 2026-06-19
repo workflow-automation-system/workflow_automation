@@ -81,7 +81,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F5FA] font-urbanist lg:grid lg:grid-cols-[1fr_2fr]">
+    <div className="min-h-screen bg-white font-urbanist lg:grid lg:grid-cols-[1fr_2fr]">
       <section className="hidden bg-[#D0FFA4] p-16 lg:flex lg:flex-col lg:justify-center relative">
         <div className="max-w-sm mx-auto">
           <div className="mb-10 flex items-center gap-3">
@@ -140,7 +140,7 @@ const Register = () => {
                   className={`cursor-pointer rounded-2xl border p-4 transition-all ${accountType === 'admin' ? 'border-[#D0FFA4] bg-[#F8FFEE]' : 'border-[#E2E8F0] hover:border-[#292D32]'}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accountType === 'admin' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-[#F6F5FA] text-[#8D95A1]'}`}>
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accountType === 'admin' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-[#E2E8F0] text-[#8D95A1]'}`}>
                       <Building2 size={20} />
                     </div>
                     <div>
@@ -155,7 +155,7 @@ const Register = () => {
                   className={`cursor-pointer rounded-2xl border p-4 transition-all ${accountType === 'member' ? 'border-[#D0FFA4] bg-[#F8FFEE]' : 'border-[#E2E8F0] hover:border-[#292D32]'}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accountType === 'member' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-[#F6F5FA] text-[#8D95A1]'}`}>
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accountType === 'member' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-[#E2E8F0] text-[#8D95A1]'}`}>
                       <Users size={20} />
                     </div>
                     <div>
@@ -208,7 +208,7 @@ const Register = () => {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#292D32] hover:bg-[#F6F5FA]"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#292D32] hover:bg-[#E2E8F0]"
                   >
                     Back
                   </button>
@@ -268,7 +268,7 @@ const Register = () => {
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#292D32] hover:bg-[#F6F5FA]"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#292D32] hover:bg-[#E2E8F0]"
                   >
                     Back
                   </button>

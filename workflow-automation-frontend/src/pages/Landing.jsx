@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   Terminal,
+  Workflow,
   Zap,
 } from 'lucide-react';
 
@@ -98,7 +99,7 @@ const Landing = () => {
         <div className="mx-auto flex max-w-6xl h-20 items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0FFA4]">
-              <Sparkles size={20} className="text-[#292D32]" />
+              <Workflow size={20} className="text-[#292D32]" />
             </div>
             <span className="text-xl font-bold tracking-tight text-white">AutoFlow</span>
           </div>
@@ -487,7 +488,7 @@ const Landing = () => {
       <footer className="border-t border-[#3C4249] py-12 text-center text-sm text-slate-500 relative z-10">
         <div className="mx-auto max-w-7xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Sparkles size={16} className="text-[#D0FFA4]" />
+            <Workflow size={16} className="text-[#D0FFA4]" />
             <span className="font-bold text-white">AutoFlow Inc.</span>
           </div>
           <p>© 2026 AutoFlow Inc. All rights reserved. Secure enterprise automation orchestration.</p>

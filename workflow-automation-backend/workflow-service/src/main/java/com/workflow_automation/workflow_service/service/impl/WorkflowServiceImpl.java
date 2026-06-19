@@ -63,95 +63,28 @@ public class WorkflowServiceImpl implements WorkflowService {
                     Map.of("label", "Branch Condition", "expression", "order.total > 1000")
             ),
             function(
-                    "data_mapper",
-                    "Data Mapper",
+                    "delay",
+                    "Delay",
                     NodeType.ACTION,
-                    "Normalize source payloads to destination schemas",
-                    "Table2",
+                    "Pause execution before the next workflow step",
+                    "Clock",
+                    "#F6F5FA",
+                    Map.of("label", "Wait", "duration", 5, "unit", "minutes")
+            ),
+            function(
+                    "webhook",
+                    "Webhook",
+                    NodeType.ACTION,
+                    "Call an external API or internal endpoint",
+                    "Globe",
                     "#E2E8F0",
-                    Map.of("label", "Map Fields", "source", "payload.customer", "target", "crm.contact")
-            ),
-            function(
-                    "error_handler",
-                    "Error Handler",
-                    NodeType.ACTION,
-                    "Capture failures and execute retry or fallback policy",
-                    "ShieldAlert",
-                    "#D0FFA4",
-                    Map.of("label", "Handle Errors", "policy", "retry", "retries", 3)
-            ),
-            function(
-                    "notion",
-                    "Notion",
-                    NodeType.ACTION,
-                    "Read and write pages or databases in Notion",
-                    "BookCopy",
-                    "#D0FFA4",
-                    Map.of("label", "Update Notion", "action", "create_page", "database", "")
-            ),
-            function(
-                    "google_sheets",
-                    "Google Sheets",
-                    NodeType.ACTION,
-                    "Append rows and manage tabular data workflows",
-                    "Sheet",
-                    "#D0FFA4",
-                    Map.of("label", "Append Row", "spreadsheetId", "", "worksheet", "Sheet1")
-            ),
-            function(
-                    "chatgpt",
-                    "ChatGPT",
-                    NodeType.ACTION,
-                    "Generate or classify content with secure prompts",
-                    "Bot",
-                    "#D0FFA4",
-                    Map.of("label", "Generate Summary", "model", "gpt-5.4-mini", "prompt", "")
-            ),
-            function(
-                    "slack",
-                    "Slack",
-                    NodeType.ACTION,
-                    "Send channel messages and incident updates",
-                    "MessageSquare",
-                    "#D0FFA4",
-                    Map.of("label", "Notify Channel", "channel", "#ops-alerts", "message", "")
+                    Map.of("label", "HTTP Request", "url", "", "method", "GET", "body", "")
             ),
             function(
                     "gmail",
-                    "Gmail",
+                    "Send Email",
                     NodeType.ACTION,
-                    "Send email through Gmail",
-                    "Mail",
-                    "#D0FFA4",
-                    Map.of(
-                            "application", "gmail",
-                            "label", "Send Gmail",
-                            "action", "send_email",
-                            "to", "",
-                            "subject", "",
-                            "body", ""
-                    )
-            ),
-            function(
-                    "gmail_read",
-                    "Read Gmail",
-                    NodeType.ACTION,
-                    "Read latest emails from Gmail",
-                    "Mail",
-                    "#D0FFA4",
-                Map.of(
-                        "application", "gmail",
-                        "label", "Read Gmail",
-                        "action", "read_emails",
-                        "query", "is:unread",
-                        "maxResults", 10
-                )
-            ),
-            function(
-                    "email",
-                    "Email",
-                    NodeType.ACTION,
-                    "Send an email notification",
+                    "Send an email through Gmail",
                     "Mail",
                     "#D0FFA4",
                     Map.of(
@@ -164,22 +97,28 @@ public class WorkflowServiceImpl implements WorkflowService {
                     )
             ),
             function(
-                    "webhook",
-                    "Webhook",
+                    "gmail_read",
+                    "Read Email",
                     NodeType.ACTION,
-                    "Call an external API or internal endpoint",
-                    "Globe",
-                    "#E2E8F0",
-                    Map.of("label", "HTTP Request", "url", "", "method", "GET", "body", "")
+                    "Read latest emails from Gmail",
+                    "Mail",
+                    "#D0FFA4",
+                Map.of(
+                        "application", "gmail",
+                        "label", "Read Email",
+                        "action", "read_emails",
+                        "query", "is:unread",
+                        "maxResults", 10
+                )
             ),
             function(
-                    "delay",
-                    "Delay",
+                    "slack",
+                    "Slack",
                     NodeType.ACTION,
-                    "Pause execution before the next workflow step",
-                    "Clock",
-                    "#F6F5FA",
-                    Map.of("label", "Wait", "duration", 5, "unit", "minutes")
+                    "Send channel messages and incident updates",
+                    "MessageSquare",
+                    "#D0FFA4",
+                    Map.of("label", "Notify Channel", "channel", "#ops-alerts", "message", "")
             )
     );
 

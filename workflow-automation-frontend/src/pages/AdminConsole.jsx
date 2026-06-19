@@ -213,7 +213,7 @@ const AdminConsole = () => {
               <button
                 type="button"
                 onClick={() => setShowInviteForm(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#E2E8F0]"
               >
                 <X size={18} />
               </button>
@@ -288,7 +288,7 @@ const AdminConsole = () => {
                 <button
                   type="button"
                   onClick={() => setShowInviteForm(false)}
-                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#E2E8F0]"
                 >
                   Cancel
                 </button>
@@ -315,7 +315,7 @@ const AdminConsole = () => {
         <button
           type="button"
           onClick={() => setShowRoleGuide((v) => !v)}
-          className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-[#F6F5FA]"
+          className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-[#E2E8F0]"
         >
           <div className="flex items-center gap-2">
             <Info size={16} className="text-[#292D32]" />
@@ -328,7 +328,7 @@ const AdminConsole = () => {
 
         {showRoleGuide && (
           <div className="border-t border-[#E2E8F0] p-5 space-y-4">
-            <div className="rounded-2xl border border-[#E2E8F0] bg-[#F6F5FA] p-4 text-sm text-[#5C5C5C] space-y-2">
+            <div className="rounded-2xl border border-[#E2E8F0] bg-[#E2E8F0] p-4 text-sm text-[#5C5C5C] space-y-2">
               <p><strong className="text-[#292D32]">First user</strong> who creates an organization is automatically assigned the <strong className="text-[#292D32]">Admin</strong> role.</p>
               <p>All subsequent users who sign up join as <strong className="text-[#292D32]">Member</strong> by default.</p>
               <p>Only an <strong className="text-[#292D32]">Admin</strong> can change a member's role to Admin, Member, or Viewer using the dropdown below.</p>
@@ -431,7 +431,7 @@ const AdminConsole = () => {
                           {member.name || member.email}
                         </p>
                         {isSelf && (
-                          <span className="rounded-full bg-[#F6F5FA] px-2 py-0.5 text-[10px] text-[#5C5C5C]">You</span>
+                          <span className="rounded-full bg-[#E2E8F0] px-2 py-0.5 text-[10px] text-[#5C5C5C]">You</span>
                         )}
                       </div>
                       <p className="text-xs text-[#5C5C5C]">{member.email}</p>

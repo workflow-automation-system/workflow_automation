@@ -55,7 +55,7 @@ const nodeBg = {
   email: '#D0FFA4',
   gmail: '#D0FFA4',
   webhook: '#E2E8F0',
-  delay: '#F6F5FA',
+  delay: '#E2E8F0',
 };
 
 const getSubtitle = (type, data) => {

@@ -38,7 +38,7 @@ const ExecutionStepsModal = ({ isOpen, onClose, steps, executionId, isLoading })
                       {formatDate(step.executedAt)}
                     </span>
                   </div>
-                  <p className="text-xs font-mono text-[#5C5C5C] bg-[#F6F5FA] p-2 rounded-lg break-all">
+                  <p className="text-xs font-mono text-[#5C5C5C] bg-[#E2E8F0] p-2 rounded-lg break-all">
                     {step.logMessage || 'No log details.'}
                   </p>
                 </div>

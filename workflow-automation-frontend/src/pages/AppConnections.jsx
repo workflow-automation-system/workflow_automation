@@ -170,7 +170,7 @@ const AppConnections = () => {
       </div>
 
       {successMessage ? (
-        <div className="rounded-xl border border-[#D0FFA4] bg-[#F6F5FA] px-4 py-3 text-sm font-semibold text-[#292D32]">
+        <div className="rounded-xl border border-[#D0FFA4] bg-[#E2E8F0] px-4 py-3 text-sm font-semibold text-[#292D32]">
           {successMessage}
         </div>
       ) : null}

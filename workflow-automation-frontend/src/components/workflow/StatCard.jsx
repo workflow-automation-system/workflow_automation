@@ -1,9 +1,18 @@
 import React from 'react';
 
-const StatCard = ({ label, value }) => (
-  <article className="enterprise-card p-4">
-    <p className="text-xs uppercase tracking-[0.06em] text-[#5C5C5C]">{label}</p>
-    <p className="mt-2 text-xl font-bold text-[#292D32]">{value}</p>
+const StatCard = ({ icon, label, value }) => (
+  <article className="enterprise-card relative overflow-hidden p-5 transition-all hover:-translate-y-1 hover:shadow-lg">
+    <div className="relative z-10 flex items-start gap-4">
+      {icon && (
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E2E8F0] text-[#292D32]">
+          {icon}
+        </div>
+      )}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#5C5C5C]">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-[#292D32]">{value}</p>
+      </div>
+    </div>
   </article>
 );
 

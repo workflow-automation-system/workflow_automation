@@ -39,7 +39,7 @@ const VerifyEmail = () => {
   }, [clearError]);
 
   return (
-    <div className="min-h-screen bg-[#F6F5FA] font-urbanist flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white font-urbanist flex items-center justify-center p-6">
       <div className="w-full max-w-md text-center">
         {status === 'verifying' && (
           <>

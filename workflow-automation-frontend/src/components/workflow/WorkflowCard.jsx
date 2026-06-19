@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  ArrowRight,
-  Clock,
   Edit,
   Eye,
   GitBranch,
@@ -13,13 +11,6 @@ import {
 
 const isActiveWorkflow = (workflow) => workflow?.status === 'ACTIVE';
 
-const getNodeCount = (workflow) => {
-  if (Number.isFinite(workflow?.nodeCount)) {
-    return workflow.nodeCount;
-  }
-  return Array.isArray(workflow?.nodes) ? workflow.nodes.length : 0;
-};
-
 const WorkflowCard = ({
   workflow,
   actionInProgress,
@@ -28,11 +19,9 @@ const WorkflowCard = ({
   onExecute,
   onToggle,
   onDelete,
-  formatDate,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
   const isActive = isActiveWorkflow(workflow);
-  const nodeCount = getNodeCount(workflow);
 
   return (
     <article className="enterprise-card overflow-hidden">
@@ -75,7 +64,7 @@ const WorkflowCard = ({
                     setShowMenu(false);
                     onView();
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#292D32] hover:bg-[#F6F5FA]"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#292D32] hover:bg-[#E2E8F0]"
                 >
                   <Eye size={14} />
                   View
@@ -87,25 +76,13 @@ const WorkflowCard = ({
                       setShowMenu(false);
                       onEdit();
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#292D32] hover:bg-[#F6F5FA]"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#292D32] hover:bg-[#E2E8F0]"
                   >
                     <Edit size={14} />
                     Edit
                   </button>
                 )}
-                {onExecute && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false);
-                      onExecute();
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#292D32] hover:bg-[#F6F5FA]"
-                  >
-                    <Play size={14} />
-                    Execute
-                  </button>
-                )}
+
                 {onToggle && (
                   <button
                     type="button"
@@ -113,7 +90,7 @@ const WorkflowCard = ({
                       setShowMenu(false);
                       onToggle();
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#292D32] hover:bg-[#F6F5FA]"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#292D32] hover:bg-[#E2E8F0]"
                   >
                     {isActive ? <Pause size={14} /> : <Play size={14} />}
                     {isActive ? 'Disable' : 'Enable'}
@@ -140,28 +117,22 @@ const WorkflowCard = ({
         <p className="mt-4 text-sm text-[#5C5C5C]">
           {workflow.description || 'No description has been provided for this workflow.'}
         </p>
-
-        <div className="mt-4 flex items-center justify-between text-xs text-[#5C5C5C]">
-          <span className="inline-flex items-center gap-1">
-            <GitBranch size={12} />
-            {nodeCount} nodes
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Clock size={12} />
-            {formatDate(workflow)}
-          </span>
-        </div>
       </div>
 
-      <div className="border-t border-[#E2E8F0] px-5 py-3">
-        <button
-          type="button"
-          onClick={onView}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[#292D32] hover:text-[#3C4249]"
-        >
-          Open Workflow
-          <ArrowRight size={14} />
-        </button>
+      <div className="flex items-center justify-end border-t border-[#E2E8F0] px-5 py-3">
+
+
+        {onExecute && (
+          <button
+            type="button"
+            onClick={onExecute}
+            disabled={actionInProgress}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#D0FFA4] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#292D32] transition-colors hover:bg-[#BDEB94] disabled:opacity-50"
+          >
+            <Play size={12} className="fill-[#292D32]" />
+            Execute
+          </button>
+        )}
       </div>
     </article>
   );

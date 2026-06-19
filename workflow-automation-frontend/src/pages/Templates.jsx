@@ -177,7 +177,7 @@ const Templates = () => {
                   <ArrowRight size={14} />
                 </button>
               ) : (
-                <span className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2.5 text-sm font-medium text-[#8D95A1]">
+                <span className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-[#E2E8F0] px-3 py-2.5 text-sm font-medium text-[#8D95A1]">
                   View Only
                 </span>
               )}

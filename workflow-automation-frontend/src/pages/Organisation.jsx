@@ -231,7 +231,7 @@ const Organisation = () => {
               <button
                 type="button"
                 onClick={() => setShowInviteForm(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#E2E8F0]"
               >
                 <X size={18} />
               </button>
@@ -306,7 +306,7 @@ const Organisation = () => {
                 <button
                   type="button"
                   onClick={() => setShowInviteForm(false)}
-                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#E2E8F0]"
                 >
                   Cancel
                 </button>
@@ -416,7 +416,7 @@ const Organisation = () => {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-[#292D32]">{member.name || member.email}</p>
                       {isSelf && (
-                        <span className="rounded-full bg-[#F6F5FA] px-2 py-0.5 text-[10px] text-[#5C5C5C]">You</span>
+                        <span className="rounded-full bg-[#E2E8F0] px-2 py-0.5 text-[10px] text-[#5C5C5C]">You</span>
                       )}
                     </div>
                     <p className="text-xs text-[#5C5C5C]">{member.department || 'Unassigned'}</p>
