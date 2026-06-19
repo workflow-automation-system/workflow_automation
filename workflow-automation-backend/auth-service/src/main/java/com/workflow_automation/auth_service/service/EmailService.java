@@ -64,7 +64,7 @@ public class EmailService {
     private void sendViaBrevoApi(String to, String subject, String textContent) {
         try {
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-            headers.set("api-key", mailPassword);
+            headers.set("api-key", mailPassword != null ? mailPassword.trim() : "");
             headers.set("Content-Type", "application/json");
             headers.set("Accept", "application/json");
 
