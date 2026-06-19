@@ -23,7 +23,7 @@ public class EmailService {
     @Value("${spring.mail.host:}")
     private String mailHost;
 
-    @Value("${spring.mail.password:}")
+    @Value("${brevo.api.key:${spring.mail.password:}}")
     private String mailPassword;
 
     @Async
@@ -63,8 +63,11 @@ public class EmailService {
 
     private void sendViaBrevoApi(String to, String subject, String textContent) {
         try {
+            String apiKey = mailPassword != null ? mailPassword.trim() : "";
+            log.info("Attempting Brevo API. Key starts with: {}", apiKey.length() > 8 ? apiKey.substring(0, 8) : "TOO_SHORT");
+            
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-            headers.set("api-key", mailPassword != null ? mailPassword.trim() : "");
+            headers.set("api-key", apiKey);
             headers.set("Content-Type", "application/json");
             headers.set("Accept", "application/json");
 
