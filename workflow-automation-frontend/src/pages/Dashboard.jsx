@@ -9,13 +9,12 @@ import {
   MessageSquare,
   Network,
   Plus,
-  Shield,
   Eye,
   Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import useWorkflowStore from '../stores/workflowStore';
-import { canCreateWorkflow, isAdmin, getRole } from '../utils/rbac';
+import { canCreateWorkflow, getRole } from '../utils/rbac';
 
 
 
