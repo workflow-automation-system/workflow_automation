@@ -48,31 +48,22 @@ const formatNodeSettings = (node) => {
 };
 
 const ExecuteWorkflowModal = ({ isOpen, onClose, onExecute, workflow, workflowName }) => {
-  const [input, setInput] = React.useState('{}');
-  const [error, setError] = React.useState(null);
   const nodes = Array.isArray(workflow?.nodes) ? workflow.nodes : [];
 
   React.useEffect(() => {
     if (!isOpen) return;
-    setInput(buildExecutionInput(workflow));
-    setError(null);
   }, [isOpen, workflow]);
 
   const handleExecute = () => {
-    try {
-      const parsed = JSON.parse(input);
-      onExecute(parsed);
-      onClose();
-    } catch (err) {
-      setError('Invalid JSON: ' + err.message);
-    }
+    onExecute({});
+    onClose();
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Execute: ${workflowName}`}>
       <div className="space-y-4 font-urbanist">
         <p className="text-sm text-[#5C5C5C]">
-          Provide only the runtime values used by this workflow. Saved node settings are already stored in the workflow and will be used during execution.
+          Review the workflow details below before executing it manually.
         </p>
 
         {nodes.length ? (
@@ -94,23 +85,6 @@ const ExecuteWorkflowModal = ({ isOpen, onClose, onExecute, workflow, workflowNa
             </div>
           </div>
         ) : null}
-        
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-[0.06em] text-[#5C5C5C]">
-            Runtime JSON Input
-          </label>
-          <textarea
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              setError(null);
-            }}
-            rows={8}
-            className="w-full rounded-xl border border-[#E2E8F0] bg-[#E2E8F0] p-3 font-mono text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-            placeholder="{}"
-          />
-          {error && <p className="text-xs text-red-500">{error}</p>}
-        </div>
 
         <div className="flex justify-end gap-2 pt-2">
           <button

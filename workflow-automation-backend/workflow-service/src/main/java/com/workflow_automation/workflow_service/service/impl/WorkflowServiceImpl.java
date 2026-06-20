@@ -126,6 +126,8 @@ public class WorkflowServiceImpl implements WorkflowService {
     private final ConnectionRepository connectionRepository;
     private final PermissionService permissionService;
     private final WorkflowAccessService workflowAccessService;
+    private final com.workflow_automation.workflow_service.service.WorkflowInitializer workflowInitializer;
+    private final com.workflow_automation.workflow_service.service.WorkflowSchedulingService schedulingService;
 
     @Override
     public WorkflowResponse create(CreateWorkflowRequest request, AccessContext accessContext) {
@@ -149,6 +151,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         
         workflow = workflowRepository.save(workflow);
         permissionService.ensureOwnerPermissions(workflow);
+        workflowInitializer.scheduleIfRequired(workflow);
 
         return toWorkflowResponse(workflow, accessContext);
     }
@@ -198,6 +201,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         Map<String, Node> clientNodes = applyNodes(workflow, request.getNodes());
         applyConnections(workflow, request.getConnections(), clientNodes);
         workflow = workflowRepository.save(workflow);
+        workflowInitializer.scheduleIfRequired(workflow);
         return toWorkflowResponse(workflow, accessContext);
     }
 
@@ -209,6 +213,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         // Delete all associated permissions
         permissionService.deleteWorkflowPermissions(workflowId);
 
+        schedulingService.cancelSchedule(workflowId);
         workflowRepository.delete(workflow);
     }
 

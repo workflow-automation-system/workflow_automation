@@ -12,7 +12,8 @@ import java.util.Set;
 @Table(name = "workflow_permissions", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"workflow_id", "user_id"})
 })
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

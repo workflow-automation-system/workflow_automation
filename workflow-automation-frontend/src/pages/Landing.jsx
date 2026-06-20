@@ -55,6 +55,7 @@ const Landing = () => {
       {/* Hero Section */}
       <section className="mx-auto max-w-5xl px-6 pt-40 pb-24 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-bold text-[#64748B] mb-8 shadow-sm">
+          <Zap size={14} className="text-[#D0FFA4] fill-[#D0FFA4]" />
           The Modern Automation Platform
         </div>
 

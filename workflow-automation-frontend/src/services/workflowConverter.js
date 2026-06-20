@@ -31,6 +31,7 @@ const fallbackFunctions = [
     defaultData: {
       label: 'New Trigger',
       eventType: 'manual',
+      cronExpression: '',
       conditions: [],
     },
   },

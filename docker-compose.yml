@@ -49,6 +49,7 @@ services:
       - ./workflow-automation-backend/workflow-service/.env
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/workflow_db
+      - ORGANIZATION_SERVICE_URL=http://organization-service:8083/api/organizations
     depends_on:
       - postgres
     networks:

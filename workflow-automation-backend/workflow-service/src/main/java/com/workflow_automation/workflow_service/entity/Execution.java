@@ -5,13 +5,16 @@ import com.workflow_automation.workflow_service.entity.enums.WorkflowStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -31,4 +34,6 @@ public class Execution {
     @JoinColumn(name = "workflow_id")
     private Workflow workflow;
 
+    @OneToMany(mappedBy = "execution", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ExecutionStep> steps;
 }

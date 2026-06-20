@@ -397,4 +397,34 @@ public class AuthService {
 
         return toAuthResponse(savedUser, null);
     }
+
+    public void requestPasswordReset(String email) {
+        userRepository.findByEmail(email.trim().toLowerCase()).ifPresent(user -> {
+            String token = UUID.randomUUID().toString();
+            user.setResetPasswordToken(token);
+            user.setResetPasswordTokenExpiresAt(LocalDateTime.now().plusHours(1));
+            userRepository.save(user);
+
+            String resetLink = frontendUrl + "/reset-password?token=" + token;
+            try {
+                emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+            } catch (Exception e) {
+                log.error("Failed to send password reset email to {}: {}", email, e.getMessage());
+            }
+        });
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetPasswordToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired password reset token"));
+
+        if (user.getResetPasswordTokenExpiresAt() == null || user.getResetPasswordTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password reset token has expired");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetPasswordToken(null);
+        user.setResetPasswordTokenExpiresAt(null);
+        userRepository.save(user);
+    }
 }

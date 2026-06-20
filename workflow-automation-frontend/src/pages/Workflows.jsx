@@ -273,7 +273,7 @@ const Workflows = () => {
               onEdit={canEditWorkflow(workflow, user) ? () => navigate(`/create-workflow?id=${workflow.id}`) : undefined}
               onExecute={canExecuteWorkflow(workflow, user) ? () => setExecuteModal({ open: true, workflow }) : undefined}
               onToggle={canEditWorkflow(workflow, user) ? () => handleToggleStatus(workflow) : undefined}
-              onDelete={canDeleteWorkflow(workflow, user) ? () => setDeleteModal({ open: true, workflow }) : undefined}
+              onDelete={canEditWorkflow(workflow, user) ? () => setDeleteModal({ open: true, workflow }) : undefined}
               formatDate={(w) => formatDate(w.createdAt || w.updatedAt || w.lastExecution || null)}
             />
           ))}

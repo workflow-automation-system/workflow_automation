@@ -26,6 +26,17 @@ const nodeColor = {
 const inputStyle =
   'w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none';
 
+const CRON_PRESETS = [
+  { label: 'Every Minute', value: '0 * * * * ?' },
+  { label: 'Every 5 Minutes', value: '0 */5 * * * ?' },
+  { label: 'Every 15 Minutes', value: '0 */15 * * * ?' },
+  { label: 'Every 30 Minutes', value: '0 */30 * * * ?' },
+  { label: 'Every Hour', value: '0 0 * * * ?' },
+  { label: 'Every Day (Midnight)', value: '0 0 0 * * ?' },
+  { label: 'Every Monday (Midnight)', value: '0 0 0 ? * MON' },
+  { label: 'Custom', value: 'custom' }
+];
+
 const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration, readOnly = false }) => {
   const activeConfiguration =
     Array.isArray(workflowConfiguration?.functions) && workflowConfiguration.functions.length > 0
@@ -76,12 +87,42 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration,
                 className={inputStyle}
               >
                 <option value="manual">Manual Trigger</option>
-                <option value="webhook">Webhook Event</option>
                 <option value="schedule">Schedule</option>
-                <option value="customer_created">Customer Created</option>
-                <option value="order_created">Order Created</option>
               </select>
             </Field>
+            {node.data?.eventType === 'schedule' && (
+              <Field label="Schedule Frequency">
+                <select
+                  value={
+                    CRON_PRESETS.find((p) => p.value === node.data?.cronExpression && p.value !== 'custom')
+                      ? node.data?.cronExpression
+                      : 'custom'
+                  }
+                  onChange={(event) => {
+                    if (event.target.value !== 'custom') {
+                      update('cronExpression', event.target.value);
+                    }
+                  }}
+                  disabled={readOnly}
+                  className={inputStyle}
+                >
+                  {CRON_PRESETS.map((preset) => (
+                    <option key={preset.value} value={preset.value}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+                {!CRON_PRESETS.find((p) => p.value === node.data?.cronExpression && p.value !== 'custom') && (
+                  <input
+                    value={node.data?.cronExpression || ''}
+                    onChange={(event) => update('cronExpression', event.target.value)}
+                    disabled={readOnly}
+                    placeholder="Enter custom cron (e.g. 0 0 * * * ?)"
+                    className={`${inputStyle} mt-2`}
+                  />
+                )}
+              </Field>
+            )}
           </>
         );
       case 'condition':

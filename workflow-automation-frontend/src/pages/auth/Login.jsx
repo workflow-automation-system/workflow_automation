@@ -105,6 +105,11 @@ const Login = () => {
                 />
               </div>
               {formErrors.password && <span className="mt-1 block text-xs text-[#EF4444]">{formErrors.password}</span>}
+              <div className="mt-2 text-right">
+                <Link to="/forgot-password" className="text-xs font-semibold text-[#5C5C5C] hover:text-[#292D32] hover:underline">
+                  Forgot Password?
+                </Link>
+              </div>
             </label>
 
             <button

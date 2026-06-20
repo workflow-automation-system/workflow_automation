@@ -53,6 +53,19 @@ public class EmailService {
         sendEmail(to, subject, textContent);
     }
 
+    @Async
+    public void sendPasswordResetEmail(String to, String resetLink) {
+        String subject = "Password Reset Request";
+        String textContent = "Bonjour,\n\n" +
+                "Vous avez demandé à réinitialiser votre mot de passe.\n\n" +
+                "Cliquez sur ce lien pour choisir un nouveau mot de passe :\n" +
+                resetLink + "\n\n" +
+                "Ce lien expire dans 1 heure.\n\n" +
+                "Si vous n'avez pas fait cette demande, vous pouvez ignorer cet email en toute sécurité.";
+                
+        sendEmail(to, subject, textContent);
+    }
+
     private void sendEmail(String to, String subject, String textContent) {
         if (mailHost != null && (mailHost.toLowerCase().contains("brevo") || mailHost.toLowerCase().contains("sendinblue"))) {
             sendViaBrevoApi(to, subject, textContent);

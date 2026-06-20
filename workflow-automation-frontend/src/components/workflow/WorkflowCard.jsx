@@ -34,15 +34,15 @@ const WorkflowCard = ({
             <div>
               <p className="text-sm font-semibold text-[#292D32]">{workflow.name}</p>
               <span
-                className={[
-                  'inline-flex rounded-full px-2 py-1 text-[11px] font-semibold',
-                  isActive
-                    ? 'bg-[#D0FFA4] text-[#292D32]'
-                    : 'border border-[#E2E8F0] bg-white text-[#5C5C5C]',
-                ].join(' ')}
-              >
-                {isActive ? 'Running' : 'Paused'}
-              </span>
+                  className={[
+                    'inline-flex rounded-full px-2 py-1 text-[11px] font-semibold',
+                    isActive
+                      ? 'bg-[#D0FFA4] text-[#292D32]'
+                      : 'border border-[#E2E8F0] bg-white text-[#5C5C5C]',
+                  ].join(' ')}
+                >
+                  {isActive ? 'Active' : 'Inactive'}
+                </span>
             </div>
           </div>
 
@@ -96,19 +96,17 @@ const WorkflowCard = ({
                     {isActive ? 'Disable' : 'Enable'}
                   </button>
                 )}
-                {onDelete && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false);
-                      onDelete();
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#EF4444] hover:bg-red-50"
-                  >
-                    <Trash2 size={14} />
-                    Delete
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false);
+                    if (onDelete) onDelete();
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#EF4444] hover:bg-red-50"
+                >
+                  <Trash2 size={14} />
+                  Delete
+                </button>
               </div>
             )}
           </div>

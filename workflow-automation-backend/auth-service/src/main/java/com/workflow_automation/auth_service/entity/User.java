@@ -42,6 +42,11 @@ public class User {
 
     private LocalDateTime verificationTokenExpiresAt;
 
+    @Column(unique = true)
+    private String resetPasswordToken;
+
+    private LocalDateTime resetPasswordTokenExpiresAt;
+
     private LocalDateTime createdAt;
 
     @PrePersist

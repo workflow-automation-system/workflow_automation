@@ -108,6 +108,7 @@ const PermissionManager = ({ workflowId, canManagePermissions }) => {
     setEditingId(permission.id);
     setSelectedUser(permission.userId.toString());
     setSelectedPermissions(new Set(permission.permissions));
+    setShowModal(true);
   };
 
   const handleCancel = () => {

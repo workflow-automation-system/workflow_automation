@@ -111,6 +111,32 @@ export const useAuthStore = create(
         }
       },
 
+      requestPasswordReset: async (email) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authService.forgotPassword(email);
+          set({ isLoading: false });
+          return { success: true };
+        } catch (error) {
+          const errorMessage = error.response?.data?.message || 'Failed to request password reset';
+          set({ error: errorMessage, isLoading: false });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      resetPassword: async (token, newPassword) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authService.resetPassword(token, newPassword);
+          set({ isLoading: false });
+          return { success: true };
+        } catch (error) {
+          const errorMessage = error.response?.data?.message || 'Failed to reset password';
+          set({ error: errorMessage, isLoading: false });
+          return { success: false, error: errorMessage };
+        }
+      },
+
       logout: () => {
         clearStoredSession();
         set({

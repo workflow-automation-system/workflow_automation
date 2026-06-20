@@ -23,10 +23,6 @@ export const canEditWorkflow = (workflow, user) => {
 };
 
 export const canDeleteWorkflow = (workflow, user) => {
-  if (typeof workflow?.canDelete === 'boolean') {
-    return workflow.canDelete;
-  }
-
   return canEditWorkflow(workflow, user);
 };
 
