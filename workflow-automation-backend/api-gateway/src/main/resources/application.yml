@@ -30,3 +30,7 @@ spring:
           uri: ${ORGANIZATION_SERVICE_URI:http://localhost:8083}
           predicates:
             - Path=/api/organizations/**
+        - id: template-service
+          uri: ${TEMPLATE_SERVICE_URI:http://localhost:8084}
+          predicates:
+            - Path=/api/templates/**

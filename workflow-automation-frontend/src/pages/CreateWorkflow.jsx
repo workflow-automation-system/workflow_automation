@@ -35,6 +35,7 @@ const CreateWorkflow = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
+
   const { createWorkflow, fetchWorkflowById, getWorkflowById, updateWorkflow } = useWorkflowStore();
   const user = useAuthStore((state) => state.user);
 
@@ -76,11 +77,13 @@ const CreateWorkflow = () => {
     const configuredFunctions = Array.isArray(workflowConfiguration?.functions)
       ? workflowConfiguration.functions
       : [];
+
     configuredFunctions.forEach((item) => {
       if (item?.key) {
         map[item.key] = CustomNode;
       }
     });
+
     nodes.forEach((node) => {
       if (node?.type) {
         map[node.type] = CustomNode;
@@ -99,8 +102,10 @@ const CreateWorkflow = () => {
 
     const loadConfiguration = async () => {
       setLoadingConfiguration(true);
+
       try {
         const configuration = await workflowApi.getConfiguration();
+
         if (!cancelled) {
           setWorkflowConfiguration(normalizeWorkflowConfiguration(configuration));
         }
@@ -126,9 +131,11 @@ const CreateWorkflow = () => {
   const hydrateNodeWithConfiguration = React.useCallback(
     (node) => {
       if (!node) return node;
+
       const functionDefinition =
         getFunctionDefinition(workflowConfiguration, node.data?.functionKey || node.type) ||
         getFunctionDefinition(FALLBACK_WORKFLOW_CONFIGURATION, node.type);
+
       if (!functionDefinition) return node;
 
       return {
@@ -142,6 +149,7 @@ const CreateWorkflow = () => {
 
   React.useEffect(() => {
     setNodes((currentNodes) => currentNodes.map((node) => hydrateNodeWithConfiguration(node)));
+
     setSelectedNode((currentNode) =>
       currentNode ? hydrateNodeWithConfiguration(currentNode) : currentNode
     );
@@ -166,11 +174,13 @@ const CreateWorkflow = () => {
           setName(existingWorkflow.name || '');
           setDescription(existingWorkflow.description || '');
           setStatus((existingWorkflow.status || 'ACTIVE').toUpperCase());
+
           setNodes(
             Array.isArray(existingWorkflow.nodes)
               ? existingWorkflow.nodes.map((node) => hydrateNodeWithConfiguration(node))
               : []
           );
+
           setEdges(
             Array.isArray(existingWorkflow.edges)
               ? existingWorkflow.edges
@@ -414,9 +424,9 @@ const CreateWorkflow = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="h-px w-full bg-[#E2E8F0]"></div>
-        
+
         <div className="flex items-center gap-2 text-sm text-[#5C5C5C]">
           <FileText size={15} className="text-[#8A8A8A]" />
           <span className="font-semibold text-[#292D32]">Workflow Description</span>
@@ -492,6 +502,7 @@ const CreateWorkflow = () => {
           Loading workflow...
         </div>
       ) : null}
+
       {loadingConfiguration ? (
         <div className="fixed bottom-16 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">
           Syncing backend entities and functions...

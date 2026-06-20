@@ -24,6 +24,8 @@ import com.workflow_automation.workflow_service.security.AccessContext;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,6 +36,8 @@ import java.util.regex.Pattern;
 public class ExecutionServiceImpl implements ExecutionService {
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{\\s*([a-zA-Z0-9_.-]+)\\s*}}");
+    private static final Pattern CONTAINS_PATTERN = Pattern.compile("^(.+?)\\s+contains\\s+['\"](.+)['\"]$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern COMPARISON_PATTERN = Pattern.compile("^(.+?)\\s*(==|!=|>=|<=|>|<)\\s*(.+)$");
 
     private final ExecutionRepository executionRepository;
     private final ExecutionStepRepository executionStepRepository;
@@ -83,6 +87,7 @@ public class ExecutionServiceImpl implements ExecutionService {
 
     private void processNode(Node node, Map<String, Object> context, Execution execution) {
         log.info("Processing node: {} (Type: {})", node.getName(), node.getType());
+        boolean shouldContinue = true;
         
         // Basic node execution logic
         switch (node.getType()) {
@@ -94,10 +99,13 @@ public class ExecutionServiceImpl implements ExecutionService {
                 executeActionNode(node, context, execution);
                 break;
             case CONDITION:
-                // For now, let's just log it. Branching logic can be added later.
-                log.info("Condition node reached: {}", node.getName());
-                saveStep(execution, node, "COMPLETED", "Condition reached");
+                shouldContinue = executeConditionNode(node, context, execution);
                 break;
+        }
+
+        if (!shouldContinue) {
+            log.info("Condition stopped workflow branch at node '{}'", node.getName());
+            return;
         }
 
         // Follow outgoing connections
@@ -123,7 +131,87 @@ public class ExecutionServiceImpl implements ExecutionService {
         ApplicationActionHandler handler = actionRegistry.getHandler(applicationKey);
         Map<String, Object> result = handler.handle(node, config, context);
         context.put(node.getName() + "_result", result);
+        Object functionKey = config.get("functionKey");
+        if (functionKey != null && !String.valueOf(functionKey).isBlank()) {
+            context.put(String.valueOf(functionKey) + "_result", result);
+        }
         saveStep(execution, node, "COMPLETED", toJson(result));
+    }
+
+    private boolean executeConditionNode(Node node, Map<String, Object> context, Execution execution) {
+        Map<String, Object> config = normalizeActionConfig(parseConfig(node.getConfig()), context);
+        String expression = stringValue(config.get("expression"));
+        boolean matched = evaluateConditionExpression(expression, context);
+        Map<String, Object> result = Map.of(
+                "expression", expression,
+                "matched", matched
+        );
+
+        context.put(node.getName() + "_result", result);
+        saveStep(execution, node, matched ? "COMPLETED" : "SKIPPED", toJson(result));
+        return matched;
+    }
+
+    private boolean evaluateConditionExpression(String expression, Map<String, Object> context) {
+        if (expression == null || expression.isBlank()) {
+            return false;
+        }
+
+        Matcher containsMatcher = CONTAINS_PATTERN.matcher(expression.trim());
+        if (containsMatcher.matches()) {
+            Object leftValue = resolveExpressionOperand(containsMatcher.group(1), context);
+            String expected = containsMatcher.group(2);
+            return stringValue(leftValue).toLowerCase(Locale.ROOT)
+                    .contains(expected.toLowerCase(Locale.ROOT));
+        }
+
+        Matcher comparisonMatcher = COMPARISON_PATTERN.matcher(expression.trim());
+        if (comparisonMatcher.matches()) {
+            Object leftValue = resolveExpressionOperand(comparisonMatcher.group(1), context);
+            String operator = comparisonMatcher.group(2);
+            Object rightValue = resolveExpressionOperand(comparisonMatcher.group(3), context);
+            return compareValues(leftValue, rightValue, operator);
+        }
+
+        Object value = resolveExpressionOperand(expression, context);
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        return Boolean.parseBoolean(stringValue(value));
+    }
+
+    private Object resolveExpressionOperand(String rawOperand, Map<String, Object> context) {
+        String operand = rawOperand == null ? "" : rawOperand.trim();
+        if ((operand.startsWith("\"") && operand.endsWith("\"")) || (operand.startsWith("'") && operand.endsWith("'"))) {
+            return operand.substring(1, operand.length() - 1);
+        }
+
+        Object contextValue = resolveContextValue(context, operand);
+        return contextValue != null ? contextValue : operand;
+    }
+
+    private boolean compareValues(Object leftValue, Object rightValue, String operator) {
+        Double leftNumber = parseDouble(leftValue);
+        Double rightNumber = parseDouble(rightValue);
+        if (leftNumber != null && rightNumber != null) {
+            return switch (operator) {
+                case "==" -> leftNumber.equals(rightNumber);
+                case "!=" -> !leftNumber.equals(rightNumber);
+                case ">" -> leftNumber > rightNumber;
+                case "<" -> leftNumber < rightNumber;
+                case ">=" -> leftNumber >= rightNumber;
+                case "<=" -> leftNumber <= rightNumber;
+                default -> false;
+            };
+        }
+
+        String leftText = stringValue(leftValue);
+        String rightText = stringValue(rightValue);
+        return switch (operator) {
+            case "==" -> leftText.equalsIgnoreCase(rightText);
+            case "!=" -> !leftText.equalsIgnoreCase(rightText);
+            default -> false;
+        };
     }
 
     private Map<String, Object> parseConfig(String rawConfig) {
@@ -178,12 +266,39 @@ public class ExecutionServiceImpl implements ExecutionService {
     private Object resolveContextValue(Map<String, Object> context, String path) {
         Object current = context;
         for (String part : path.split("\\.")) {
-            if (!(current instanceof Map<?, ?> map)) {
+            if (current instanceof Map<?, ?> map) {
+                current = map.get(part);
+            } else if (current instanceof List<?> list) {
+                int index = parseListIndex(part);
+                if (index < 0 || index >= list.size()) {
+                    return null;
+                }
+                current = list.get(index);
+            } else {
                 return null;
             }
-            current = map.get(part);
         }
         return current;
+    }
+
+    private int parseListIndex(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            return -1;
+        }
+    }
+
+    private Double parseDouble(Object value) {
+        try {
+            return Double.parseDouble(stringValue(value));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     private String resolveApplicationKey(Node node, Map<String, Object> config) {

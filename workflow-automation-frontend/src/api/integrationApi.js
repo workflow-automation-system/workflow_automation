@@ -34,7 +34,27 @@ export async function getGoogleStatus(userId) {
   return request(`/integrations/google/status?userId=${userId}`);
 }
 
+export async function getSlackAuthUrl(userId) {
+  return request(`/integrations/slack/auth-url?userId=${userId}`);
+}
+
+export async function getSlackStatus(userId) {
+  return request(`/integrations/slack/status?userId=${userId}`);
+}
+
+export async function getNotionAuthUrl(userId) {
+  return request(`/integrations/notion/auth-url?userId=${userId}`);
+}
+
+export async function getNotionStatus(userId) {
+  return request(`/integrations/notion/status?userId=${userId}`);
+}
+
 export const integrationApi = {
   getGoogleAuthUrl,
   getGoogleStatus,
+  getSlackAuthUrl,
+  getSlackStatus,
+  getNotionAuthUrl,
+  getNotionStatus,
 };

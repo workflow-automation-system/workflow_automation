@@ -235,10 +235,17 @@ export const buildBackendNodeConfig = (nodeData = {}, nodeType = '') => {
       to: settings.to || '',
       subject: settings.subject || '',
       body: settings.body || '',
-      ...(functionKey === 'gmail_read' && {
-        query: settings.query || 'is:unread',
-        maxResults: settings.maxResults ?? 10,
-      }),
+      query: settings.query || 'is:unread',
+      maxResults: settings.maxResults ?? 10,
+    };
+  }
+  if (functionKey === 'slack') {
+    return {
+      functionKey,
+      application: 'slack',
+      action: 'send_message',
+      channel: settings.channel || '',
+      message: settings.message || '',
     };
   }
 
@@ -279,7 +286,7 @@ const parseNodeFromLegacyShape = (rawNode, index, configuration) => {
   const data = createNodeDataFromFunction(fallbackDefinition, rawNode?.data || {});
 
   return {
-    id: getNodeId(rawNode?.id, index),
+    id: getNodeId(rawNode?.id ?? rawNode?.clientId, index),
     type: fallbackDefinition.key,
     position: {
       x: normalizeNumber(rawNode?.position?.x ?? rawNode?.positionX, 0),
@@ -301,12 +308,21 @@ const parseNodeFromBackendShape = (rawNode, index, configuration) => {
           to: parsedConfig.to,
           subject: parsedConfig.subject,
           body: parsedConfig.body,
+          query: parsedConfig.query,
+          maxResults: parsedConfig.maxResults,
         }
-        : {};
+        : parsedConfig.application === 'slack'
+          ? {
+            action: parsedConfig.action,
+            channel: parsedConfig.channel,
+            message: parsedConfig.message,
+          }
+          : {};
   const functionKey = normalizeKey(
     parsedConfig.functionKey ||
     parsedConfig.function ||
     (parsedConfig.application === 'gmail' ? 'email' : undefined) ||
+    (parsedConfig.application === 'slack' ? 'slack' : undefined) ||
     rawNode?.type
   );
   const functionDefinition =
@@ -328,7 +344,7 @@ const parseNodeFromBackendShape = (rawNode, index, configuration) => {
   });
 
   return {
-    id: getNodeId(rawNode?.id, index),
+    id: getNodeId(rawNode?.id ?? rawNode?.clientId, index),
     type: fallbackDefinition.key,
     position: {
       x: normalizeNumber(rawNode?.positionX, 0),
@@ -372,8 +388,8 @@ export const toBackendNodeRequest = (node, index) => {
 };
 
 const normalizeWorkflowEdge = (edge, index = 0) => {
-  const source = edge?.source ?? edge?.sourceNodeId;
-  const target = edge?.target ?? edge?.targetNodeId;
+  const source = edge?.source ?? edge?.sourceNodeId ?? edge?.sourceClientId;
+  const target = edge?.target ?? edge?.targetNodeId ?? edge?.targetClientId;
 
   return {
     ...edge,

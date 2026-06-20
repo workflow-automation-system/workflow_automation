@@ -1,18 +1,21 @@
 package com.workflow_automation.workflow_service.entity;
 
 import com.workflow_automation.workflow_service.entity.enums.ExecutionStatus;
-import com.workflow_automation.workflow_service.entity.enums.WorkflowStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.List;
 
 @Entity
+@Getter
+@Setter
 @Getter
 @Setter
 @NoArgsConstructor

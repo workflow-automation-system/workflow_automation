@@ -136,10 +136,41 @@ public class GmailActionHandler implements ApplicationActionHandler {
                     .body(Map.class);
 
             if (message != null) {
+                // Extraire les headers (Subject, From, Date)
+                String subject = "(Sans objet)";
+                String from = "";
+                String date = "";
+
+                Object payload = message.get("payload");
+                if (payload instanceof Map<?, ?> payloadMap) {
+                    Object headers = payloadMap.get("headers");
+                    if (headers instanceof List<?> headerList) {
+                        for (Object h : headerList) {
+                            if (h instanceof Map<?, ?> header) {
+                                String name = stringValue(header.get("name"));
+                                String value = stringValue(header.get("value"));
+                                if ("Subject".equalsIgnoreCase(name) && !value.isBlank()) {
+                                    subject = value;
+                                } else if ("From".equalsIgnoreCase(name) && !value.isBlank()) {
+                                    from = value;
+                                } else if ("Date".equalsIgnoreCase(name) && !value.isBlank()) {
+                                    date = value;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Décoder les entités HTML du snippet (&#39; → ', &amp; → &, etc.)
+                String snippet = decodeHtml(stringValue(message.get("snippet")));
+
                 messages.add(Map.of(
-                        "id", stringValue(message.get("id")),
+                        "id",       stringValue(message.get("id")),
                         "threadId", stringValue(message.get("threadId")),
-                        "snippet", stringValue(message.get("snippet"))
+                        "subject",  subject,
+                        "from",     from,
+                        "date",     date,
+                        "snippet",  snippet
                 ));
             }
         }
@@ -218,5 +249,24 @@ public class GmailActionHandler implements ApplicationActionHandler {
         } catch (NumberFormatException exception) {
             return fallback;
         }
+    }
+
+    /**
+     * Décode les entités HTML courantes retournées par l'API Gmail.
+     * Ex: &#39; → ', &amp; → &, &quot; → "
+     */
+    private String decodeHtml(String text) {
+        if (text == null) return "";
+        return text
+                .replace("&#39;", "'")
+                .replace("&amp;", "&")
+                .replace("&quot;", "\"")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&nbsp;", " ")
+                .replace("&#34;", "\"")
+                .replace("&#38;", "&")
+                .replace("&#60;", "<")
+                .replace("&#62;", ">");
     }
 }
