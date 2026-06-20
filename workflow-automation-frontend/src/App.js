@@ -15,7 +15,7 @@ import Workflows from './pages/Workflows';
 import Settings from './pages/Settings';
 import { useAuthStore } from './stores/authStore';
 import { useThemeStore } from './stores/themeStore';
-import CreateTemplate from './pages/CreateTemplate';
+
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -96,8 +96,6 @@ function App() {
             <Route path="/workflows" element={<Workflows />} />
             <Route path="/app-connections" element={<AppConnections />} />
             <Route path="/templates" element={<Templates />} />
-            <Route path="/templates/create" element={<CreateTemplate />} />
-            <Route path="/templates/edit/:templateId" element={<CreateTemplate />} />
             <Route path="/create-workflow" element={<CreateWorkflow />} />
             <Route path="/workflow/:id" element={<WorkflowDetail />} />
             <Route path="/workflows/:id" element={<WorkflowDetail />} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   addEdge,
   Background,
@@ -23,39 +23,26 @@ import {
   FALLBACK_WORKFLOW_CONFIGURATION,
   getFunctionDefinition,
   normalizeWorkflowConfiguration,
-  buildMutationPayload,
-  normalizeWorkflow,
 } from '../services/workflowConverter';
 import useWorkflowStore from '../stores/workflowStore';
-import templateApi from '../api/templateApi';
-import { useAuthStore } from '../stores/authStore';
 
 const ALLOWED_STATUSES = ['ACTIVE', 'INACTIVE'];
 
-const CreateWorkflow = ({ mode = 'workflow' }) => {
+const CreateWorkflow = () => {
   const navigate = useNavigate();
-  const { templateId } = useParams();
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
-
-  const isTemplateMode = mode === 'template';
-  const isEditingTemplate = isTemplateMode && Boolean(templateId);
-
-  const { user } = useAuthStore();
-  const organizationId = user?.organization?.id;
 
   const { createWorkflow, fetchWorkflowById, getWorkflowById, updateWorkflow } = useWorkflowStore();
 
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [status, setStatus] = React.useState('ACTIVE');
-  const [category, setCategory] = React.useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = React.useState(null);
   const [saving, setSaving] = React.useState(false);
   const [loadingWorkflow, setLoadingWorkflow] = React.useState(false);
-  const [loadingTemplate, setLoadingTemplate] = React.useState(false);
   const [loadingConfiguration, setLoadingConfiguration] = React.useState(false);
   const [workflowConfiguration, setWorkflowConfiguration] = React.useState(
       FALLBACK_WORKFLOW_CONFIGURATION
@@ -210,66 +197,6 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
     showToast,
   ]);
 
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const loadTemplate = async () => {
-      if (!isEditingTemplate) return;
-
-      setLoadingTemplate(true);
-
-      try {
-        const template = await templateApi.getById(templateId);
-
-        if (cancelled) return;
-
-        setName(template.name || '');
-        setDescription(template.description || '');
-        setCategory(template.category || '');
-
-        const normalizedTemplateWorkflow = normalizeWorkflow(
-          {
-            name: template.name,
-            description: template.description,
-            status: 'ACTIVE',
-            nodes: template.content?.nodes || [],
-            connections: template.content?.connections || [],
-          },
-          workflowConfiguration
-        );
-
-        setNodes(
-          Array.isArray(normalizedTemplateWorkflow.nodes)
-            ? normalizedTemplateWorkflow.nodes.map((node) => hydrateNodeWithConfiguration(node))
-            : []
-        );
-        setEdges(Array.isArray(normalizedTemplateWorkflow.edges) ? normalizedTemplateWorkflow.edges : []);
-      } catch (err) {
-        if (!cancelled) {
-          showToast(err.message || 'Failed to load template', 'error');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingTemplate(false);
-        }
-      }
-    };
-
-    loadTemplate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    hydrateNodeWithConfiguration,
-    isEditingTemplate,
-    setEdges,
-    setNodes,
-    showToast,
-    templateId,
-    workflowConfiguration,
-  ]);
-
   const onConnect = React.useCallback(
       (connection) => {
         setEdges((eds) =>
@@ -322,31 +249,11 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
     const normalizedStatus = String(status || '').toUpperCase();
 
     if (!trimmedName) {
-      showToast(
-          isTemplateMode
-              ? 'Template name is required before saving.'
-              : 'Workflow name is required before saving.',
-          'error'
-      );
+      showToast('Workflow name is required before saving.', 'error');
       return;
     }
 
-    if (isTemplateMode && !category.trim()) {
-      showToast('Template category is required before saving.', 'error');
-      return;
-    }
-
-    if (isTemplateMode && !user?.id) {
-      showToast('You must be logged in to create a template.', 'error');
-      return;
-    }
-
-    if (isTemplateMode && !organizationId) {
-      showToast('No organization found for current user.', 'error');
-      return;
-    }
-
-    if (!isTemplateMode && !ALLOWED_STATUSES.includes(normalizedStatus)) {
+    if (!ALLOWED_STATUSES.includes(normalizedStatus)) {
       showToast('Status must be ACTIVE or INACTIVE.', 'error');
       return;
     }
@@ -362,34 +269,6 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
     };
 
     try {
-      if (isTemplateMode) {
-        const workflowPayload = buildMutationPayload(payload);
-
-        const templatePayload = {
-          userId: user.id,
-          organizationId,
-          name: trimmedName,
-          description: description.trim(),
-          category: category.trim(),
-          active: true,
-          content: {
-            nodes: workflowPayload.nodes,
-            connections: workflowPayload.connections,
-          },
-        };
-
-        if (isEditingTemplate) {
-          await templateApi.update(templateId, templatePayload);
-          showToast('Template updated successfully.', 'success');
-        } else {
-          await templateApi.create(templatePayload);
-          showToast('Template saved successfully.', 'success');
-        }
-
-        navigate('/templates');
-        return;
-      }
-
       if (workflowId) {
         await updateWorkflow(workflowId, payload);
       } else {
@@ -399,10 +278,7 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
       showToast('Workflow saved successfully.', 'success');
       navigate('/workflows');
     } catch (err) {
-      showToast(
-          err.message || (isTemplateMode ? 'Failed to save template' : 'Failed to save workflow'),
-          'error'
-      );
+      showToast(err.message || 'Failed to save workflow', 'error');
     } finally {
       setSaving(false);
     }
@@ -454,9 +330,9 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
             <div className="flex items-center gap-3">
               <button
                   type="button"
-                  onClick={() => navigate(isTemplateMode ? '/templates' : '/workflows')}
+                  onClick={() => navigate('/workflows')}
                   className="rounded-xl border border-[#E2E8F0] bg-white p-2 text-[#5C5C5C] hover:border-[#D0FFA4]"
-                  aria-label={isTemplateMode ? 'Back to templates' : 'Back to workflows'}
+                  aria-label="Back to workflows"
               >
                 <ArrowLeft size={16} />
               </button>
@@ -469,34 +345,25 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
                 <input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
-                    placeholder={isTemplateMode ? 'Untitled Template' : 'Untitled Workflow'}
+                    placeholder="Untitled Workflow"
                     className="w-full bg-transparent text-lg font-semibold text-[#292D32] outline-none placeholder:text-[#8A8A8A]"
                 />
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {isTemplateMode ? (
-                  <input
-                      value={category}
-                      onChange={(event) => setCategory(event.target.value)}
-                      placeholder="Category"
-                      className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-semibold text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-                  />
-              ) : (
-                  <select
-                      value={status}
-                      onChange={(event) => setStatus(event.target.value.toUpperCase())}
-                      className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-semibold text-[#292D32]"
-                  >
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="INACTIVE">INACTIVE</option>
-                  </select>
-              )}
+              <select
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value.toUpperCase())}
+                  className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-semibold text-[#292D32]"
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+              </select>
 
               <button
                   type="button"
-                  onClick={() => navigate(isTemplateMode ? '/templates' : '/workflows')}
+                  onClick={() => navigate('/workflows')}
                   className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
               >
                 Cancel
@@ -505,15 +372,11 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
               <button
                   type="button"
                   onClick={handleSave}
-                  disabled={saving || loadingWorkflow || loadingTemplate || loadingConfiguration}
+                  disabled={saving || loadingWorkflow || loadingConfiguration}
                   className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
               >
                 <Save size={14} />
-                {saving
-                  ? 'Saving...'
-                  : isTemplateMode
-                    ? 'Save Template'
-                    : 'Save Workflow'}
+                {saving ? 'Saving...' : 'Save Workflow'}
               </button>
             </div>
           </div>
@@ -527,7 +390,7 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
               <div className="flex items-center gap-2">
                 <SplitSquareVertical size={16} className="text-[#292D32]" />
                 <p className="text-sm font-semibold text-[#292D32]">
-                  {isTemplateMode ? 'Template Canvas' : 'Workflow Canvas'}
+                  Workflow Canvas
                 </p>
               </div>
               <span className="text-xs text-[#5C5C5C]">
@@ -603,17 +466,13 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
         <footer className="enterprise-card flex flex-col gap-3 p-4 md:flex-row md:items-center">
           <div className="flex items-center gap-2 text-sm text-[#5C5C5C]">
             <FileText size={15} className="text-[#292D32]" />
-            {isTemplateMode ? 'Template Description' : 'Workflow Description'}
+            Workflow Description
           </div>
 
           <input
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              placeholder={
-                isTemplateMode
-                    ? 'Describe when this template should be used...'
-                    : 'Describe business intent, owner, and fallback behavior...'
-              }
+              placeholder="Describe business intent, owner, and fallback behavior..."
               className="flex-1 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
           />
 
@@ -626,12 +485,6 @@ const CreateWorkflow = ({ mode = 'workflow' }) => {
         {loadingWorkflow && workflowId ? (
             <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">
               Loading workflow...
-            </div>
-        ) : null}
-
-        {loadingTemplate ? (
-            <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm text-[#292D32] shadow-lg">
-              Loading template...
             </div>
         ) : null}
 

@@ -2,19 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
-  Edit,
   GitBranch,
-  MoreVertical,
-  Plus,
   Search,
   Sparkles,
   Star,
-  Trash2,
   Users,
 } from 'lucide-react';
 import templateApi from '../api/templateApi';
 import { useAuthStore } from '../stores/authStore';
-import Modal from '../components/ui/Modal';
 
 const Templates = () => {
   const navigate = useNavigate();
@@ -25,11 +20,8 @@ const Templates = () => {
   const [templates, setTemplates] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [usingTemplateId, setUsingTemplateId] = React.useState(null);
-  const [deletingTemplateId, setDeletingTemplateId] = React.useState(null);
   const [error, setError] = React.useState(null);
   const [search, setSearch] = React.useState('');
-  const [openMenuTemplateId, setOpenMenuTemplateId] = React.useState(null);
-  const [templateToDelete, setTemplateToDelete] = React.useState(null);
 
   React.useEffect(() => {
     async function loadTemplates() {
@@ -37,13 +29,7 @@ const Templates = () => {
         setLoading(true);
         setError(null);
 
-        if (!organizationId) {
-          setTemplates([]);
-          setError('No organization found for current user.');
-          return;
-        }
-
-        const data = await templateApi.getByOrganization(organizationId);
+        const data = await templateApi.getAll();
         setTemplates(Array.isArray(data) ? data : []);
       } catch (err) {
         setError(err.message || 'Failed to load templates.');
@@ -53,12 +39,6 @@ const Templates = () => {
     }
 
     loadTemplates();
-  }, [organizationId]);
-
-  React.useEffect(() => {
-    const closeMenu = () => setOpenMenuTemplateId(null);
-    window.addEventListener('click', closeMenu);
-    return () => window.removeEventListener('click', closeMenu);
   }, []);
 
   const categories = React.useMemo(() => {
@@ -120,50 +100,6 @@ const Templates = () => {
     }
   };
 
-  const handleDeleteTemplate = async () => {
-    if (!templateToDelete) return;
-
-    if (!organizationId) {
-      setError('No organization found for current user.');
-      return;
-    }
-
-    try {
-      setDeletingTemplateId(templateToDelete.id);
-      setError(null);
-
-      await templateApi.deleteForOrganization(templateToDelete.id, organizationId);
-
-      setTemplates((currentTemplates) =>
-        currentTemplates.filter((item) => String(item.id) !== String(templateToDelete.id))
-      );
-      setTemplateToDelete(null);
-    } catch (err) {
-      setError(err.message || 'Failed to delete template.');
-    } finally {
-      setDeletingTemplateId(null);
-    }
-  };
-
-  const toggleTemplateMenu = (event, templateId) => {
-    event.stopPropagation();
-    setOpenMenuTemplateId((currentId) =>
-      String(currentId) === String(templateId) ? null : templateId
-    );
-  };
-
-  const handleEditTemplate = (event, template) => {
-    event.stopPropagation();
-    setOpenMenuTemplateId(null);
-    navigate(`/templates/edit/${template.id}`);
-  };
-
-  const handleMenuDeleteTemplate = (event, template) => {
-    event.stopPropagation();
-    setOpenMenuTemplateId(null);
-    setTemplateToDelete(template);
-  };
-
   return (
       <div className="space-y-5 font-urbanist">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -173,15 +109,6 @@ const Templates = () => {
               Deploy pre-built enterprise blueprints for scalable automation programs.
             </p>
           </div>
-
-          <button
-              type="button"
-              onClick={() => navigate('/templates/create')}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3C4249]"
-          >
-            <Plus size={16} />
-            Create Template
-          </button>
         </div>
 
         <section className="enterprise-card p-6">
@@ -193,7 +120,7 @@ const Templates = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-center">
                 <p className="text-xl font-bold text-[#292D32]">{templates.length}</p>
                 <p className="text-xs text-[#5C5C5C]">Templates</p>
@@ -203,15 +130,6 @@ const Templates = () => {
                   {categories.length > 0 ? categories.length - 1 : 0}
                 </p>
                 <p className="text-xs text-[#5C5C5C]">Categories</p>
-              </div>
-              <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-center">
-                <p className="text-xl font-bold text-[#292D32]">
-                  {templates.reduce(
-                      (total, template) => total + (template.content?.nodes?.length || 0),
-                      0
-                  )}
-                </p>
-                <p className="text-xs text-[#5C5C5C]">Nodes</p>
               </div>
             </div>
           </div>
@@ -275,50 +193,10 @@ const Templates = () => {
                       <div className="rounded-xl border border-[#E2E8F0] bg-[#D0FFA4] p-2.5">
                         <Sparkles size={17} className="text-[#292D32]" />
                       </div>
-                      <div className="relative flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2 py-1 text-xs font-semibold text-[#292D32]">
-                          <Star size={12} />
-                          Ready
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(event) => toggleTemplateMenu(event, template.id)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#292D32] hover:border-[#D0FFA4]"
-                          aria-label="Template actions"
-                          aria-haspopup="menu"
-                          aria-expanded={String(openMenuTemplateId) === String(template.id)}
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-
-                        {String(openMenuTemplateId) === String(template.id) ? (
-                          <div
-                            role="menu"
-                            className="absolute right-0 top-11 z-20 w-40 overflow-hidden rounded-xl border border-[#E2E8F0] bg-white py-1 shadow-lg"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={(event) => handleEditTemplate(event, template)}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-[#292D32] hover:bg-[#F6F8FA]"
-                            >
-                              <Edit size={14} />
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={(event) => handleMenuDeleteTemplate(event, template)}
-                              disabled={deletingTemplateId === template.id}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
-                            >
-                              <Trash2 size={14} />
-                              Delete
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2 py-1 text-xs font-semibold text-[#292D32]">
+                        <Star size={12} />
+                        Ready
+                      </span>
                     </div>
 
                     <h3 className="mt-4 text-lg font-semibold text-[#292D32]">
@@ -329,61 +207,30 @@ const Templates = () => {
                     </p>
 
                     <div className="mt-4 flex flex-wrap gap-2 text-xs text-[#5C5C5C]">
-                <span className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1">
-                  {template.category || 'Uncategorized'}
-                </span>
+                      <span className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1">
+                        {template.category || 'Uncategorized'}
+                      </span>
                       <span className="inline-flex items-center gap-1 rounded-full border border-[#E2E8F0] bg-white px-3 py-1">
-                  <GitBranch size={12} />
-                        {template.content?.nodes?.length || 0} nodes
-                </span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-[#E2E8F0] bg-white px-3 py-1">
-                  <Users size={12} />
-                  Template
-                </span>
+                        <Users size={12} />
+                        Template
+                      </span>
                     </div>
 
-              <div className="mt-5 flex gap-2">
-                <button
-                  type="button"
+                    <div className="mt-5 flex gap-2">
+                      <button
+                          type="button"
                           onClick={() => handleUseTemplate(template)}
                           disabled={usingTemplateId === template.id}
                           className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249] disabled:opacity-60"
                       >
                         {usingTemplateId === template.id ? 'Creating...' : 'Use Template'}
-                  <ArrowRight size={14} />
-                </button>
-              </div>
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
                   </article>
               ))}
             </section>
         ) : null}
-
-        <Modal
-          isOpen={Boolean(templateToDelete)}
-          onClose={() => setTemplateToDelete(null)}
-          title="Delete Template"
-        >
-          <p className="mb-5 text-sm text-[#5C5C5C]">
-            Delete <strong className="text-[#292D32]">{templateToDelete?.name}</strong>? This action cannot be undone.
-          </p>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setTemplateToDelete(null)}
-              className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteTemplate}
-              disabled={deletingTemplateId === templateToDelete?.id}
-              className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-60"
-            >
-              {deletingTemplateId === templateToDelete?.id ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
-        </Modal>
       </div>
   );
 };
