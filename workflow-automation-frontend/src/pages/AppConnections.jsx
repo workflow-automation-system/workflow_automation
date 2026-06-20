@@ -6,21 +6,41 @@ import { useAuthStore } from '../stores/authStore';
 import {
   AlertCircle,
   CheckCircle2,
-  Database,
-  KeyRound,
   MoreHorizontal,
-  Plus,
   Search,
-  ShieldCheck,
-  Webhook,
 } from 'lucide-react';
 
-const baseAvailableIntegrations = [
-  { name: 'Salesforce', category: 'CRM' },
-  { name: 'Stripe', category: 'Payments' },
-  { name: 'Zendesk', category: 'Support' },
-  { name: 'GitHub', category: 'Engineering' },
-];
+const GmailLogo = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="16" height="16">
+    <path fill="#EA4335" d="M34 42H14a8 8 0 0 1-8-8V14a8 8 0 0 1 8-8h20a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8z"/>
+    <path fill="#fff" d="M34 42H14a8 8 0 0 1-8-8V14a8 8 0 0 1 8-8h20a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8z"/>
+    <path fill="#4285F4" d="M8 12.5V34a6 6 0 0 0 6 6h20a6 6 0 0 0 6-6V12.5L24 26 8 12.5z"/>
+    <path fill="#34A853" d="M40 12.5V34a6 6 0 0 1-6 6V21l6-8.5z"/>
+    <path fill="#FBBC05" d="M8 12.5V34a6 6 0 0 0 6 6V21L8 12.5z"/>
+    <path fill="#EA4335" d="M40 12.5 24 26 8 12.5C9.1 11 10.9 10 13 10l11 8.5L35 10c2.1 0 3.9 1 5 2.5z"/>
+  </svg>
+);
+
+const SlackLogo = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="16" height="16">
+    <path fill="#33D375" d="M10 32a4 4 0 0 1-4-4 4 4 0 0 1 4-4h4v4a4 4 0 0 1-4 4z"/>
+    <path fill="#33D375" d="M18 40a4 4 0 0 1-4-4 4 4 0 0 1 4-4h4v4a4 4 0 0 1-4 4zm0-16h-8a4 4 0 0 1-4-4 4 4 0 0 1 4-4 4 4 0 0 1 4 4v4h4z"/>
+    <path fill="#40B4D8" d="M32 10a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-4v-4a4 4 0 0 1 4-4z"/>
+    <path fill="#40B4D8" d="M24 8a4 4 0 0 1 4-4 4 4 0 0 1 4 4 4 4 0 0 1-4 4h-4V8zm0 10v8h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4v-4h-4z"/>
+    <path fill="#E8A723" d="M38 32a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4v-4h4z"/>
+    <path fill="#E8A723" d="M30 24h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4v-4h-4z"/>
+    <path fill="#E03D52" d="M16 16a4 4 0 0 1-4-4 4 4 0 0 1 4-4 4 4 0 0 1 4 4v4h-4z"/>
+    <path fill="#E03D52" d="M24 8V0h-4a4 4 0 0 0-4 4 4 4 0 0 0 4 4h4zm-4 16H8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4v-4h8z"/>
+  </svg>
+);
+
+const NotionLogo = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="16" height="16">
+    <path fill="#000000" d="M4.8 6.4C4.8 5.5 5.5 4.8 6.4 4.8H41.6C42.5 4.8 43.2 5.5 43.2 6.4V41.6C43.2 42.5 42.5 43.2 41.6 43.2H6.4C5.5 43.2 4.8 42.5 4.8 41.6V6.4Z"/>
+    <path fill="#FFFFFF" d="M9.6 11.2H38.4V36.8H9.6V11.2Z"/>
+    <path fill="#000000" d="M14.4 16H16.8L28.8 28.8V16H33.6V32H31.2L19.2 19.2V32H14.4V16Z"/>
+  </svg>
+);
 
 const AppConnections = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -42,6 +62,14 @@ const AppConnections = () => {
     updatedAt: null,
   });
   const [connectingSlack, setConnectingSlack] = React.useState(false);
+
+  // Notion States
+  const [notionStatus, setNotionStatus] = React.useState({
+    connected: false,
+    scope: '',
+    updatedAt: null,
+  });
+  const [connectingNotion, setConnectingNotion] = React.useState(false);
 
   const [loadingConnections, setLoadingConnections] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState('');
@@ -94,10 +122,34 @@ const AppConnections = () => {
     }
   }, [user?.id]);
 
+  const loadNotionStatus = React.useCallback(async () => {
+    const userId = Number(user?.id);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      setNotionStatus({ connected: false, scope: '', updatedAt: null });
+      return;
+    }
+
+    setLoadingConnections(true);
+    try {
+      const status = await integrationApi.getNotionStatus(userId);
+      setNotionStatus({
+        connected: Boolean(status?.connected),
+        scope: status?.scope || '',
+        updatedAt: status?.updatedAt || null,
+      });
+    } catch (err) {
+      setNotionStatus({ connected: false, scope: '', updatedAt: null });
+      setError(err.message || 'Failed to load Notion connection status.');
+    } finally {
+      setLoadingConnections(false);
+    }
+  }, [user?.id]);
+
   React.useEffect(() => {
     loadGmailStatus();
     loadSlackStatus();
-  }, [loadGmailStatus, loadSlackStatus]);
+    loadNotionStatus();
+  }, [loadGmailStatus, loadSlackStatus, loadNotionStatus]);
 
   React.useEffect(() => {
     if (searchParams.get('gmail') === 'connected') {
@@ -114,12 +166,20 @@ const AppConnections = () => {
       setError(`Slack connection failed: ${searchParams.get('slack_error')}`);
       searchParams.delete('slack_error');
       setSearchParams(searchParams, { replace: true });
+    } else if (searchParams.get('notion') === 'connected') {
+      setSuccessMessage('Notion connected successfully.');
+      searchParams.delete('notion');
+      setSearchParams(searchParams, { replace: true });
+      loadNotionStatus();
+    } else if (searchParams.get('notion_error')) {
+      setError(`Notion connection failed: ${searchParams.get('notion_error')}`);
+      searchParams.delete('notion_error');
+      setSearchParams(searchParams, { replace: true });
     }
-  }, [loadGmailStatus, loadSlackStatus, searchParams, setSearchParams]);
+  }, [loadGmailStatus, loadSlackStatus, loadNotionStatus, searchParams, setSearchParams]);
 
   React.useEffect(() => {
     if (!successMessage) return undefined;
-
     const timeout = window.setTimeout(() => setSuccessMessage(''), 4000);
     return () => window.clearTimeout(timeout);
   }, [successMessage]);
@@ -156,43 +216,41 @@ const AppConnections = () => {
       });
     }
 
+    if (notionStatus.connected) {
+      list.push({
+        name: 'Notion',
+        domain: 'Productivity',
+        status: 'Healthy',
+        lastSync: notionStatus.updatedAt
+            ? new Date(notionStatus.updatedAt).toLocaleString()
+            : 'Connected',
+        scopes: 1,
+      });
+    }
+
     return list;
-  }, [gmailConnected, gmailStatus.scope, gmailStatus.updatedAt, slackStatus.connected, slackStatus.scope, slackStatus.updatedAt]);
+  }, [gmailConnected, gmailStatus.scope, gmailStatus.updatedAt, slackStatus.connected, slackStatus.scope, slackStatus.updatedAt, notionStatus.connected, notionStatus.scope, notionStatus.updatedAt]);
 
   const filteredConnections = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return connectedConnections;
-
     return connectedConnections.filter((connection) =>
         `${connection.name} ${connection.domain} ${connection.status}`.toLowerCase().includes(query)
     );
   }, [connectedConnections, searchQuery]);
 
-  const stats = React.useMemo(() => {
-    const connected = connectedConnections.length;
-    const healthy = connectedConnections.filter((connection) => connection.status === 'Healthy').length;
-    const scopes = connectedConnections.reduce((total, connection) => total + connection.scopes, 0);
-    const attention = connectedConnections.filter((connection) => connection.status !== 'Healthy').length;
-
-    return { connected, healthy, scopes, attention };
-  }, [connectedConnections]);
-
   const handleConnectGmail = async () => {
     setConnectingGmail(true);
     setError('');
-
     try {
       const userId = Number(user?.id);
       if (!Number.isFinite(userId) || userId <= 0) {
         throw new Error('Unable to resolve the current user. Please log in again.');
       }
-
       const response = await integrationApi.getGoogleAuthUrl(userId);
-
       if (!response?.authUrl) {
         throw new Error('Google auth URL was not returned by backend.');
       }
-
       window.location.href = response.authUrl;
     } catch (err) {
       setError(err.message || 'Failed to start Gmail connection.');
@@ -203,19 +261,15 @@ const AppConnections = () => {
   const handleConnectSlack = async () => {
     setConnectingSlack(true);
     setError('');
-
     try {
       const userId = Number(user?.id);
       if (!Number.isFinite(userId) || userId <= 0) {
         throw new Error('Unable to resolve the current user. Please log in again.');
       }
-
       const response = await integrationApi.getSlackAuthUrl(userId);
-
       if (!response?.authUrl) {
         throw new Error('Slack auth URL was not returned by backend.');
       }
-
       window.location.href = response.authUrl;
     } catch (err) {
       setError(err.message || 'Failed to start Slack connection.');
@@ -223,10 +277,30 @@ const AppConnections = () => {
     }
   };
 
+  const handleConnectNotion = async () => {
+    setConnectingNotion(true);
+    setError('');
+    try {
+      const userId = Number(user?.id);
+      if (!Number.isFinite(userId) || userId <= 0) {
+        throw new Error('Unable to resolve the current user. Please log in again.');
+      }
+      const response = await integrationApi.getNotionAuthUrl(userId);
+      if (!response?.authUrl) {
+        throw new Error('Notion auth URL was not returned by backend.');
+      }
+      window.location.href = response.authUrl;
+    } catch (err) {
+      setError(err.message || 'Failed to start Notion connection.');
+      setConnectingNotion(false);
+    }
+  };
+
   const availableIntegrations = [
     {
       name: 'Gmail',
       category: 'Email',
+      logo: <GmailLogo />,
       action: handleConnectGmail,
       disabled: connectingGmail,
       buttonLabel: connectingGmail ? 'Connecting...' : gmailConnected ? 'Reconnect' : 'Connect',
@@ -234,11 +308,19 @@ const AppConnections = () => {
     {
       name: 'Slack',
       category: 'Chat',
+      logo: <SlackLogo />,
       action: handleConnectSlack,
       disabled: connectingSlack,
       buttonLabel: connectingSlack ? 'Connecting...' : slackStatus.connected ? 'Reconnect' : 'Connect',
     },
-    ...baseAvailableIntegrations,
+    {
+      name: 'Notion',
+      category: 'Productivity',
+      logo: <NotionLogo />,
+      action: handleConnectNotion,
+      disabled: connectingNotion,
+      buttonLabel: connectingNotion ? 'Connecting...' : notionStatus.connected ? 'Reconnect' : 'Connect',
+    },
   ];
 
   return (
@@ -250,13 +332,6 @@ const AppConnections = () => {
               Govern API integrations, webhook endpoints, and credential hygiene for enterprise automations.
             </p>
           </div>
-          <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3C4249]"
-          >
-            <Plus size={16} />
-            New Connection
-          </button>
         </div>
 
         {successMessage ? (
@@ -271,36 +346,35 @@ const AppConnections = () => {
             </div>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="enterprise-card p-5">
-            <div className="mb-3 w-fit rounded-xl border border-[#E2E8F0] bg-[#D0FFA4] p-2.5">
-              <Database size={18} className="text-[#292D32]" />
-            </div>
-            <p className="text-3xl font-bold text-[#292D32]">{stats.connected}</p>
-            <p className="text-sm text-[#5C5C5C]">Connected Apps</p>
+        <section className="enterprise-card p-5">
+          <h2 className="text-lg font-semibold text-[#292D32]">Available Integrations</h2>
+          <p className="mt-1 text-sm text-[#5C5C5C]">Add enterprise services and secure them with scoped credentials.</p>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {availableIntegrations.map((integration) => (
+                <button
+                    key={integration.name}
+                    type="button"
+                    onClick={integration.action}
+                    disabled={integration.disabled}
+                    className="rounded-2xl border border-[#E2E8F0] bg-white p-4 text-left hover:border-[#D0FFA4] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="flex items-center gap-2">
+                      {integration.logo}
+                      <span>
+                        <p className="text-sm font-semibold text-[#292D32]">{integration.name}</p>
+                        <p className="text-xs text-[#5C5C5C]">{integration.category}</p>
+                      </span>
+                    </span>
+                    <span className="rounded-full border border-[#E2E8F0] px-2.5 py-1 text-xs font-semibold text-[#292D32]">
+                      {integration.buttonLabel}
+                    </span>
+                  </div>
+                </button>
+            ))}
           </div>
-          <div className="enterprise-card p-5">
-            <div className="mb-3 w-fit rounded-xl border border-[#E2E8F0] bg-[#D0FFA4] p-2.5">
-              <Webhook size={18} className="text-[#292D32]" />
-            </div>
-            <p className="text-3xl font-bold text-[#292D32]">{stats.healthy}</p>
-            <p className="text-sm text-[#5C5C5C]">Healthy Apps</p>
-          </div>
-          <div className="enterprise-card p-5">
-            <div className="mb-3 w-fit rounded-xl border border-[#E2E8F0] bg-[#E2E8F0] p-2.5">
-              <KeyRound size={18} className="text-[#292D32]" />
-            </div>
-            <p className="text-3xl font-bold text-[#292D32]">{stats.scopes}</p>
-            <p className="text-sm text-[#5C5C5C]">Authorized Scopes</p>
-          </div>
-          <div className="enterprise-card p-5">
-            <div className="mb-3 w-fit rounded-xl border border-[#E2E8F0] bg-[#D0FFA4] p-2.5">
-              <ShieldCheck size={18} className="text-[#292D32]" />
-            </div>
-            <p className="text-3xl font-bold text-[#292D32]">{stats.attention}</p>
-            <p className="text-sm text-[#5C5C5C]">Attention Needed</p>
-          </div>
-        </div>
+        </section>
 
         <section className="enterprise-card overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between">
@@ -337,56 +411,25 @@ const AppConnections = () => {
                     <p className="text-sm font-semibold text-[#292D32]">{connection.name}</p>
                     <p className="text-xs text-[#5C5C5C]">{connection.domain}</p>
                   </div>
-
                   <div className="flex flex-wrap items-center gap-3 text-xs text-[#5C5C5C]">
                     <span className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1">{connection.scopes} scopes</span>
                     <span className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1">Connected {connection.lastSync}</span>
                     {connection.status === 'Healthy' ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2.5 py-1 font-semibold text-[#292D32]">
-                    <CheckCircle2 size={12} />
-                    Healthy
-                  </span>
+                      <CheckCircle2 size={12} />
+                      Healthy
+                    </span>
                     ) : (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2.5 py-1 font-semibold text-[#292D32]">
-                    <AlertCircle size={12} />
-                    Warning
-                  </span>
+                      <AlertCircle size={12} />
+                      Warning
+                    </span>
                     )}
                     <button type="button" className="rounded-lg p-1.5 text-[#5C5C5C] hover:bg-white">
                       <MoreHorizontal size={16} />
                     </button>
                   </div>
                 </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="enterprise-card p-5">
-          <h2 className="text-lg font-semibold text-[#292D32]">Available Integrations</h2>
-          <p className="mt-1 text-sm text-[#5C5C5C]">Add enterprise services and secure them with scoped credentials.</p>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {availableIntegrations.map((integration) => (
-                <button
-                    key={integration.name}
-                    type="button"
-                    onClick={integration.action}
-                    disabled={integration.disabled}
-                    className="rounded-2xl border border-[#E2E8F0] bg-white p-4 text-left hover:border-[#D0FFA4] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                <span>
-                  <p className="text-sm font-semibold text-[#292D32]">{integration.name}</p>
-                  <p className="text-xs text-[#5C5C5C]">{integration.category}</p>
-                </span>
-
-                    {integration.buttonLabel ? (
-                        <span className="rounded-full border border-[#E2E8F0] px-2.5 py-1 text-xs font-semibold text-[#292D32]">
-                    {integration.buttonLabel}
-                  </span>
-                    ) : null}
-                  </div>
-                </button>
             ))}
           </div>
         </section>

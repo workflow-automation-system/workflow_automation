@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './config';
+ import { API_BASE_URL } from './config';
 
 async function request(path, options = {}) {
     const token = localStorage.getItem('token');
@@ -28,38 +28,14 @@ export const templateApi = {
 
     getByUser: (userId) => request(`/templates/user/${userId}`),
 
-    create: (payload) =>
-        request('/templates', {
-            method: 'POST',
-            body: payload,
-        }),
-
-    update: (id, payload) =>
-        request(`/templates/${id}`, {
-            method: 'PUT',
-            body: payload,
-        }),
-
-    delete: (id) =>
-        request(`/templates/${id}`, {
-            method: 'DELETE',
-        }),
-
     use: (id, payload) =>
         request(`/templates/${id}/use`, {
             method: 'POST',
             body: payload,
         }),
-    getByOrganization: (organizationId) =>
-        request(`/templates/organization/${organizationId}`),
 
     getAllByOrganization: (organizationId) =>
         request(`/templates/organization/${organizationId}/all`),
-
-    deleteForOrganization: (id, organizationId) =>
-        request(`/templates/${id}/organization/${organizationId}`, {
-            method: 'DELETE',
-        }),
 };
 
 export default templateApi;

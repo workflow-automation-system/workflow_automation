@@ -20,7 +20,7 @@ public class TemplateController {
 
     @PostMapping
     public ResponseEntity<TemplateResponse> create(@RequestBody TemplateRequest request) {
-        return ResponseEntity.ok(templateService.create(request));
+        throw new UnsupportedOperationException("Template creation is disabled.");
     }
 
     @GetMapping
@@ -43,7 +43,7 @@ public class TemplateController {
             @PathVariable Long id,
             @RequestBody TemplateRequest request
     ) {
-        return ResponseEntity.ok(templateService.update(id, request));
+        throw new UnsupportedOperationException("Template modification is disabled.");
     }
 
     @DeleteMapping("/{id}/organization/{organizationId}")
@@ -51,8 +51,7 @@ public class TemplateController {
             @PathVariable Long id,
             @PathVariable Long organizationId
     ) {
-        templateService.delete(id, organizationId);
-        return ResponseEntity.noContent().build();
+        throw new UnsupportedOperationException("Template deletion is disabled.");
     }
 
     @PostMapping("/{id}/use")
@@ -62,12 +61,14 @@ public class TemplateController {
     ) {
         return ResponseEntity.ok(templateService.useTemplate(id, request));
     }
+
     @GetMapping("/organization/{organizationId}")
     public ResponseEntity<List<TemplateResponse>> getPublishedByOrganization(
             @PathVariable Long organizationId
     ) {
         return ResponseEntity.ok(templateService.getPublishedTemplatesByOrganization(organizationId));
     }
+
     @GetMapping("/organization/{organizationId}/all")
     public ResponseEntity<List<TemplateResponse>> getAllByOrganization(
             @PathVariable Long organizationId
