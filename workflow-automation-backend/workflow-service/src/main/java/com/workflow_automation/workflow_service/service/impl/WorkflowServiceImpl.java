@@ -9,6 +9,7 @@ import com.workflow_automation.workflow_service.dto.response.WorkflowConfigurati
 import com.workflow_automation.workflow_service.dto.response.WorkflowFunctionResponse;
 import com.workflow_automation.workflow_service.dto.response.WorkflowResponse;
 import com.workflow_automation.workflow_service.dto.response.ConnectionResponse;
+import com.workflow_automation.workflow_service.dto.response.ExecutionSummaryResponse;
 import com.workflow_automation.workflow_service.entity.Connection;
 import com.workflow_automation.workflow_service.entity.Execution;
 import com.workflow_automation.workflow_service.entity.Node;
@@ -210,9 +211,6 @@ public class WorkflowServiceImpl implements WorkflowService {
         Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
         workflowAccessService.assertCanDelete(workflow, accessContext);
 
-        // Delete all associated permissions
-        permissionService.deleteWorkflowPermissions(workflowId);
-
         schedulingService.cancelSchedule(workflowId);
         workflowRepository.delete(workflow);
     }
@@ -298,6 +296,26 @@ public class WorkflowServiceImpl implements WorkflowService {
         response.setReadOnly(!permissions.contains(PermissionType.EDIT));
         response.setNodes(toNodeResponses(workflow.getNodes()));
         response.setConnections(toConnectionResponses(workflow.getConnections()));
+        
+        if (workflow.getExecutions() != null) {
+            response.setExecutions(
+                workflow.getExecutions().stream()
+                    .sorted((e1, e2) -> {
+                        if (e1.getStartedAt() == null) return 1;
+                        if (e2.getStartedAt() == null) return -1;
+                        return e2.getStartedAt().compareTo(e1.getStartedAt());
+                    })
+                    .limit(50)
+                    .map(e -> ExecutionSummaryResponse.builder()
+                        .status(e.getStatus() != null ? e.getStatus().name() : "UNKNOWN")
+                        .startedAt(e.getStartedAt())
+                        .build())
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setExecutions(new ArrayList<>());
+        }
+        
         return response;
     }
 

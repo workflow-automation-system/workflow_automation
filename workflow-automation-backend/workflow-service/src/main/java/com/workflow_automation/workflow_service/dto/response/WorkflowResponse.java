@@ -24,5 +24,6 @@ public class WorkflowResponse {
     private Boolean readOnly;
     private List<NodeResponse> nodes;
     private List<ConnectionResponse> connections;
+    private List<ExecutionSummaryResponse> executions;
 
 }
