@@ -12,7 +12,7 @@ WORKDIR /app
 COPY pom.xml .
 
 # Télécharger les dépendances (elles seront mises en cache si le pom.xml ne change pas)
-RUN mvn dependency:go-offline -B
+
 
 # Copier tout le code source du projet
 COPY src ./src

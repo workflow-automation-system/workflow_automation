@@ -14,5 +14,10 @@ import java.util.Map;
 @Builder
 public class WorkflowExecutionMessage implements Serializable {
     private Long workflowId;
+    private Long userId;
+    private Long organizationId;
+    private String role;
+    private String ipAddress;
+    private String userAgent;
     private Map<String, Object> input;
 }

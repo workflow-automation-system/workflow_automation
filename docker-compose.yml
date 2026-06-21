@@ -18,6 +18,17 @@ services:
       - pfa-network
 
   # ==========================================
+  # Message Queue RabbitMQ
+  # ==========================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: pfa-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - pfa-network
+  # ==========================================
   # Microservice 1 : Auth Service
   # ==========================================
   auth-service:
@@ -73,11 +84,15 @@ services:
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/workflow_db
       - AUDIT_SERVICE_URL=http://audit-service:8085/api/audit
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - postgres
+      - rabbitmq
     networks:
       - pfa-network
-
   # ==========================================
   # Microservice 4 : API Gateway
   # ==========================================
@@ -111,7 +126,7 @@ services:
       dockerfile: Dockerfile
     container_name: pfa-audit-service
     ports:
-      - "8086:8085"
+      - "8086:8086"
     env_file:
       - ./workflow-automation-backend/audit-service/.env
     environment:

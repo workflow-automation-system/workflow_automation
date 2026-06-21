@@ -27,7 +27,7 @@ public class ExecutionController {
     private final WorkflowAccessService workflowAccessService;
 
     @PostMapping("/api/workflows/{workflowId}/execute")
-    public ResponseEntity<Void> execute(
+    public ResponseEntity<Map<String, Object>> execute(
             @PathVariable Long workflowId,
             @RequestBody ExecuteWorkflowRequest request,
             @RequestHeader("X-User-Id") Long userId,
@@ -35,8 +35,17 @@ public class ExecutionController {
             @RequestHeader("X-Role") String role,
             HttpServletRequest httpRequest
     ) {
-        executionService.executeWorkflow(workflowId, accessContext(userId, organizationId, role, httpRequest), request.getInput());
-        return ResponseEntity.accepted().build();
+        executionService.queueWorkflow(
+                workflowId,
+                accessContext(userId, organizationId, role, httpRequest),
+                request.getInput()
+        );
+
+        return ResponseEntity.accepted().body(Map.of(
+                "message", "Workflow execution queued successfully",
+                "workflowId", workflowId,
+                "status", "QUEUED"
+        ));
     }
 
     @GetMapping("/api/executions/workflow/{workflowId}")
