@@ -131,6 +131,31 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Password has been reset successfully."));
     }
 
+    @PatchMapping("/admin/departments/{oldName}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> renameDepartment(
+            @PathVariable String oldName,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
+        String newName = body.get("name");
+        if (newName == null || newName.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "New department name is required"));
+        }
+        authService.renameDepartment(oldName, newName, admin.getOrganizationId());
+        return ResponseEntity.ok(Map.of("message", "Department renamed successfully"));
+    }
+
+    @DeleteMapping("/admin/departments/{name}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteDepartment(
+            @PathVariable String name,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
+        authService.deleteDepartment(name, admin.getOrganizationId());
+        return ResponseEntity.ok(Map.of("message", "Department deleted successfully"));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<?> handleResponseStatus(ResponseStatusException ex) {
         return ResponseEntity.status(ex.getStatusCode())

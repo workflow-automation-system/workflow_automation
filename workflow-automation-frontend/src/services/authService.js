@@ -78,6 +78,16 @@ const authService = {
     const res = await API.post('/auth/admin/invite', payload);
     return res.data;
   },
+
+  renameDepartment: async (oldName, newName) => {
+    const res = await API.patch(`/auth/admin/departments/${encodeURIComponent(oldName)}`, { name: newName });
+    return res.data;
+  },
+
+  deleteDepartment: async (name) => {
+    const res = await API.delete(`/auth/admin/departments/${encodeURIComponent(name)}`);
+    return res.data;
+  },
 };
 
 export { API };

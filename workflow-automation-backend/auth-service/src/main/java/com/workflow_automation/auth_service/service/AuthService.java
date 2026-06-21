@@ -427,4 +427,38 @@ public class AuthService {
         user.setResetPasswordTokenExpiresAt(null);
         userRepository.save(user);
     }
+
+    public void renameDepartment(String oldName, String newName, Long organizationId) {
+        if ("Unassigned".equalsIgnoreCase(oldName)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot rename 'Unassigned' department");
+        }
+        
+        List<User> usersInDept = userRepository.findByOrganizationId(organizationId).stream()
+                .filter(u -> oldName.equalsIgnoreCase(u.getDepartment()))
+                .collect(Collectors.toList());
+
+        for (User user : usersInDept) {
+            user.setDepartment(newName != null && !newName.isBlank() ? newName.trim() : "Unassigned");
+            userRepository.save(user);
+            syncOrganizationMember(user);
+        }
+        log.info("Renamed department '{}' to '{}' for {} users in orgId={}", oldName, newName, usersInDept.size(), organizationId);
+    }
+
+    public void deleteDepartment(String name, Long organizationId) {
+        if ("Unassigned".equalsIgnoreCase(name)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete 'Unassigned' department");
+        }
+        
+        List<User> usersInDept = userRepository.findByOrganizationId(organizationId).stream()
+                .filter(u -> name.equalsIgnoreCase(u.getDepartment()))
+                .collect(Collectors.toList());
+
+        for (User user : usersInDept) {
+            user.setDepartment("Unassigned");
+            userRepository.save(user);
+            syncOrganizationMember(user);
+        }
+        log.info("Deleted department '{}' (moved {} users to Unassigned) in orgId={}", name, usersInDept.size(), organizationId);
+    }
 }

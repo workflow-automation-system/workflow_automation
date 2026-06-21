@@ -2,6 +2,11 @@ import React from 'react';
 import {
   Building2,
   BriefcaseBusiness,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Edit2,
+  Info,
   Mail,
   Search,
   Shield,
@@ -34,6 +39,38 @@ const roleBadgeClass = (role) => {
 
 const ROLE_OPTIONS = [ROLES.ADMIN, ROLES.USER, ROLES.VIEWER];
 
+const ROLE_INFO = [
+  {
+    role: 'Admin',
+    badge: 'bg-[#292D32] text-white',
+    permissions: [
+      'Full platform access',
+      'Manage members and assign roles',
+      'Create, edit, delete workflows',
+      'Manage integrations and settings',
+      'View audit logs',
+    ],
+  },
+  {
+    role: 'Member',
+    badge: 'bg-[#D0FFA4] text-[#292D32]',
+    permissions: [
+      'Create and edit own workflows',
+      'Execute permitted workflows',
+      'View templates',
+    ],
+  },
+  {
+    role: 'Viewer',
+    badge: 'bg-[#E2E8F0] text-[#5C5C5C]',
+    permissions: [
+      'View workflows (read-only)',
+      'View execution history',
+      'Execute where granted',
+    ],
+  },
+];
+
 const Organisation = () => {
   const [orgMeta, setOrgMeta] = React.useState(null);
   const [members, setMembers] = React.useState([]);
@@ -52,6 +89,18 @@ const Organisation = () => {
     jobTitle: '',
     role: 'USER',
   });
+  const [showRoleGuide, setShowRoleGuide] = React.useState(false);
+
+  // Department CRUD Modals
+  const [showRenameDeptForm, setShowRenameDeptForm] = React.useState(false);
+  const [renameDeptOldName, setRenameDeptOldName] = React.useState('');
+  const [renameDeptNewName, setRenameDeptNewName] = React.useState('');
+  const [renameDeptLoading, setRenameDeptLoading] = React.useState(false);
+
+  const [showDeleteDeptForm, setShowDeleteDeptForm] = React.useState(false);
+  const [deleteDeptName, setDeleteDeptName] = React.useState('');
+  const [deleteDeptLoading, setDeleteDeptLoading] = React.useState(false);
+
   const { user } = useAuthStore();
   const currentUserIsAdmin = isAdmin(user);
 
@@ -152,6 +201,39 @@ const Organisation = () => {
     }
   };
 
+  const handleRenameDepartment = async (e) => {
+    e.preventDefault();
+    if (!renameDeptNewName.trim()) {
+      showToast('New department name is required.', 'error');
+      return;
+    }
+    setRenameDeptLoading(true);
+    try {
+      await authService.renameDepartment(renameDeptOldName, renameDeptNewName.trim());
+      setMembers(prev => prev.map(m => m.department === renameDeptOldName ? { ...m, department: renameDeptNewName.trim() } : m));
+      setShowRenameDeptForm(false);
+      showToast(`Department renamed to ${renameDeptNewName.trim()}`, 'success');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to rename department.', 'error');
+    } finally {
+      setRenameDeptLoading(false);
+    }
+  };
+
+  const handleDeleteDepartment = async () => {
+    setDeleteDeptLoading(true);
+    try {
+      await authService.deleteDepartment(deleteDeptName);
+      setMembers(prev => prev.map(m => m.department === deleteDeptName ? { ...m, department: 'Unassigned' } : m));
+      setShowDeleteDeptForm(false);
+      showToast(`Department ${deleteDeptName} deleted`, 'success');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to delete department.', 'error');
+    } finally {
+      setDeleteDeptLoading(false);
+    }
+  };
+
   const filteredMembers = members.filter((member) => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return true;
@@ -203,12 +285,16 @@ const Organisation = () => {
           <h1 className="text-3xl font-bold text-[#292D32]">Organisation</h1>
           <p className="mt-1 text-sm text-[#5C5C5C]">
             {orgMeta?.name
-              ? `${orgMeta.name} — members, roles, and enterprise access governance.`
+              ? `${orgMeta.name} - members, roles, and enterprise access governance.`
               : 'Manage enterprise teams, permissions, and department-level workflow governance.'}
           </p>
         </div>
         <div className="flex items-center gap-3">
-
+          {orgMeta?.domain && (
+            <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#5C5C5C]">
+              <span className="font-semibold text-[#292D32]">{orgMeta.domain}</span>
+            </div>
+          )}
           {currentUserIsAdmin && (
             <button
               type="button"
@@ -220,7 +306,7 @@ const Organisation = () => {
             </button>
           )}
         </div>
-      </div >
+      </div>
 
       {/* Invite Member Modal */}
       {showInviteForm && (
@@ -231,7 +317,7 @@ const Organisation = () => {
               <button
                 type="button"
                 onClick={() => setShowInviteForm(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#E2E8F0]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
               >
                 <X size={18} />
               </button>
@@ -299,14 +385,14 @@ const Organisation = () => {
               </div>
 
               <p className="text-xs text-[#5C5C5C]">
-                An invitation email will be sent with a temporary password and a verification link.
+                An invitation email will be sent with a secure link to choose a password.
               </p>
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowInviteForm(false)}
-                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#E2E8F0]"
+                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
                 >
                   Cancel
                 </button>
@@ -338,15 +424,15 @@ const Organisation = () => {
           </div>
           <p className="text-3xl font-bold text-[#292D32]">{members.length}</p>
           <p className="text-sm text-[#5C5C5C]">Organization Members</p>
-        </div >
+        </div>
 
-  <div className="enterprise-card p-5">
-    <div className="mb-3 rounded-xl border border-[#E2E8F0] bg-[#D0FFA4] p-2.5 w-fit">
-      <Building2 size={18} className="text-[#292D32]" />
-    </div>
+        <div className="enterprise-card p-5">
+          <div className="mb-3 rounded-xl border border-[#E2E8F0] bg-[#D0FFA4] p-2.5 w-fit">
+            <Building2 size={18} className="text-[#292D32]" />
+          </div>
           <p className="text-3xl font-bold text-[#292D32]">{departments.length}</p>
           <p className="text-sm text-[#5C5C5C]">Departments</p>
-        </div >
+        </div>
 
         <div className="enterprise-card p-5">
           <div className="mb-3 rounded-xl border border-[#E2E8F0] bg-[#E2E8F0] p-2.5 w-fit">
@@ -369,9 +455,38 @@ const Organisation = () => {
               <article key={dept.name} className="rounded-2xl border border-[#E2E8F0] bg-white p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-[#292D32]">{dept.name}</p>
-                  <span className="rounded-full bg-[#D0FFA4] px-2 py-1 text-[11px] font-semibold text-[#292D32]">
-                    {dept.admins} admin{dept.admins !== 1 ? 's' : ''}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-[#D0FFA4] px-2 py-1 text-[11px] font-semibold text-[#292D32]">
+                      {dept.admins} admin{dept.admins !== 1 ? 's' : ''}
+                    </span>
+                    {currentUserIsAdmin && dept.name !== 'Unassigned' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRenameDeptOldName(dept.name);
+                            setRenameDeptNewName(dept.name);
+                            setShowRenameDeptForm(true);
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#E2E8F0] text-[#5C5C5C] hover:bg-[#F6F5FA]"
+                          title="Rename Department"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteDeptName(dept.name);
+                            setShowDeleteDeptForm(true);
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#E2E8F0] text-[#EF4444] hover:bg-red-50"
+                          title="Delete Department"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <p className="mt-2 text-sm text-[#5C5C5C]">{dept.members} member{dept.members !== 1 ? 's' : ''}</p>
               </article>
@@ -416,7 +531,7 @@ const Organisation = () => {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-[#292D32]">{member.name || member.email}</p>
                       {isSelf && (
-                        <span className="rounded-full bg-[#E2E8F0] px-2 py-0.5 text-[10px] text-[#5C5C5C]">You</span>
+                        <span className="rounded-full bg-[#F6F5FA] px-2 py-0.5 text-[10px] text-[#5C5C5C]">You</span>
                       )}
                     </div>
                     <p className="text-xs text-[#5C5C5C]">{member.department || 'Unassigned'}</p>
@@ -476,6 +591,59 @@ const Organisation = () => {
           )}
         </div>
       </section>
+
+      {/* Rename Department Modal */}
+      {showRenameDeptForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#292D32]">Rename Department</h2>
+              <button onClick={() => setShowRenameDeptForm(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] hover:bg-[#F6F5FA]">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleRenameDepartment} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">New Name for {renameDeptOldName} *</label>
+                <input
+                  type="text"
+                  value={renameDeptNewName}
+                  onChange={(e) => setRenameDeptNewName(e.target.value)}
+                  placeholder="New Department Name"
+                  required
+                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowRenameDeptForm(false)} className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] hover:bg-[#F6F5FA]">Cancel</button>
+                <button type="submit" disabled={renameDeptLoading} className="flex-1 rounded-xl bg-[#292D32] py-2.5 text-sm font-semibold text-white hover:bg-[#3a3f44] disabled:opacity-60">{renameDeptLoading ? 'Saving...' : 'Rename'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Department Modal */}
+      {showDeleteDeptForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#EF4444]">Delete Department</h2>
+              <button onClick={() => setShowDeleteDeptForm(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] hover:bg-[#F6F5FA]">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="mb-5 text-sm text-[#5C5C5C]">
+              Are you sure you want to delete the <strong>{deleteDeptName}</strong> department? <br /><br />
+              All members currently in this department will be moved to the <strong>Unassigned</strong> department.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setShowDeleteDeptForm(false)} className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] hover:bg-[#F6F5FA]">Cancel</button>
+              <button type="button" onClick={handleDeleteDepartment} disabled={deleteDeptLoading} className="flex-1 rounded-xl bg-[#EF4444] py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60">{deleteDeptLoading ? 'Deleting...' : 'Delete'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Toast open={toast.open} message={toast.message} tone={toast.tone} onClose={() => setToast((t) => ({ ...t, open: false }))} />
     </div>

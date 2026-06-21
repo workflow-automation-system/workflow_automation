@@ -2,8 +2,10 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  FileText,
   Globe,
   Layout,
+  LayoutTemplate,
   Mail,
   MessageSquare,
   ShieldCheck,
@@ -88,7 +90,7 @@ const Landing = () => {
 
       {/* Minimal Features */}
       <section id="features" className="mx-auto max-w-6xl px-6 py-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 
           <div className="bg-white rounded-[2rem] p-8 border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow">
             <div className="h-14 w-14 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mb-6">
@@ -117,6 +119,16 @@ const Landing = () => {
             <h3 className="text-xl font-extrabold text-[#292D32] mb-3">Enterprise Ready</h3>
             <p className="text-sm text-[#64748B] leading-relaxed">
               Full RBAC permissions, execution telemetry, audit logs, and secure integrations built directly into the platform.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-[2rem] p-8 border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow">
+            <div className="h-14 w-14 rounded-2xl bg-[#D0FFA4]/20 border border-[#D0FFA4]/50 flex items-center justify-center mb-6">
+              <LayoutTemplate size={24} className="text-[#292D32]" />
+            </div>
+            <h3 className="text-xl font-extrabold text-[#292D32] mb-3">Built-in Templates</h3>
+            <p className="text-sm text-[#64748B] leading-relaxed">
+              Don't start from scratch. Use our extensive library of pre-built workflow templates for common use cases to get up and running instantly.
             </p>
           </div>
 
@@ -165,9 +177,8 @@ const Landing = () => {
 
         <div className="flex flex-wrap justify-center gap-6">
           <AppBadge icon={<Mail size={24} />} name="Gmail" />
+          <AppBadge icon={<FileText size={24} />} name="Notion" />
           <AppBadge icon={<MessageSquare size={24} />} name="Slack" />
-          <AppBadge icon={<Sparkles size={24} />} name="Gemini AI" />
-          <AppBadge icon={<Globe size={24} />} name="Webhooks" />
         </div>
       </section>
 
