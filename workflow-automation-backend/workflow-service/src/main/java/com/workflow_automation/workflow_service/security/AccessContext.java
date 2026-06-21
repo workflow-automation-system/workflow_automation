@@ -10,11 +10,22 @@ public class AccessContext {
     Long organizationId;
     PlatformRole role;
 
-    public static AccessContext of(Long userId, Long organizationId, String role) {
+    String ipAddress;
+    String userAgent;
+
+    public static AccessContext of(
+            Long userId,
+            Long organizationId,
+            String role,
+            String ipAddress,
+            String userAgent
+    ) {
         return AccessContext.builder()
                 .userId(userId)
                 .organizationId(organizationId)
                 .role(PlatformRole.from(role))
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
                 .build();
     }
 }

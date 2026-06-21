@@ -50,7 +50,13 @@ public class WorkflowSchedulingService {
         log.info("Executing scheduled workflow ID: {}", workflow.getId());
         // Run with workflow owner's context, simulating an ADMIN so we bypass any specific permission checks
         // as the system is invoking this on behalf of the user.
-        AccessContext context = AccessContext.of(workflow.getUserId(), workflow.getOrganizationId(), "ADMIN");
+        AccessContext context = AccessContext.of(
+                workflow.getUserId(),
+                workflow.getOrganizationId(),
+                "ADMIN",
+                null,
+                null
+        );
         executionService.executeWorkflow(workflow.getId(), context, Collections.emptyMap());
     }
 }

@@ -195,6 +195,12 @@ public class WorkflowController {
     }
 
     private AccessContext accessContext(Long userId, Long organizationId, String role) {
-        return AccessContext.of(userId, organizationId, role);
+        return AccessContext.of(
+                userId,
+                organizationId,
+                role,
+                null,
+                null
+        );
     }
 }

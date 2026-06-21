@@ -1,5 +1,6 @@
 package com.workflow_automation.workflow_service.service.impl;
 
+import com.workflow_automation.workflow_service.dto.request.WorkflowExecutionMessage;
 import com.workflow_automation.workflow_service.entity.Connection;
 import com.workflow_automation.workflow_service.entity.Execution;
 import com.workflow_automation.workflow_service.entity.ExecutionStep;
@@ -13,6 +14,8 @@ import com.workflow_automation.workflow_service.service.ExecutionService;
 import com.workflow_automation.workflow_service.service.WorkflowAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,6 +47,33 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final ApplicationActionRegistry actionRegistry;
     private final ObjectMapper objectMapper;
     private final WorkflowAccessService workflowAccessService;
+    private final RabbitTemplate rabbitTemplate;
+
+    @Value("${app.rabbitmq.exchange}")
+    private String exchangeName;
+
+    @Value("${app.rabbitmq.routingkey}")
+    private String routingKey;
+
+    @Override
+    public void queueWorkflow(Long workflowId, AccessContext accessContext, Map<String, Object> input) {
+        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
+        workflowAccessService.assertCanExecute(workflow, accessContext);
+
+        WorkflowExecutionMessage message = WorkflowExecutionMessage.builder()
+                .workflowId(workflowId)
+                .userId(accessContext.getUserId())
+                .organizationId(accessContext.getOrganizationId())
+                .role(accessContext.getRole() != null ? accessContext.getRole().name() : null)
+                .ipAddress(accessContext.getIpAddress())
+                .userAgent(accessContext.getUserAgent())
+                .input(input)
+                .build();
+
+        rabbitTemplate.convertAndSend(exchangeName, routingKey, message);
+        log.info("Workflow execution queued: workflowId={}, userId={}, organizationId={}",
+                workflowId, accessContext.getUserId(), accessContext.getOrganizationId());
+    }
 
     @Override
     @Transactional

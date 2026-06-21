@@ -34,3 +34,7 @@ spring:
           uri: ${TEMPLATE_SERVICE_URI:http://localhost:8084}
           predicates:
             - Path=/api/templates/**
+        - id: audit-service
+          uri: ${AUDIT_SERVICE_URI:http://localhost:8086}
+          predicates:
+            - Path=/api/audit/**

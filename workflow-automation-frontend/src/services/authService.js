@@ -44,6 +44,11 @@ const authService = {
     return res.data;
   },
 
+  acceptInvitation: async (token, password) => {
+    const res = await API.post('/auth/accept-invitation', { token, password });
+    return res.data;
+  },
+
   resendVerification: async (email) => {
     const res = await API.post('/auth/resend-verification', { email });
     return res.data;
@@ -78,14 +83,18 @@ const authService = {
     const res = await API.post('/auth/admin/invite', payload);
     return res.data;
   },
-
-  renameDepartment: async (oldName, newName) => {
-    const res = await API.patch(`/auth/admin/departments/${encodeURIComponent(oldName)}`, { name: newName });
+  updateProfile: async (payload) => {
+    const res = await API.put('/auth/profile', payload);
     return res.data;
   },
 
-  deleteDepartment: async (name) => {
-    const res = await API.delete(`/auth/admin/departments/${encodeURIComponent(name)}`);
+  changePassword: async (currentPassword, newPassword) => {
+    const res = await API.put('/auth/change-password', { currentPassword, newPassword });
+    return res.data;
+  },
+
+  deleteSelf: async () => {
+    const res = await API.delete('/auth/me');
     return res.data;
   },
 };

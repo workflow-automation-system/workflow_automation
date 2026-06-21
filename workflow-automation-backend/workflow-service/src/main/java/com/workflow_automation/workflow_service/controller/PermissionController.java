@@ -5,6 +5,7 @@ import com.workflow_automation.workflow_service.dto.WorkflowPermissionDTO;
 import com.workflow_automation.workflow_service.entity.enums.PermissionType;
 import com.workflow_automation.workflow_service.security.AccessContext;
 import com.workflow_automation.workflow_service.service.PermissionService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,13 +24,23 @@ public class PermissionController {
     @PostMapping("/grant")
     public ResponseEntity<WorkflowPermissionDTO> grantPermission(
             @RequestBody GrantPermissionRequest request,
-            @RequestHeader("X-User-Id") Long currentUserId,
+            @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
+
+        AccessContext context = AccessContext.of(
+                userId,
+                organizationId,
+                role,
+                httpRequest.getRemoteAddr(),
+                httpRequest.getHeader("User-Agent")
+        );
+
         WorkflowPermissionDTO permission = permissionService.grantPermission(
                 request,
-                AccessContext.of(currentUserId, organizationId, role)
+                context
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(permission);
     }
@@ -39,26 +50,39 @@ public class PermissionController {
             @PathVariable Long workflowId,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
         return ResponseEntity.ok(permissionService.getWorkflowPermissions(
                 workflowId,
-                AccessContext.of(currentUserId, organizationId, role)
+                AccessContext.of(
+                        currentUserId,
+                        organizationId,
+                        role,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                )
         ));
     }
 
-    @GetMapping("/{workflowId}/user/{userId}")
     public ResponseEntity<WorkflowPermissionDTO> getUserPermission(
             @PathVariable Long workflowId,
             @PathVariable Long userId,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
         Optional<WorkflowPermissionDTO> permission = permissionService.getUserPermission(
                 workflowId,
                 userId,
-                AccessContext.of(currentUserId, organizationId, role)
+                AccessContext.of(
+                        currentUserId,
+                        organizationId,
+                        role,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                )
         );
         return permission.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -71,14 +95,22 @@ public class PermissionController {
             @PathVariable PermissionType permissionType,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
         boolean hasPermission = permissionService.hasPermission(
                 workflowId,
                 userId,
                 permissionType,
-                AccessContext.of(currentUserId, organizationId, role)
+                AccessContext.of(
+                        currentUserId,
+                        organizationId,
+                        role,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                )
         );
+
         return ResponseEntity.ok(hasPermission);
     }
 
@@ -89,14 +121,22 @@ public class PermissionController {
             @RequestBody List<PermissionType> permissions,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
         WorkflowPermissionDTO updated = permissionService.updatePermission(
                 workflowId,
                 userId,
                 permissions,
-                AccessContext.of(currentUserId, organizationId, role)
+                AccessContext.of(
+                        currentUserId,
+                        organizationId,
+                        role,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                )
         );
+
         return ResponseEntity.ok(updated);
     }
 
@@ -106,13 +146,21 @@ public class PermissionController {
             @PathVariable Long userId,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
         permissionService.revokePermission(
                 workflowId,
                 userId,
-                AccessContext.of(currentUserId, organizationId, role)
+                AccessContext.of(
+                        currentUserId,
+                        organizationId,
+                        role,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                )
         );
+
         return ResponseEntity.noContent().build();
     }
 
@@ -123,14 +171,22 @@ public class PermissionController {
             @PathVariable PermissionType permissionType,
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestHeader("X-Organization-Id") Long currentOrganizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
         List<Long> workflowIds = permissionService.getWorkflowsByPermission(
                 userId,
                 organizationId,
                 permissionType,
-                AccessContext.of(currentUserId, currentOrganizationId, role)
+                AccessContext.of(
+                        currentUserId,
+                        currentOrganizationId,
+                        role,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                )
         );
+
         return ResponseEntity.ok(workflowIds);
     }
 }

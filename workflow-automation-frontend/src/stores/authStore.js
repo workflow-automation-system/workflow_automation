@@ -149,6 +149,40 @@ export const useAuthStore = create(
         });
       },
 
+      updateProfile: async (payload) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await authService.updateProfile(payload);
+          applySession(response, set);
+          return { success: true };
+        } catch (error) {
+          const errorMessage = error.response?.data?.message || 'Failed to update profile';
+          set({ error: errorMessage, isLoading: false });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      deleteSelf: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          await authService.deleteSelf();
+          clearStoredSession();
+          set({
+            token: null,
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            isInitialized: true,
+            error: null,
+          });
+          return { success: true };
+        } catch (error) {
+          const errorMessage = error.response?.data?.message || 'Failed to delete account';
+          set({ error: errorMessage, isLoading: false });
+          return { success: false, error: errorMessage };
+        }
+      },
+
       clearError: () => {
         set({ error: null });
       },

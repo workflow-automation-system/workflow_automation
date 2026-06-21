@@ -10,11 +10,24 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./workflow-automation-backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - pfa-network
+
+  # ==========================================
+  # Message Queue RabbitMQ
+  # ==========================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: pfa-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     networks:
       - pfa-network
 
@@ -33,8 +46,10 @@ services:
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/auth_db
       - ORGANIZATION_SERVICE_URL=http://organization-service:8083/api/organizations
+      - AUDIT_SERVICE_URL=http://audit-service:8085/api/audit
     depends_on:
       - postgres
+      - organization-service
     networks:
       - pfa-network
 
@@ -53,8 +68,14 @@ services:
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/workflow_db
       - ORGANIZATION_SERVICE_URL=http://organization-service:8083/api/organizations
+      - AUDIT_SERVICE_URL=http://audit-service:8085/api/audit
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - postgres
+      - rabbitmq
     networks:
       - pfa-network
 
@@ -94,11 +115,13 @@ services:
       - WORKFLOW_SERVICE_URI=http://workflow-service:8082
       - ORGANIZATION_SERVICE_URI=http://organization-service:8083
       - TEMPLATE_SERVICE_URI=http://template-service:8084
+      - AUDIT_SERVICE_URI=http://audit-service:8085
     depends_on:
       - auth-service
       - workflow-service
       - organization-service
       - template-service
+      - audit-service
     networks:
       - pfa-network
 
@@ -147,6 +170,27 @@ services:
     depends_on:
       - postgres
       - workflow-service
+    networks:
+      - pfa-network
+
+    # ==========================================
+    # Audit Service
+    # ==========================================
+  audit-service:
+    build:
+      context: ./workflow-automation-backend/audit-service
+      dockerfile: Dockerfile
+    container_name: pfa-audit-service
+    ports:
+      - "8086:8085"
+    env_file:
+      - ./workflow-automation-backend/audit-service/.env
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/audit_db
+      - DB_USERNAME=pfa_user
+      - DB_PASSWORD=pfa_password
+    depends_on:
+      - postgres
     networks:
       - pfa-network
 

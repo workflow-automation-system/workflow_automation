@@ -1,11 +1,8 @@
 package com.workflow_automation.auth_service.controller;
 
 import com.workflow_automation.auth_service.dto.*;
-import com.workflow_automation.auth_service.entity.User;
 import com.workflow_automation.auth_service.service.AuthService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import com.workflow_automation.auth_service.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,13 +36,18 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(authService.login(request, clientIp(httpRequest), httpRequest.getHeader("User-Agent")));
     }
 
     @PostMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
         return ResponseEntity.ok(Map.of("message", authService.verifyEmail(request.getToken())));
+    }
+
+    @PostMapping("/accept-invitation")
+    public ResponseEntity<?> acceptInvitation(@Valid @RequestBody AcceptInvitationRequest request) {
+        return ResponseEntity.ok(authService.acceptInvitation(request));
     }
 
     @PostMapping("/resend-verification")
@@ -60,9 +62,42 @@ public class AuthController {
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 
+    @GetMapping("/invitations/accept")
+    public ResponseEntity<?> acceptInvitationRedirect(@RequestParam String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(URI.create(frontendUrl + "/accept-invitation?token=" + token));
+        return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> me(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(authService.getCurrentUser(userDetails.getUsername()));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(
+            @Valid @RequestBody UpdateProfileRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        return ResponseEntity.ok(authService.updateProfile(userDetails.getUsername(), request));
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        authService.changePassword(userDetails.getUsername(), request);
+        return ResponseEntity.ok(Map.of("message", "Mot de passe changé avec succès"));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteSelf(
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpRequest
+    ) {
+        authService.deleteSelf(userDetails.getUsername(), clientIp(httpRequest), httpRequest.getHeader("User-Agent"));
+        return ResponseEntity.ok(Map.of("message", "Compte supprimé avec succès"));
     }
 
     @GetMapping("/admin/users")
@@ -77,14 +112,23 @@ public class AuthController {
     public ResponseEntity<?> updateRole(
             @PathVariable Long userId,
             @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpRequest
     ) {
         AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
         String newRole = body.get("role");
         if (newRole == null || newRole.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Role is required"));
         }
-        authService.updateUserRole(userId, newRole, admin.getOrganizationId());
+        authService.updateUserRole(
+                userId,
+                newRole,
+                admin.getOrganizationId(),
+                admin.getId(),
+                admin.getEmail(),
+                clientIp(httpRequest),
+                httpRequest.getHeader("User-Agent")
+        );
         return ResponseEntity.ok(Map.of("message", "Role updated successfully"));
     }
 
@@ -92,10 +136,18 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(
             @PathVariable Long userId,
-            @AuthenticationPrincipal UserDetails userDetails
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpRequest
     ) {
         AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
-        authService.deleteUser(userId, admin.getOrganizationId(), admin.getId());
+        authService.deleteUser(
+                userId,
+                admin.getOrganizationId(),
+                admin.getId(),
+                admin.getEmail(),
+                clientIp(httpRequest),
+                httpRequest.getHeader("User-Agent")
+        );
         return ResponseEntity.ok(Map.of("message", "User removed successfully"));
     }
 
@@ -103,57 +155,19 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> inviteUser(
             @Valid @RequestBody InviteRequest request,
-            @AuthenticationPrincipal UserDetails userDetails
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpRequest
     ) {
         AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
-        AuthResponse invited = authService.inviteUser(request, admin.getOrganizationId());
+        AuthResponse invited = authService.inviteUser(
+                request,
+                admin.getOrganizationId(),
+                admin.getId(),
+                admin.getEmail(),
+                clientIp(httpRequest),
+                httpRequest.getHeader("User-Agent")
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(invited);
-    }
-
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
-        }
-        authService.requestPasswordReset(email);
-        return ResponseEntity.ok(Map.of("message", "If an account with that email exists, a password reset link has been sent."));
-    }
-
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
-        String token = body.get("token");
-        String newPassword = body.get("newPassword");
-        if (token == null || token.isBlank() || newPassword == null || newPassword.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Token and new password are required"));
-        }
-        authService.resetPassword(token, newPassword);
-        return ResponseEntity.ok(Map.of("message", "Password has been reset successfully."));
-    }
-
-    @PatchMapping("/admin/departments/{oldName}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> renameDepartment(
-            @PathVariable String oldName,
-            @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
-        String newName = body.get("name");
-        if (newName == null || newName.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "New department name is required"));
-        }
-        authService.renameDepartment(oldName, newName, admin.getOrganizationId());
-        return ResponseEntity.ok(Map.of("message", "Department renamed successfully"));
-    }
-
-    @DeleteMapping("/admin/departments/{name}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteDepartment(
-            @PathVariable String name,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
-        authService.deleteDepartment(name, admin.getOrganizationId());
-        return ResponseEntity.ok(Map.of("message", "Department deleted successfully"));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -166,5 +180,13 @@ public class AuthController {
     public ResponseEntity<?> handleRuntime(RuntimeException ex) {
         return ResponseEntity.badRequest()
                 .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "An error occurred"));
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

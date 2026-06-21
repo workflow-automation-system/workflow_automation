@@ -9,6 +9,7 @@ import com.workflow_automation.workflow_service.repository.ExecutionStepReposito
 import com.workflow_automation.workflow_service.security.AccessContext;
 import com.workflow_automation.workflow_service.service.ExecutionService;
 import com.workflow_automation.workflow_service.service.WorkflowAccessService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,42 +27,48 @@ public class ExecutionController {
     private final WorkflowAccessService workflowAccessService;
 
     @PostMapping("/api/workflows/{workflowId}/execute")
-    public ResponseEntity<Void> execute(
+    public ResponseEntity<Map<String, Object>> execute(
             @PathVariable Long workflowId,
             @RequestBody ExecuteWorkflowRequest request,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        executionService.executeWorkflow(workflowId, AccessContext.of(userId, organizationId, role), request.getInput());
-        return ResponseEntity.accepted().build();
+        executionService.queueWorkflow(
+                workflowId,
+                AccessContext.of(
+                        userId,
+                        organizationId,
+                        role,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                ),
+                request.getInput()
+        );
+        return ResponseEntity.accepted().body(Map.of(
+                "message", "Workflow execution queued successfully",
+                "workflowId", workflowId,
+                "status", "QUEUED"
+        ));
     }
 
-    @GetMapping("/api/executions/workflow/{workflowId}")
-    public ResponseEntity<List<Map<String, Object>>> getByWorkflow(
-            @PathVariable Long workflowId,
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
-    ) {
-        AccessContext accessContext = AccessContext.of(userId, organizationId, role);
-        Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
-
-        List<Map<String, Object>> executions = executionRepository.findByWorkflowIdOrderByStartedAtDesc(workflow.getId())
-                .stream()
-                .map(this::toExecutionResponse)
-                .toList();
-        return ResponseEntity.ok(executions);
-    }
 
     @GetMapping("/api/executions/{executionId}/steps")
     public ResponseEntity<List<Map<String, Object>>> getSteps(
             @PathVariable Long executionId,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Organization-Id") Long organizationId,
-            @RequestHeader("X-Role") String role
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
     ) {
-        AccessContext accessContext = AccessContext.of(userId, organizationId, role);
+        AccessContext accessContext = AccessContext.of(
+                userId,
+                organizationId,
+                role,
+                httpRequest.getRemoteAddr(),
+                httpRequest.getHeader("User-Agent")
+        );
         Execution execution = executionRepository.findById(executionId)
                 .orElseThrow(() -> new IllegalArgumentException("Execution not found"));
 

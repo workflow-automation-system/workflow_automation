@@ -9,8 +9,6 @@ const routeTitles = {
   '/workflows': 'Workflows',
   '/app-connections': 'App Connections',
   '/templates': 'Templates',
-  '/settings': 'Settings',
-  '/admin': 'Admin',
   '/audit': 'Audit Logs',
   '/forbidden': 'Permission Denied',
   '/create-workflow': 'Workflows',
