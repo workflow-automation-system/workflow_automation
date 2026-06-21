@@ -13,7 +13,7 @@ import Templates from './pages/Templates';
 import CreateWorkflow from './pages/CreateWorkflow';
 import WorkflowDetail from './pages/WorkflowDetail';
 import Workflows from './pages/Workflows';
-import PermissionDenied from './pages/PermissionDenied';
+
 import AuditLogs from './pages/AuditLogs';
 import Profile from './pages/Profile';
 import { useAuthStore } from './stores/authStore';
@@ -155,7 +155,6 @@ function App() {
             <Route path="/workflow/:id" element={<WorkflowDetail />} />
             <Route path="/workflows/:id" element={<WorkflowDetail />} />
             <Route path="/templates" element={<Templates />} />
-            <Route path="/forbidden" element={<PermissionDenied />} />
             <Route path="/profile" element={<Profile />} />
 
             <Route
