@@ -2,19 +2,18 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
-  GitBranch,
   Search,
   Sparkles,
   Star,
   Users,
 } from 'lucide-react';
 import templateApi from '../api/templateApi';
+import workflowApi from '../api/workflowApi';
 import { useAuthStore } from '../stores/authStore';
 
 const Templates = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const organizationId = user?.organization?.id;
 
   const [selectedCategory, setSelectedCategory] = React.useState('All');
   const [templates, setTemplates] = React.useState([]);
@@ -71,14 +70,52 @@ const Templates = () => {
     });
   }, [templates, selectedCategory, search]);
 
+  const buildWorkflowFromTemplate = (template) => {
+    const content = template?.content || {};
+    const nodes = Array.isArray(content.nodes) ? content.nodes : [];
+    const connections = Array.isArray(content.connections) ? content.connections : [];
+
+    return {
+      name: template.name,
+      description: template.description,
+      status: 'ACTIVE',
+      nodes: nodes.map((node, index) => {
+        const config = typeof node.config === 'string'
+          ? (() => {
+              try {
+                const parsed = JSON.parse(node.config);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+              } catch {
+                return {};
+              }
+            })()
+          : node.config || {};
+
+        return {
+          id: node.clientId || node.id || `template-node-${index + 1}`,
+          type: config.functionKey || node.type,
+          position: {
+            x: Number.isFinite(Number(node.positionX)) ? Number(node.positionX) : 0,
+            y: Number.isFinite(Number(node.positionY)) ? Number(node.positionY) : 0,
+          },
+          data: {
+            ...config,
+            label: config.label || node.name,
+            functionKey: config.functionKey || node.type,
+          },
+        };
+      }),
+      edges: connections.map((connection, index) => ({
+        id: `template-edge-${index + 1}`,
+        source: connection.sourceClientId || connection.sourceNodeId,
+        target: connection.targetClientId || connection.targetNodeId,
+      })),
+    };
+  };
+
   const handleUseTemplate = async (template) => {
     if (!user?.id) {
       setError('You must be logged in to use a template.');
-      return;
-    }
-
-    if (!organizationId) {
-      setError('No organization found for current user.');
       return;
     }
 
@@ -86,13 +123,9 @@ const Templates = () => {
       setUsingTemplateId(template.id);
       setError(null);
 
-      const workflow = await templateApi.use(template.id, {
-        userId: user.id,
-        organizationId,
-        name: template.name,
-      });
+      const workflow = await workflowApi.create(buildWorkflowFromTemplate(template));
 
-      navigate(`/workflow/${workflow.id}`);
+      navigate(`/create-workflow?id=${workflow.id}&fromTemplate=true`);
     } catch (err) {
       setError(err.message || 'Failed to use template.');
     } finally {

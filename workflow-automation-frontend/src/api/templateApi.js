@@ -27,15 +27,6 @@ export const templateApi = {
     getById: (id) => request(`/templates/${id}`),
 
     getByUser: (userId) => request(`/templates/user/${userId}`),
-
-    use: (id, payload) =>
-        request(`/templates/${id}/use`, {
-            method: 'POST',
-            body: payload,
-        }),
-
-    getAllByOrganization: (organizationId) =>
-        request(`/templates/organization/${organizationId}/all`),
 };
 
 export default templateApi;

@@ -2,12 +2,14 @@ import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { integrationApi } from '../api/integrationApi';
 import { useAuthStore } from '../stores/authStore';
+import Modal from '../components/ui/Modal';
 
 import {
   AlertCircle,
   CheckCircle2,
   MoreHorizontal,
   Search,
+  Plus,
 } from 'lucide-react';
 
 const GmailLogo = () => (
@@ -45,6 +47,7 @@ const NotionLogo = () => (
 const AppConnections = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuthStore();
+  const [showModal, setShowModal] = React.useState(false);
 
   // Gmail States
   const [gmailStatus, setGmailStatus] = React.useState({
@@ -332,6 +335,14 @@ const AppConnections = () => {
             Govern API integrations, webhook endpoints, and credential hygiene for enterprise automations.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#3C4249] transition-colors"
+        >
+          <Plus size={16} />
+          Add Connection
+        </button>
       </div>
 
       {successMessage ? (
@@ -345,36 +356,6 @@ const AppConnections = () => {
           {error}
         </div>
       ) : null}
-
-      <section className="enterprise-card p-5">
-        <h2 className="text-lg font-semibold text-[#292D32]">Available Integrations</h2>
-        <p className="mt-1 text-sm text-[#5C5C5C]">Add enterprise services and secure them with scoped credentials.</p>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {availableIntegrations.map((integration) => (
-            <button
-              key={integration.name}
-              type="button"
-              onClick={integration.action}
-              disabled={integration.disabled}
-              className="rounded-2xl border border-[#E2E8F0] bg-white p-4 text-left hover:border-[#D0FFA4] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <span className="flex items-center gap-2">
-                  {integration.logo}
-                  <span>
-                    <p className="text-sm font-semibold text-[#292D32]">{integration.name}</p>
-                    <p className="text-xs text-[#5C5C5C]">{integration.category}</p>
-                  </span>
-                </span>
-                <span className="rounded-full border border-[#E2E8F0] px-2.5 py-1 text-xs font-semibold text-[#292D32]">
-                  {integration.buttonLabel}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
 
       <section className="enterprise-card overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between">
@@ -433,6 +414,43 @@ const AppConnections = () => {
           ))}
         </div>
       </section>
+
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Connection" size="md">
+        <div className="space-y-4 font-urbanist">
+          <p className="text-sm text-[#5C5C5C]">
+            Select an enterprise application to connect to your workflow automation hub.
+          </p>
+          <div className="flex flex-col gap-3">
+            {availableIntegrations.map((integration) => (
+              <div
+                key={integration.name}
+                className="flex items-center justify-between rounded-2xl border border-[#E5E7EB] bg-[#FCFCFD] p-4 hover:border-[#D0FFA4] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-[#E2E8F0] bg-white p-2.5">
+                    {integration.logo}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-[#292D32]">{integration.name}</h4>
+                    <p className="text-xs text-[#5C5C5C]">{integration.category}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    integration.action();
+                  }}
+                  disabled={integration.disabled}
+                  className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#292D32] hover:border-[#D0FFA4] hover:bg-[#FDFDFD] disabled:opacity-60 transition-colors"
+                >
+                  {integration.buttonLabel}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
