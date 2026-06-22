@@ -21,7 +21,21 @@ const WorkflowCard = ({
   onDelete,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
+  const menuRef = React.useRef(null);
   const isActive = isActiveWorkflow(workflow);
+
+  React.useEffect(() => {
+    if (!showMenu) return undefined;
+
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
 
   return (
     <article className="enterprise-card overflow-hidden">
@@ -46,18 +60,23 @@ const WorkflowCard = ({
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
               type="button"
               disabled={actionInProgress}
               onClick={() => setShowMenu((prev) => !prev)}
               className="rounded-lg p-1.5 text-[#5C5C5C] hover:bg-white"
+              aria-expanded={showMenu}
+              aria-haspopup="menu"
             >
               <MoreVertical size={16} />
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 z-10 mt-1 w-44 rounded-xl border border-[#E2E8F0] bg-white p-1 shadow-lg">
+              <div
+                role="menu"
+                className="absolute right-0 z-10 mt-1 max-h-60 w-44 overflow-y-auto overscroll-contain rounded-xl border border-[#E2E8F0] bg-white p-1 shadow-lg"
+              >
                 <button
                   type="button"
                   onClick={() => {

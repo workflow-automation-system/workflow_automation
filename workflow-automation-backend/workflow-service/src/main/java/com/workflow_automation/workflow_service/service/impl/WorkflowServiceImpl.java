@@ -120,6 +120,20 @@ public class WorkflowServiceImpl implements WorkflowService {
                     "MessageSquare",
                     "#D0FFA4",
                     Map.of("label", "Notify Channel", "channel", "#ops-alerts", "message", "")
+            ),
+            function(
+                    "notion",
+                    "Notion",
+                    NodeType.ACTION,
+                    "Create pages in a Notion database from workflow data",
+                    "BookCopy",
+                    "#D0FFA4",
+                    Map.of(
+                            "application", "notion",
+                            "label", "Create Notion Page",
+                            "action", "create_page",
+                            "database", ""
+                    )
             )
     );
 
