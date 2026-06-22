@@ -19,6 +19,13 @@ import authService, { API } from '../services/authService';
 import Toast from '../components/ui/Toast';
 import { useAuthStore } from '../stores/authStore';
 import { isAdmin, ROLES } from '../utils/rbac';
+import {
+  isActiveMember,
+  isPendingInvitation,
+  memberIdentityId,
+  memberKey,
+  MEMBER_TYPE,
+} from '../constants/memberStatus';
 
 const formatRole = (role = '') => {
   if (!role) return 'Member';
@@ -81,7 +88,7 @@ const Organisation = () => {
   const { user } = useAuthStore();
   const currentUserIsAdmin = isAdmin(user);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
-  const [deletingUserId, setDeletingUserId] = React.useState(null);
+  const [deletingMemberKey, setDeletingMemberKey] = React.useState(null);
 
   const showToast = React.useCallback((message, tone = 'info') => {
     setToast({ open: true, message, tone });
@@ -95,13 +102,13 @@ const Organisation = () => {
       setError('');
       try {
         const orgId = user?.organizationId;
-        const [orgRes, usersRes] = await Promise.all([
+        const [orgRes, membersRes] = await Promise.all([
           orgId ? API.get(`/organizations/${orgId}`) : Promise.resolve({ data: null }),
-          API.get('/auth/admin/users'),
+          authService.getMembers(),
         ]);
         if (isMounted) {
           setOrgMeta(orgRes.data);
-          setMembers(usersRes.data || []);
+          setMembers(membersRes || []);
         }
       } catch (err) {
         if (isMounted) {
@@ -117,22 +124,39 @@ const Organisation = () => {
   }, [user?.organizationId]);
 
   const handleRemoveMember = async (member) => {
-    const memberId = member.id;
-    if (memberId === user?.id) {
+    const identityId = memberIdentityId(member);
+    const isInvitation = member.type === MEMBER_TYPE.INVITATION;
+    const isSelf = !isInvitation && identityId === user?.id;
+
+    if (isSelf) {
       showToast('You cannot remove yourself.', 'error');
       return;
     }
-    if (!window.confirm(`Remove ${member.name || member.email} from the organization? This action cannot be undone.`)) return;
 
-    setDeletingUserId(memberId);
+    const actionLabel = isInvitation ? 'cancel this invitation for' : 'remove';
+    if (!window.confirm(`${isInvitation ? 'Cancel' : 'Remove'} ${member.name || member.email} from the organization? This action cannot be undone.`)) {
+      return;
+    }
+
+    const key = memberKey(member);
+    setDeletingMemberKey(key);
     try {
-      await authService.deleteUser(memberId);
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
-      showToast(`${member.name || member.email} has been removed.`, 'success');
+      if (isInvitation) {
+        await authService.cancelInvitation(identityId);
+      } else {
+        await authService.deleteUser(identityId);
+      }
+      setMembers((prev) => prev.filter((m) => memberKey(m) !== key));
+      showToast(
+        isInvitation
+          ? `Invitation for ${member.name || member.email} has been cancelled.`
+          : `${member.name || member.email} has been removed.`,
+        'success'
+      );
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to remove member.', 'error');
+      showToast(err.response?.data?.message || `Failed to ${actionLabel} member.`, 'error');
     } finally {
-      setDeletingUserId(null);
+      setDeletingMemberKey(null);
     }
   };
 
@@ -151,7 +175,7 @@ const Organisation = () => {
         department: inviteForm.department.trim() || undefined,
         jobTitle: inviteForm.jobTitle.trim() || undefined,
       });
-      setMembers((prev) => [...prev, invited]);
+      setMembers((prev) => [...prev, { ...invited, type: MEMBER_TYPE.INVITATION }]);
       setShowInviteForm(false);
       setInviteForm({ name: '', email: '', department: '', jobTitle: '' });
       showToast(`${invited.name || invited.email} has been invited.`, 'success');
@@ -162,8 +186,8 @@ const Organisation = () => {
     }
   };
 
-  const activeMembers = members.filter((m) => m.status === 'ACCEPTED' || m.id === user?.id || !m.status);
-  const pendingMembers = members.filter((m) => m.status === 'PENDING' && m.id !== user?.id);
+  const activeMembers = members.filter(isActiveMember);
+  const pendingMembers = members.filter(isPendingInvitation);
 
   const filteredMembers = (activeTab === 'active' ? activeMembers : pendingMembers).filter((member) => {
     const query = searchQuery.trim().toLowerCase();
@@ -406,12 +430,13 @@ const Organisation = () => {
 
         <div className="divide-y divide-[#E2E8F0]">
           {filteredMembers.map((member) => {
-            const memberId = member.id;
-            const isSelf = memberId === user?.id;
-            const isDeleting = deletingUserId === memberId;
+            const key = memberKey(member);
+            const identityId = memberIdentityId(member);
+            const isSelf = member.type !== MEMBER_TYPE.INVITATION && identityId === user?.id;
+            const isDeleting = deletingMemberKey === key;
 
             return (
-              <div key={memberId} className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <div key={key} className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E2E8F0]">
                     <UserCircle2 size={20} className="text-[#292D32]" />

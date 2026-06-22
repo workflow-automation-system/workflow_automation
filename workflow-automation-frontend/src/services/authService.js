@@ -78,6 +78,16 @@ const authService = {
     const res = await API.post('/auth/admin/invite', payload);
     return res.data;
   },
+
+  getMembers: async () => {
+    const res = await API.get('/auth/admin/members');
+    return res.data;
+  },
+
+  cancelInvitation: async (invitationId) => {
+    const res = await API.delete(`/auth/admin/invitations/${invitationId}`);
+    return res.data;
+  },
   updateProfile: async (payload) => {
     const res = await API.put('/auth/profile', payload);
     return res.data;

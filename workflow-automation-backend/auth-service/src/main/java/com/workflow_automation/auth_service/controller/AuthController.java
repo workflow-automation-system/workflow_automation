@@ -109,6 +109,20 @@ public class AuthController {
         return authService.getAllUsers(admin.getOrganizationId());
     }
 
+    @GetMapping("/admin/members")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<MemberViewResponse> members(@AuthenticationPrincipal UserDetails userDetails) {
+        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
+        return authService.getOrganizationMembers(admin.getOrganizationId());
+    }
+
+    @GetMapping("/admin/invitations")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<InvitationResponse> invitations(@AuthenticationPrincipal UserDetails userDetails) {
+        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
+        return authService.listPendingInvitations(admin.getOrganizationId());
+    }
+
 // Update role endpoint removed - organization has a single admin
 
 
@@ -131,6 +145,25 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "User removed successfully"));
     }
 
+    @DeleteMapping("/admin/invitations/{invitationId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> cancelInvitation(
+            @PathVariable Long invitationId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpRequest
+    ) {
+        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
+        authService.cancelInvitation(
+                invitationId,
+                admin.getOrganizationId(),
+                admin.getId(),
+                admin.getEmail(),
+                clientIp(httpRequest),
+                httpRequest.getHeader("User-Agent")
+        );
+        return ResponseEntity.ok(Map.of("message", "Invitation cancelled successfully"));
+    }
+
     @PostMapping("/admin/invite")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> inviteUser(
@@ -139,7 +172,7 @@ public class AuthController {
             HttpServletRequest httpRequest
     ) {
         AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
-        AuthResponse invited = authService.inviteUser(
+        InvitationResponse invited = authService.inviteUser(
                 request,
                 admin.getOrganizationId(),
                 admin.getId(),

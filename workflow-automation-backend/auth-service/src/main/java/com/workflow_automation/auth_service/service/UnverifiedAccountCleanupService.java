@@ -27,12 +27,12 @@ public class UnverifiedAccountCleanupService {
             return;
         }
 
-        log.info("Cleaning up {} expired unverified accounts", expiredUsers.size());
+        log.info("Cleaning up {} expired unverified registration accounts", expiredUsers.size());
         for (User user : expiredUsers) {
             try {
                 organizationClient.removeMember(user.getOrganizationId(), user.getId());
             } catch (Exception e) {
-                log.warn("Failed to remove org member for userId={}: {}", user.getId(), e.getMessage());
+                log.debug("No org member to remove for userId={}: {}", user.getId(), e.getMessage());
             }
         }
         userRepository.deleteAll(expiredUsers);

@@ -1,12 +1,15 @@
 package com.workflow_automation.organization_service.service;
 
 import com.workflow_automation.organization_service.dto.*;
+import com.workflow_automation.organization_service.entity.MemberStatus;
 import com.workflow_automation.organization_service.entity.Organization;
 import com.workflow_automation.organization_service.entity.OrganizationMember;
 import com.workflow_automation.organization_service.repository.OrganizationMemberRepository;
 import com.workflow_automation.organization_service.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Comparator;
 import java.util.List;
@@ -56,6 +59,11 @@ public class OrganizationService {
     // ================= MEMBERS =================
 
     public OrganizationSummary syncMember(Long organizationId, OrganizationMemberSyncRequest request) {
+        String rawStatus = defaultIfBlank(request.getStatus(), MemberStatus.ACCEPTED.name());
+        if (!MemberStatus.ACCEPTED.name().equalsIgnoreCase(rawStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only ACCEPTED members can be synced");
+        }
+
         Organization org = findOrganization(organizationId);
         OrganizationMember member = organizationMemberRepository
                 .findByUserId(request.getUserId())
@@ -67,7 +75,7 @@ public class OrganizationService {
         member.setRole(resolveSyncedRole(member, request.getRole()));
         member.setDepartment(defaultIfBlank(request.getDepartment(), "Unassigned"));
         member.setJobTitle(defaultIfBlank(request.getJobTitle(), "Team Member"));
-        member.setStatus(defaultIfBlank(request.getStatus(), "Pending"));
+        member.setStatus(MemberStatus.ACCEPTED.name());
         organizationMemberRepository.save(member);
         return toSummary(org);
     }
@@ -83,6 +91,7 @@ public class OrganizationService {
         return organizationMemberRepository
                 .findAllByOrganization_Id(organizationId)
                 .stream()
+                .filter(m -> MemberStatus.ACCEPTED.name().equalsIgnoreCase(m.getStatus()))
                 .map(this::toMemberResponse)
                 .toList();
     }
@@ -192,7 +201,7 @@ public class OrganizationService {
                 .createdAt(org.getCreatedAt())
                 .memberCount((long) sorted.size())
                 .activeMemberCount(sorted.stream()
-                        .filter(m -> "ACTIVE".equalsIgnoreCase(m.getStatus()))
+                        .filter(m -> MemberStatus.ACCEPTED.name().equalsIgnoreCase(m.getStatus()))
                         .count())
                 .privilegedRoleCount(sorted.stream()
                         .filter(m -> "ADMIN".equalsIgnoreCase(m.getRole()))

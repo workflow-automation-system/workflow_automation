@@ -33,6 +33,7 @@ public class AuthService {
     private final OrganizationClient organizationClient;
     private final EmailValidationService emailValidationService;
     private final AuditClient auditClient;
+    private final InvitationService invitationService;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -207,23 +208,7 @@ public class AuthService {
     }
 
     public AuthResponse acceptInvitation(AcceptInvitationRequest request) {
-        User user = userRepository.findByVerificationToken(request.getToken())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid invitation link"));
-
-        if (user.getVerificationTokenExpiresAt() == null ||
-                user.getVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invitation link expired");
-        }
-
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEnabled(true);
-        user.setVerificationToken(null);
-        user.setVerificationTokenExpiresAt(null);
-        userRepository.save(user);
-        syncOrganizationMember(user);
-        log.info("Invitation accepted: userId={}, role={}, orgId={}", user.getId(), user.getRole(), user.getOrganizationId());
-
-        return toAuthResponse(user, null);
+        return invitationService.acceptInvitation(request);
     }
 
     public String resendVerificationEmail(String email) {
@@ -302,13 +287,17 @@ public class AuthService {
                 .department(user.getDepartment())
                 .jobTitle(user.getJobTitle())
                 .role(resolveRole(user).name())
-                .status(user.isEnabled() ? "ACCEPTED" : "PENDING")
+                .status(user.isEnabled() ? MemberStatus.ACCEPTED.name() : MemberStatus.PENDING.name())
                 .organizationId(user.getOrganizationId())
                 .organization(organization)
                 .build();
     }
 
     private void syncOrganizationMember(User user) {
+        if (user.getOrganizationId() == null || !user.isEnabled()) {
+            return;
+        }
+
         organizationClient.syncMember(
                 user.getOrganizationId(),
                 OrganizationMemberSyncRequest.builder()
@@ -318,7 +307,7 @@ public class AuthService {
                         .role(resolveRole(user).name())
                         .department(defaultIfBlank(user.getDepartment(), "Unassigned"))
                         .jobTitle(defaultIfBlank(user.getJobTitle(), "Team Member"))
-                        .status(user.isEnabled() ? "Active" : "Pending")
+                        .status(MemberStatus.ACCEPTED.name())
                         .build()
         );
     }
@@ -381,10 +370,14 @@ public class AuthService {
     }
 
     public List<AuthResponse> getAllUsers(Long organizationId) {
-        return userRepository.findByOrganizationId(organizationId)
+        return userRepository.findByOrganizationIdAndEnabledTrue(organizationId)
                 .stream()
                 .map(user -> toAuthResponse(user, null))
                 .collect(Collectors.toList());
+    }
+
+    public List<MemberViewResponse> getOrganizationMembers(Long organizationId) {
+        return invitationService.getOrganizationMembers(organizationId);
     }
 
     public void deleteUser(Long targetUserId, Long adminOrganizationId, Long adminUserId) {
@@ -437,11 +430,11 @@ public class AuthService {
         );
     }
 
-    public AuthResponse inviteUser(InviteRequest request, Long adminOrganizationId) {
+    public InvitationResponse inviteUser(InviteRequest request, Long adminOrganizationId) {
         return inviteUser(request, adminOrganizationId, null, null, null, null);
     }
 
-    public AuthResponse inviteUser(
+    public InvitationResponse inviteUser(
             InviteRequest request,
             Long adminOrganizationId,
             Long adminUserId,
@@ -449,68 +442,24 @@ public class AuthService {
             String ipAddress,
             String userAgent
     ) {
-        String email = request.getEmail().trim().toLowerCase();
+        return invitationService.inviteUser(
+                request, adminOrganizationId, adminUserId, adminEmail, ipAddress, userAgent);
+    }
 
-        String emailError = emailValidationService.validate(email);
-        if (emailError != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, emailError);
-        }
+    public void cancelInvitation(
+            Long invitationId,
+            Long adminOrganizationId,
+            Long adminUserId,
+            String adminEmail,
+            String ipAddress,
+            String userAgent
+    ) {
+        invitationService.cancelInvitation(
+                invitationId, adminOrganizationId, adminUserId, adminEmail, ipAddress, userAgent);
+    }
 
-        if (userRepository.existsByEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
-        }
-
-        Role assignedRole = Role.USER;
-
-        String initialPassword = UUID.randomUUID().toString().substring(0, 12);
-        String verificationToken = UUID.randomUUID().toString();
-
-        User user = User.builder()
-                .name(request.getName() != null ? request.getName().trim() : email)
-                .email(email)
-                .department(request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned")
-                .jobTitle(trimToNull(request.getJobTitle()))
-                .password(passwordEncoder.encode(initialPassword))
-                .role(assignedRole)
-                .organizationId(adminOrganizationId)
-                .enabled(false)
-                .verificationToken(verificationToken)
-                .verificationTokenExpiresAt(LocalDateTime.now().plusHours(72))
-                .build();
-
-        User savedUser = userRepository.save(user);
-
-        String invitationLink = frontendUrl + "/accept-invitation?token=" + verificationToken;
-        try {
-            emailService.sendInvitationEmail(savedUser.getEmail(), savedUser.getName(), invitationLink);
-        } catch (Exception e) {
-            log.error("Invitation email failed for {}, deleting user: {}", email, e.getMessage());
-            userRepository.delete(savedUser);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Impossible d'envoyer l'email d'invitation. Veuillez verifier que l'adresse email est valide.");
-        }
-
-        syncOrganizationMember(savedUser);
-        log.info("User invited: userId={}, role={}, orgId={}", savedUser.getId(), assignedRole, adminOrganizationId);
-        recordAuthAudit(
-                adminUserId,
-                adminEmail,
-                adminOrganizationId,
-                "ORGANIZATION_MEMBER_INVITED",
-                "ORGANIZATION_MEMBER",
-                savedUser.getId(),
-                "SUCCESS",
-                ipAddress,
-                userAgent,
-                Map.of(
-                        "targetUserId", savedUser.getId(),
-                        "targetEmail", savedUser.getEmail(),
-                        "role", assignedRole.name(),
-                        "status", "Pending"
-                )
-        );
-
-        return toAuthResponse(savedUser, null);
+    public List<InvitationResponse> listPendingInvitations(Long organizationId) {
+        return invitationService.listPendingInvitations(organizationId);
     }
 
     public AuthResponse updateProfile(String email, UpdateProfileRequest request) {

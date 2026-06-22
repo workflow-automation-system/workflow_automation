@@ -12,5 +12,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByResetPasswordToken(String resetPasswordToken);
     boolean existsByEmail(String email);
     List<User> findByEnabledFalseAndVerificationTokenExpiresAtBefore(LocalDateTime cutoff);
+
+    List<User> findByEnabledFalseAndVerificationTokenIsNotNull();
     List<User> findByOrganizationId(Long organizationId);
+
+    List<User> findByOrganizationIdAndEnabledTrue(Long organizationId);
 }
