@@ -10,5 +10,4 @@ public class InviteRequest {
     @NotBlank private String name;
     private String department;
     private String jobTitle;
-    private String role;
 }

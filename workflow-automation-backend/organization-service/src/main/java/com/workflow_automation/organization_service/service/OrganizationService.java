@@ -56,13 +56,10 @@ public class OrganizationService {
     // ================= MEMBERS =================
 
     public OrganizationSummary syncMember(Long organizationId, OrganizationMemberSyncRequest request) {
-
         Organization org = findOrganization(organizationId);
-
         OrganizationMember member = organizationMemberRepository
                 .findByUserId(request.getUserId())
                 .orElse(new OrganizationMember());
-
         member.setUserId(request.getUserId());
         member.setOrganization(org);
         member.setName(request.getName().trim());
@@ -71,9 +68,7 @@ public class OrganizationService {
         member.setDepartment(defaultIfBlank(request.getDepartment(), "Unassigned"));
         member.setJobTitle(defaultIfBlank(request.getJobTitle(), "Team Member"));
         member.setStatus(defaultIfBlank(request.getStatus(), "Pending"));
-
         organizationMemberRepository.save(member);
-
         return toSummary(org);
     }
 
@@ -81,12 +76,10 @@ public class OrganizationService {
         OrganizationMember member = organizationMemberRepository
                 .findByOrganization_IdAndUserId(organizationId, userId)
                 .orElseThrow(() -> new NoSuchElementException("Member not found"));
-
         return toMemberResponse(member);
     }
 
     public List<OrganizationMemberResponse> getMembers(Long organizationId) {
-
         return organizationMemberRepository
                 .findAllByOrganization_Id(organizationId)
                 .stream()
@@ -95,28 +88,76 @@ public class OrganizationService {
     }
 
     public void removeMember(Long organizationId, Long userId) {
-
         OrganizationMember member = organizationMemberRepository.findByUserId(userId)
                 .orElseThrow(() -> new NoSuchElementException("Member not found"));
-
         if (!member.getOrganization().getId().equals(organizationId)) {
             throw new RuntimeException("Member does not belong to organization");
         }
-
         organizationMemberRepository.delete(member);
     }
 
     public void updateRole(Long organizationId, Long userId, String role) {
-
         OrganizationMember member = organizationMemberRepository.findByUserId(userId)
                 .orElseThrow(() -> new NoSuchElementException("Member not found"));
-
         if (!member.getOrganization().getId().equals(organizationId)) {
             throw new RuntimeException("Member does not belong to organization");
         }
-
         member.setRole(sanitizeRole(role));
         organizationMemberRepository.save(member);
+    }
+
+    // ================= DEPARTMENT CRUD =================
+
+    /**
+     * List distinct department names for an organization.
+     */
+    public List<String> listDepartments(Long organizationId) {
+        return organizationMemberRepository.findAllByOrganization_Id(organizationId)
+                .stream()
+                .map(m -> m.getDepartment() != null ? m.getDepartment() : "Unassigned")
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    /**
+     * Create a new department (no-op if already exists).
+     */
+    public void createDepartment(Long organizationId, String name) {
+        // Ensure the name is unique – callers should check before invoking.
+        List<String> existing = listDepartments(organizationId);
+        if (!existing.contains(name)) {
+            // No dedicated entity; just a placeholder to satisfy UI expectations.
+            // Optionally, could create a dummy member with no userId, but we keep it simple.
+        }
+    }
+
+    /**
+     * Rename a department and update all members.
+     */
+    public void renameDepartment(Long organizationId, String oldName, String newName) {
+        List<OrganizationMember> members = organizationMemberRepository.findAllByOrganization_Id(organizationId);
+        for (OrganizationMember m : members) {
+            String dept = m.getDepartment() != null ? m.getDepartment() : "Unassigned";
+            if (dept.equals(oldName)) {
+                m.setDepartment(newName);
+                organizationMemberRepository.save(m);
+            }
+        }
+    }
+
+    /**
+     * Delete a department; reassign its members to "Unassigned".
+     */
+    public void deleteDepartment(Long organizationId, String name) {
+        List<OrganizationMember> members = organizationMemberRepository.findAllByOrganization_Id(organizationId);
+        for (OrganizationMember m : members) {
+            String dept = m.getDepartment() != null ? m.getDepartment() : "Unassigned";
+            if (dept.equals(name)) {
+                m.setDepartment("Unassigned");
+                organizationMemberRepository.save(m);
+            }
+        }
     }
 
     // ================= MAPPERS =================
@@ -184,7 +225,8 @@ public class OrganizationService {
     private String sanitizeRole(String role) {
         if (role == null) return "USER";
         role = role.trim().toUpperCase();
-        return (role.equals("ADMIN") || role.equals("USER") || role.equals("VIEWER")) ? role : "USER";
+        // VIEWER role has been removed; default to USER for any unknown role
+        return (role.equals("ADMIN") || role.equals("USER")) ? role : "USER";
     }
 
     private String resolveSyncedRole(OrganizationMember existingMember, String requestedRole) {

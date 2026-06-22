@@ -15,6 +15,7 @@ public class AuthResponse {
     private String department;
     private String jobTitle;
     private String role;
+    private String status;
     private Long organizationId;
     private OrganizationSummary organization;
 }

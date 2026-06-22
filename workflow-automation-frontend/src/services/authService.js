@@ -69,11 +69,6 @@ const authService = {
     return res.data;
   },
 
-  updateUserRole: async (userId, role) => {
-    const res = await API.patch(`/auth/admin/users/${userId}/role`, { role });
-    return res.data;
-  },
-
   deleteUser: async (userId) => {
     const res = await API.delete(`/auth/admin/users/${userId}`);
     return res.data;

@@ -258,53 +258,9 @@ public class AuthService {
         return toAuthResponse(user, jwtUtil.generateToken(user));
     }
 
-    public void updateUserRole(Long targetUserId, String newRole, Long adminOrganizationId) {
-        updateUserRole(targetUserId, newRole, adminOrganizationId, null, null, null, null);
-    }
+// Deprecated overload removed - not used
 
-    public void updateUserRole(
-            Long targetUserId,
-            String newRole,
-            Long adminOrganizationId,
-            Long adminUserId,
-            String adminEmail,
-            String ipAddress,
-            String userAgent
-    ) {
-        User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!adminOrganizationId.equals(target.getOrganizationId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Cannot modify users outside your organization");
-        }
-
-        Role previousRole = resolveRole(target);
-        Role role = parseRole(newRole);
-        target.setRole(role);
-        userRepository.save(target);
-        syncOrganizationMember(target);
-
-        organizationClient.updateMemberRole(adminOrganizationId, targetUserId, role.name());
-        log.info("Role updated: userId={}, newRole={}, by orgId={}", targetUserId, role, adminOrganizationId);
-        recordAuthAudit(
-                adminUserId,
-                adminEmail,
-                adminOrganizationId,
-                "USER_ROLE_CHANGED",
-                "ORGANIZATION_MEMBER",
-                targetUserId,
-                "SUCCESS",
-                ipAddress,
-                userAgent,
-                Map.of(
-                        "targetUserId", targetUserId,
-                        "targetEmail", target.getEmail(),
-                        "previousRole", previousRole.name(),
-                        "newRole", role.name()
-                )
-        );
-    }
 
     private User ensureOrganization(User user) {
         OrganizationSummary organization = null;
@@ -346,6 +302,7 @@ public class AuthService {
                 .department(user.getDepartment())
                 .jobTitle(user.getJobTitle())
                 .role(resolveRole(user).name())
+                .status(user.isEnabled() ? "ACCEPTED" : "PENDING")
                 .organizationId(user.getOrganizationId())
                 .organization(organization)
                 .build();
@@ -503,7 +460,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
         }
 
-        Role assignedRole = parseRole(request.getRole());
+        Role assignedRole = Role.USER;
 
         String initialPassword = UUID.randomUUID().toString().substring(0, 12);
         String verificationToken = UUID.randomUUID().toString();

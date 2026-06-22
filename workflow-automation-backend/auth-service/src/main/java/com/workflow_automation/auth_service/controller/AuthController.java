@@ -50,6 +50,8 @@ public class AuthController {
         return ResponseEntity.ok(authService.acceptInvitation(request));
     }
 
+
+
     @PostMapping("/resend-verification")
     public ResponseEntity<?> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
         return ResponseEntity.ok(Map.of("message", authService.resendVerificationEmail(request.getEmail())));
@@ -107,30 +109,8 @@ public class AuthController {
         return authService.getAllUsers(admin.getOrganizationId());
     }
 
-    @PatchMapping("/admin/users/{userId}/role")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateRole(
-            @PathVariable Long userId,
-            @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails,
-            HttpServletRequest httpRequest
-    ) {
-        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
-        String newRole = body.get("role");
-        if (newRole == null || newRole.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Role is required"));
-        }
-        authService.updateUserRole(
-                userId,
-                newRole,
-                admin.getOrganizationId(),
-                admin.getId(),
-                admin.getEmail(),
-                clientIp(httpRequest),
-                httpRequest.getHeader("User-Agent")
-        );
-        return ResponseEntity.ok(Map.of("message", "Role updated successfully"));
-    }
+// Update role endpoint removed - organization has a single admin
+
 
     @DeleteMapping("/admin/users/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
