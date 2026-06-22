@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import { isAdmin } from '../../utils/rbac';
 
 const routeTitles = {
   '/': 'Overview',
@@ -12,6 +13,7 @@ const routeTitles = {
   '/audit': 'Audit Logs',
   '/forbidden': 'Permission Denied',
   '/create-workflow': 'Workflows',
+  '/profile': 'My Profile',
 };
 
 const formatRole = (role = '') => {
@@ -27,9 +29,14 @@ const Navbar = () => {
   const { user } = useAuthStore();
 
   const pageTitle = React.useMemo(() => {
-    if (location.pathname.startsWith('/workflow/') || location.pathname.startsWith('/workflows/')) return 'Workflows';
+    if (location.pathname.startsWith('/workflow/') || location.pathname.startsWith('/workflows/')) {
+      return 'Workflows';
+    }
+    if (location.pathname === '/organisation' && !isAdmin(user)) {
+      return 'My Workspace';
+    }
     return routeTitles[location.pathname] || 'Overview';
-  }, [location.pathname]);
+  }, [location.pathname, user]);
 
   return (
     <header className="fixed left-20 top-0 z-30 h-16 w-[calc(100%-5rem)] border-b border-[#E2E8F0] bg-[#E2E8F0]/95 backdrop-blur-sm">

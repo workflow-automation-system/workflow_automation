@@ -7,17 +7,11 @@ import {
   Plug,
   ScrollText,
   UserCircle2,
+  Users,
   Workflow,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { isAdmin, getRole } from '../../utils/rbac';
-
-const navItems = [
-  { path: '/dashboard', icon: LayoutGrid, label: 'Overview' },
-  { path: '/organisation', icon: Building2, label: 'Organisation' },
-  { path: '/workflows', icon: Workflow, label: 'Workflows' },
-  { path: '/templates', icon: Layers, label: 'Templates' },
-];
 
 const roleBadgeStyles = {
   ADMIN: 'bg-[#292D32] text-white',
@@ -31,12 +25,24 @@ const Sidebar = () => {
   const { logout, user } = useAuthStore();
   const navigate = useNavigate();
   const role = getRole(user);
+  const admin = isAdmin(user);
+
+  const navItems = [
+    { path: '/dashboard', icon: LayoutGrid, label: 'Overview' },
+    {
+      path: '/organisation',
+      icon: admin ? Building2 : Users,
+      label: admin ? 'Organisation' : 'My Team',
+    },
+    { path: '/workflows', icon: Workflow, label: 'Workflows' },
+    { path: '/templates', icon: Layers, label: 'Templates' },
+  ];
 
   const items = [
     ...navItems,
-    ...(isAdmin(user) ? [
-      {path: '/app-connections', icon: Plug, label: 'App Connections'},
-      {path: '/audit', icon: ScrollText, label: 'Audit'},
+    ...(admin ? [
+      { path: '/app-connections', icon: Plug, label: 'App Connections' },
+      { path: '/audit', icon: ScrollText, label: 'Audit' },
     ] : []),
   ];
 

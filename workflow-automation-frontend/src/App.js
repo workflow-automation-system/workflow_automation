@@ -10,7 +10,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 import AcceptInvitation from './pages/auth/AcceptInvitation';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
-import Organisation from './pages/Organisation';
+import OrganisationRoute from './pages/OrganisationRoute';
 import AppConnections from './pages/AppConnections';
 import Templates from './pages/Templates';
 import CreateWorkflow from './pages/CreateWorkflow';
@@ -196,14 +196,7 @@ function App() {
             <Route path="/forbidden" element={<PermissionDenied />} />
             <Route path="/profile" element={<Profile />} />
 
-            <Route
-              path="/organisation"
-              element={
-                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
-                  <Organisation />
-                </RoleGuard>
-              }
-            />
+            <Route path="/organisation" element={<OrganisationRoute />} />
             <Route
               path="/app-connections"
               element={

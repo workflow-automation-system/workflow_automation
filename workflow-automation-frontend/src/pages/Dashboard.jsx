@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import useWorkflowStore from '../stores/workflowStore';
-import { canCreateWorkflow, getRole } from '../utils/rbac';
+import { canCreateWorkflow, getRole, isAdmin } from '../utils/rbac';
 
 
 
@@ -35,6 +35,7 @@ const Dashboard = () => {
   const { workflows, isLoading, fetchWorkflows } = useWorkflowStore();
   const role = getRole(user);
   const banner = roleBanners[role];
+  const member = !isAdmin(user);
 
   useEffect(() => {
     fetchWorkflows();
@@ -115,6 +116,25 @@ const Dashboard = () => {
         <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${banner.bg}`}>
           <banner.icon size={16} className={banner.text} />
           <span className={`text-sm font-medium ${banner.text}`}>{banner.message}</span>
+        </div>
+      ) : null}
+
+      {member ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-[#292D32]">Your team workspace</p>
+            <p className="text-sm text-[#5C5C5C]">
+              View colleagues, your department ({user?.department || 'Unassigned'}), and quick links to workflows.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/organisation')}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3C4249]"
+          >
+            Open My Team
+            <ArrowRight size={14} />
+          </button>
         </div>
       ) : null}
 
