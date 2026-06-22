@@ -35,8 +35,9 @@ const CreateWorkflow = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
+  const fromTemplate = searchParams.get('fromTemplate') === 'true';
 
-  const { createWorkflow, fetchWorkflowById, getWorkflowById, updateWorkflow } = useWorkflowStore();
+  const { createWorkflow, fetchWorkflowById, getWorkflowById, updateWorkflow, deleteWorkflow } = useWorkflowStore();
   const user = useAuthStore((state) => state.user);
 
   const [name, setName] = React.useState('');
@@ -313,6 +314,23 @@ const CreateWorkflow = () => {
     }
   };
 
+  const handleCancel = async () => {
+    if (fromTemplate && workflowId) {
+      try {
+        setSaving(true);
+        await deleteWorkflow(workflowId);
+        showToast('Template usage canceled.', 'info');
+      } catch (err) {
+        showToast(err.message || 'Failed to clean up template draft.', 'error');
+      } finally {
+        setSaving(false);
+        navigate('/templates');
+      }
+    } else {
+      navigate('/workflows');
+    }
+  };
+
   const handleDeleteNode = () => {
     if (!selectedNode || editorReadOnly) return;
 
@@ -372,7 +390,7 @@ const CreateWorkflow = () => {
           <div className="flex flex-1 items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate('/workflows')}
+              onClick={handleCancel}
               className="rounded-xl border border-[#E2E8F0] bg-white p-2 text-[#5C5C5C] hover:border-[#D0FFA4]"
               aria-label="Back to workflows"
             >
@@ -413,6 +431,14 @@ const CreateWorkflow = () => {
               <option value="INACTIVE">INACTIVE</option>
             </select>
 
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={saving}
+              className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
+            >
+              Cancel
+            </button>
             <button
               type="button"
               onClick={handleSave}

@@ -13,8 +13,6 @@ public class TemplateResponse {
 
     private Long userId;
 
-    private Long organizationId;
-    
     private String name;
 
     private String description;

@@ -18,8 +18,6 @@ public class WorkflowTemplate {
 
     private Long userId;
 
-    private Long organizationId;
-
     private String name;
 
     private String description;
