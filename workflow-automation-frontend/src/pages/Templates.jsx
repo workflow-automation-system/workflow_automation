@@ -110,29 +110,7 @@ const Templates = () => {
         </div>
       </div>
 
-      <section className="enterprise-card p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-[#292D32]">Enterprise Template Library</h2>
-            <p className="mt-1 text-sm text-[#5C5C5C]">
-              Curated blueprints for branching logic, error handling, and governed data mapping patterns.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-center">
-              <p className="text-xl font-bold text-[#292D32]">{templates.length}</p>
-              <p className="text-xs text-[#5C5C5C]">Templates</p>
-            </div>
-            <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-center">
-              <p className="text-xl font-bold text-[#292D32]">
-                {categories.length > 0 ? categories.length - 1 : 0}
-              </p>
-              <p className="text-xs text-[#5C5C5C]">Categories</p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="relative flex-1">

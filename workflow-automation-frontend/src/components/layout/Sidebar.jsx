@@ -27,7 +27,7 @@ const Sidebar = () => {
   const role = getRole(user);
   const admin = isAdmin(user);
 
-  const navItems = [
+  const items = [
     { path: '/dashboard', icon: LayoutGrid, label: 'Overview' },
     {
       path: '/organisation',
@@ -35,16 +35,10 @@ const Sidebar = () => {
       label: admin ? 'Organisation' : 'My Team',
     },
     { path: '/workflows', icon: Workflow, label: 'Workflows' },
+    admin ? { path: '/app-connections', icon: Plug, label: 'App Connections' } : null,
     { path: '/templates', icon: Layers, label: 'Templates' },
-  ];
-
-  const items = [
-    ...navItems,
-    ...(admin ? [
-      { path: '/app-connections', icon: Plug, label: 'App Connections' },
-      { path: '/audit', icon: ScrollText, label: 'Audit' },
-    ] : []),
-  ];
+    admin ? { path: '/audit', icon: ScrollText, label: 'Audit' } : null,
+  ].filter(Boolean);
 
   return (
     <aside className="fixed left-0 top-0 z-50 h-screen w-20 border-r border-[#E2E8F0] p-3">
