@@ -1,19 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import authService from '../../services/authService';
 import { useAuthStore } from '../../stores/authStore';
+
 const AcceptInvitation = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const navigate = useNavigate();
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
+  const logout = useAuthStore((state) => state.logout);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // Clear any existing session so the invitee is not redirected to another user's dashboard
+  useEffect(() => {
+    if (token && isInitialized && isAuthenticated) {
+      logout();
+    }
+  }, [token, isInitialized, isAuthenticated, logout]);
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {

@@ -1,18 +1,24 @@
 package com.workflow_automation.organization_service.config;
 
+import com.workflow_automation.organization_service.repository.OrganizationRepository;
+import com.workflow_automation.organization_service.service.OrganizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@Order(20)
 @RequiredArgsConstructor
-public class OrganizationDataMigration implements ApplicationRunner {
+public class DepartmentSeedMigration implements ApplicationRunner {
 
     private final JdbcTemplate jdbcTemplate;
+    private final OrganizationRepository organizationRepository;
+    private final OrganizationService organizationService;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -35,5 +41,8 @@ public class OrganizationDataMigration implements ApplicationRunner {
             log.info("Organization member migration: {} statuses normalized, {} pending members removed",
                     normalized, removed);
         }
+
+        organizationRepository.findAll()
+                .forEach(org -> organizationService.seedDepartmentsFromMembers(org.getId()));
     }
 }

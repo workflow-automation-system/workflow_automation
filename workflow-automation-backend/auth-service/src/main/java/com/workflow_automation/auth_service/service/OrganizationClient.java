@@ -125,4 +125,20 @@ public class OrganizationClient {
             // Silently ignore if member doesn't exist in org-service
         }
     }
+
+    public boolean departmentExists(Long organizationId, String departmentName) {
+        if (organizationId == null || departmentName == null || departmentName.isBlank()) {
+            return false;
+        }
+
+        try {
+            Boolean exists = restClient.get()
+                    .uri("/internal/{organizationId}/departments/exists?name={name}", organizationId, departmentName.trim())
+                    .retrieve()
+                    .body(Boolean.class);
+            return Boolean.TRUE.equals(exists);
+        } catch (RestClientException exception) {
+            throw new RuntimeException("Unable to validate department", exception);
+        }
+    }
 }

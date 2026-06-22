@@ -1,9 +1,11 @@
 package com.workflow_automation.organization_service.service;
 
 import com.workflow_automation.organization_service.dto.*;
+import com.workflow_automation.organization_service.entity.Department;
 import com.workflow_automation.organization_service.entity.MemberStatus;
 import com.workflow_automation.organization_service.entity.Organization;
 import com.workflow_automation.organization_service.entity.OrganizationMember;
+import com.workflow_automation.organization_service.repository.DepartmentRepository;
 import com.workflow_automation.organization_service.repository.OrganizationMemberRepository;
 import com.workflow_automation.organization_service.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,14 +15,20 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class OrganizationService {
 
+    private static final String UNASSIGNED = "Unassigned";
+
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
+    private final DepartmentRepository departmentRepository;
+    private final AuthClient authClient;
 
     // ================= ORGANIZATION =================
 
@@ -115,58 +123,185 @@ public class OrganizationService {
         organizationMemberRepository.save(member);
     }
 
-    // ================= DEPARTMENT CRUD =================
+    // ================= DEPARTMENTS =================
 
-    /**
-     * List distinct department names for an organization.
-     */
-    public List<String> listDepartments(Long organizationId) {
-        return organizationMemberRepository.findAllByOrganization_Id(organizationId)
+    public List<DepartmentResponse> listDepartmentDetails(Long organizationId) {
+        findOrganization(organizationId);
+        seedDepartmentsFromMembers(organizationId);
+        Map<String, long[]> counts = memberCountsByDepartment(organizationId);
+
+        return departmentRepository.findAllByOrganization_IdOrderByNameAsc(organizationId)
                 .stream()
-                .map(m -> m.getDepartment() != null ? m.getDepartment() : "Unassigned")
-                .distinct()
-                .sorted()
+                .map(department -> toDepartmentResponse(department, counts))
                 .toList();
     }
 
-    /**
-     * Create a new department (no-op if already exists).
-     */
-    public void createDepartment(Long organizationId, String name) {
-        // Ensure the name is unique – callers should check before invoking.
-        List<String> existing = listDepartments(organizationId);
-        if (!existing.contains(name)) {
-            // No dedicated entity; just a placeholder to satisfy UI expectations.
-            // Optionally, could create a dummy member with no userId, but we keep it simple.
+    public DepartmentResponse createDepartment(Long organizationId, String rawName) {
+        Organization org = findOrganization(organizationId);
+        String name = normalizeDepartmentName(rawName);
+
+        if (UNASSIGNED.equalsIgnoreCase(name)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot create a reserved department name");
         }
+
+        if (departmentRepository.existsByOrganization_IdAndNameIgnoreCase(organizationId, name)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Department already exists");
+        }
+
+        Department saved = departmentRepository.save(Department.builder()
+                .organization(org)
+                .name(name)
+                .build());
+
+        Map<String, long[]> counts = memberCountsByDepartment(organizationId);
+        return toDepartmentResponse(saved, counts);
     }
 
-    /**
-     * Rename a department and update all members.
-     */
-    public void renameDepartment(Long organizationId, String oldName, String newName) {
-        List<OrganizationMember> members = organizationMemberRepository.findAllByOrganization_Id(organizationId);
-        for (OrganizationMember m : members) {
-            String dept = m.getDepartment() != null ? m.getDepartment() : "Unassigned";
-            if (dept.equals(oldName)) {
-                m.setDepartment(newName);
-                organizationMemberRepository.save(m);
-            }
+    public DepartmentResponse renameDepartment(Long organizationId, String rawOldName, String rawNewName) {
+        findOrganization(organizationId);
+        String oldName = normalizeDepartmentName(rawOldName);
+        String newName = normalizeDepartmentName(rawNewName);
+
+        if (UNASSIGNED.equalsIgnoreCase(oldName)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot rename the default department");
         }
+        if (UNASSIGNED.equalsIgnoreCase(newName)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot use a reserved department name");
+        }
+        if (oldName.equalsIgnoreCase(newName)) {
+            return getDepartmentResponse(organizationId, oldName);
+        }
+        if (departmentRepository.existsByOrganization_IdAndNameIgnoreCase(organizationId, newName)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Department already exists");
+        }
+
+        Department department = departmentRepository
+                .findByOrganization_IdAndNameIgnoreCase(organizationId, oldName)
+                .orElseThrow(() -> new NoSuchElementException("Department not found"));
+
+        department.setName(newName);
+        departmentRepository.save(department);
+
+        updateMemberDepartments(organizationId, oldName, newName);
+        authClient.renameDepartment(organizationId, oldName, newName);
+
+        return getDepartmentResponse(organizationId, newName);
     }
 
-    /**
-     * Delete a department; reassign its members to "Unassigned".
-     */
-    public void deleteDepartment(Long organizationId, String name) {
-        List<OrganizationMember> members = organizationMemberRepository.findAllByOrganization_Id(organizationId);
-        for (OrganizationMember m : members) {
-            String dept = m.getDepartment() != null ? m.getDepartment() : "Unassigned";
-            if (dept.equals(name)) {
-                m.setDepartment("Unassigned");
-                organizationMemberRepository.save(m);
-            }
+    public void deleteDepartment(Long organizationId, String rawName) {
+        findOrganization(organizationId);
+        String name = normalizeDepartmentName(rawName);
+
+        if (UNASSIGNED.equalsIgnoreCase(name)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete the default department");
         }
+
+        long assignedMembers = organizationMemberRepository.findAllByOrganization_Id(organizationId)
+                .stream()
+                .filter(member -> name.equalsIgnoreCase(
+                        member.getDepartment() != null ? member.getDepartment().trim() : UNASSIGNED))
+                .count();
+
+        if (assignedMembers > 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Cannot delete a department with assigned members. Reassign them first."
+            );
+        }
+
+        Department department = departmentRepository
+                .findByOrganization_IdAndNameIgnoreCase(organizationId, name)
+                .orElseThrow(() -> new NoSuchElementException("Department not found"));
+
+        authClient.deleteDepartment(organizationId, name);
+        departmentRepository.delete(department);
+    }
+
+    public boolean departmentExists(Long organizationId, String rawName) {
+        findOrganization(organizationId);
+        if (rawName == null || rawName.isBlank() || UNASSIGNED.equalsIgnoreCase(rawName.trim())) {
+            return true;
+        }
+        return departmentRepository.existsByOrganization_IdAndNameIgnoreCase(
+                organizationId,
+                normalizeDepartmentName(rawName)
+        );
+    }
+
+    public void seedDepartmentsFromMembers(Long organizationId) {
+        Organization org = findOrganization(organizationId);
+        organizationMemberRepository.findAllByOrganization_Id(organizationId)
+                .stream()
+                .map(member -> member.getDepartment() != null ? member.getDepartment().trim() : UNASSIGNED)
+                .filter(name -> !name.isBlank() && !UNASSIGNED.equalsIgnoreCase(name))
+                .distinct()
+                .forEach(name -> {
+                    if (!departmentRepository.existsByOrganization_IdAndNameIgnoreCase(organizationId, name)) {
+                        departmentRepository.save(Department.builder()
+                                .organization(org)
+                                .name(name)
+                                .build());
+                    }
+                });
+    }
+
+    public String getDepartmentNameById(Long organizationId, Long departmentId) {
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new NoSuchElementException("Department not found"));
+        if (!department.getOrganization().getId().equals(organizationId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Department does not belong to organization");
+        }
+        return department.getName();
+    }
+
+    private DepartmentResponse getDepartmentResponse(Long organizationId, String name) {
+        Department department = departmentRepository
+                .findByOrganization_IdAndNameIgnoreCase(organizationId, name)
+                .orElseThrow(() -> new NoSuchElementException("Department not found"));
+        return toDepartmentResponse(department, memberCountsByDepartment(organizationId));
+    }
+
+    private Map<String, long[]> memberCountsByDepartment(Long organizationId) {
+        return organizationMemberRepository.findAllByOrganization_Id(organizationId)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        member -> member.getDepartment() != null ? member.getDepartment() : UNASSIGNED,
+                        Collectors.collectingAndThen(Collectors.toList(), members -> {
+                            long total = members.size();
+                            long admins = members.stream()
+                                    .filter(m -> "ADMIN".equalsIgnoreCase(m.getRole()))
+                                    .count();
+                            return new long[]{total, admins};
+                        })
+                ));
+    }
+
+    private DepartmentResponse toDepartmentResponse(Department department, Map<String, long[]> counts) {
+        long[] stats = counts.getOrDefault(department.getName(), new long[]{0L, 0L});
+        return new DepartmentResponse(
+                department.getId(),
+                department.getName(),
+                stats[0],
+                stats[1]
+        );
+    }
+
+    private void updateMemberDepartments(Long organizationId, String oldName, String newName) {
+        organizationMemberRepository.findAllByOrganization_Id(organizationId)
+                .stream()
+                .filter(member -> oldName.equalsIgnoreCase(
+                        member.getDepartment() != null ? member.getDepartment() : UNASSIGNED))
+                .forEach(member -> {
+                    member.setDepartment(newName);
+                    organizationMemberRepository.save(member);
+                });
+    }
+
+    private String normalizeDepartmentName(String value) {
+        if (value == null || value.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Department name is required");
+        }
+        return value.trim();
     }
 
     // ================= MAPPERS =================

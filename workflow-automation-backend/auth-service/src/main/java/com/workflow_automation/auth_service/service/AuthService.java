@@ -6,6 +6,7 @@ import com.workflow_automation.auth_service.entity.*;
 import com.workflow_automation.auth_service.dto.InviteRequest;
 import com.workflow_automation.auth_service.dto.organization.OrganizationMemberSyncRequest;
 import com.workflow_automation.auth_service.repository.UserRepository;
+import com.workflow_automation.auth_service.repository.InvitationRepository;
 import com.workflow_automation.auth_service.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class AuthService {
     private final EmailValidationService emailValidationService;
     private final AuditClient auditClient;
     private final InvitationService invitationService;
+    private final InvitationRepository invitationRepository;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -380,6 +382,76 @@ public class AuthService {
         return invitationService.getOrganizationMembers(organizationId);
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public MemberViewResponse updateMemberDepartment(
+            Long organizationId,
+            Long targetId,
+            UpdateMemberDepartmentRequest request
+    ) {
+        if (organizationId == null || targetId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid member reference");
+        }
+
+        String department = defaultIfBlank(request.getDepartment(), "Unassigned");
+        if (!"Unassigned".equalsIgnoreCase(department) && !organizationClient.departmentExists(organizationId, department)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Department does not exist. Create it in Department Management first."
+            );
+        }
+
+        if ("INVITATION".equalsIgnoreCase(request.getType())) {
+            Invitation invitation = invitationRepository.findById(targetId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invitation not found"));
+            if (!organizationId.equals(invitation.getOrganizationId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invitation does not belong to organization");
+            }
+            if (!MemberStatus.PENDING.name().equalsIgnoreCase(invitation.getStatus().name())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only pending invitations can be updated");
+            }
+
+            invitation.setDepartment(department);
+            Invitation saved = invitationRepository.save(invitation);
+
+            return MemberViewResponse.builder()
+                    .type("INVITATION")
+                    .id(saved.getId())
+                    .email(saved.getEmail())
+                    .name(saved.getName())
+                    .role(saved.getRole() != null ? saved.getRole().name() : Role.USER.name())
+                    .department(saved.getDepartment())
+                    .jobTitle(saved.getJobTitle())
+                    .status(MemberStatus.PENDING.name())
+                    .expiresAt(saved.getExpiresAt())
+                    .build();
+        }
+
+        User user = userRepository.findById(targetId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
+        if (!organizationId.equals(user.getOrganizationId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Member does not belong to organization");
+        }
+        if (!user.isEnabled()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only active members can be reassigned");
+        }
+
+        user.setDepartment(department);
+        User saved = userRepository.save(user);
+        syncOrganizationMember(saved);
+
+        return MemberViewResponse.builder()
+                .type("MEMBER")
+                .id(saved.getId())
+                .userId(saved.getId())
+                .email(saved.getEmail())
+                .name(saved.getName())
+                .role(resolveRole(saved).name())
+                .department(saved.getDepartment())
+                .jobTitle(saved.getJobTitle())
+                .status(MemberStatus.ACCEPTED.name())
+                .build();
+    }
+
     public void deleteUser(Long targetUserId, Long adminOrganizationId, Long adminUserId) {
         deleteUser(targetUserId, adminOrganizationId, adminUserId, null, null, null);
     }
@@ -462,12 +534,74 @@ public class AuthService {
         return invitationService.listPendingInvitations(organizationId);
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public void renameDepartmentForOrganization(Long organizationId, String oldName, String newName) {
+        if (organizationId == null) {
+            return;
+        }
+
+        userRepository.findByOrganizationId(organizationId).stream()
+                .filter(user -> oldName.equalsIgnoreCase(user.getDepartment()))
+                .forEach(user -> {
+                    user.setDepartment(newName);
+                    User saved = userRepository.save(user);
+                    if (saved.isEnabled()) {
+                        syncOrganizationMember(saved);
+                    }
+                });
+
+        invitationRepository.findByOrganizationId(organizationId).stream()
+                .filter(invitation -> oldName.equalsIgnoreCase(invitation.getDepartment()))
+                .forEach(invitation -> {
+                    invitation.setDepartment(newName);
+                    invitationRepository.save(invitation);
+                });
+
+        log.info("Renamed department '{}' to '{}' for organization {}", oldName, newName, organizationId);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteDepartmentForOrganization(Long organizationId, String name) {
+        if (organizationId == null) {
+            return;
+        }
+
+        userRepository.findByOrganizationId(organizationId).stream()
+                .filter(user -> name.equalsIgnoreCase(user.getDepartment()))
+                .forEach(user -> {
+                    user.setDepartment("Unassigned");
+                    User saved = userRepository.save(user);
+                    if (saved.isEnabled()) {
+                        syncOrganizationMember(saved);
+                    }
+                });
+
+        invitationRepository.findByOrganizationId(organizationId).stream()
+                .filter(invitation -> name.equalsIgnoreCase(invitation.getDepartment()))
+                .forEach(invitation -> {
+                    invitation.setDepartment("Unassigned");
+                    invitationRepository.save(invitation);
+                });
+
+        log.info("Deleted department '{}' for organization {}", name, organizationId);
+    }
+
     public AuthResponse updateProfile(String email, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
+        String department = request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned";
+        if (!"Unassigned".equalsIgnoreCase(department)
+                && user.getOrganizationId() != null
+                && !organizationClient.departmentExists(user.getOrganizationId(), department)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Department does not exist. Ask an admin to create it first."
+            );
+        }
+
         user.setName(request.getName().trim());
-        user.setDepartment(request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned");
+        user.setDepartment(department);
         user.setJobTitle(trimToNull(request.getJobTitle()));
 
         User savedUser = userRepository.save(user);

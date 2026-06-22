@@ -81,6 +81,16 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
+const InvitationRoute = ({ children }) => {
+  const { isInitialized } = useAuthStore();
+
+  if (!isInitialized) {
+    return <LoadingScreen />;
+  }
+
+  return children;
+};
+
 const RoleGuard = ({ allowedRoles, children }) => {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
@@ -157,9 +167,9 @@ function App() {
           <Route
             path="/accept-invitation"
             element={
-              <PublicRoute>
+              <InvitationRoute>
                 <AcceptInvitation />
-              </PublicRoute>
+              </InvitationRoute>
             }
           />
 

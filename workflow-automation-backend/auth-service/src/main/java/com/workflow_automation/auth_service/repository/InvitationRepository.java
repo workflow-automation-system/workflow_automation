@@ -16,5 +16,7 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
 
     List<Invitation> findByOrganizationIdAndStatusOrderByCreatedAtDesc(Long organizationId, MemberStatus status);
 
+    List<Invitation> findByOrganizationId(Long organizationId);
+
     List<Invitation> findByStatusAndExpiresAtBefore(MemberStatus status, LocalDateTime expiresAt);
 }

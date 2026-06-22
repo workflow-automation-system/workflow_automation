@@ -39,6 +39,7 @@ public class SecurityConfig {
                                 "/api/auth/resend-verification",
                                 "/api/auth/accept-invitation",
                                 "/api/auth/invitations/accept",
+                                "/api/auth/internal/**",
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password"
                         ).permitAll()

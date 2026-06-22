@@ -27,6 +27,14 @@ public class OrganizationController {
         return ResponseEntity.ok(organizationService.resolveOrganization(request));
     }
 
+    @GetMapping("/internal/{id}/departments/exists")
+    public ResponseEntity<Boolean> departmentExists(
+            @PathVariable Long id,
+            @RequestParam String name
+    ) {
+        return ResponseEntity.ok(organizationService.departmentExists(id, name));
+    }
+
     @GetMapping("/internal/{id}/summary")
     public ResponseEntity<?> summary(@PathVariable Long id) {
         return ResponseEntity.ok(organizationService.getOrganizationSummary(id));
@@ -150,48 +158,56 @@ public class OrganizationController {
         if (currentRole == null || !"ADMIN".equalsIgnoreCase(currentRole)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin role is required");
         }
-}
+    }
+
+    // ================= DEPARTMENTS =================
+
     @GetMapping("/{id}/departments")
-    public ResponseEntity<List<String>> listDepartments(@PathVariable Long id,
-            @RequestHeader("X-Organization-Id") Long currentOrganizationId) {
+    public ResponseEntity<List<DepartmentResponse>> listDepartments(
+            @PathVariable Long id,
+            @RequestHeader("X-Organization-Id") Long currentOrganizationId
+    ) {
         requireOrganizationAccess(id, currentOrganizationId);
-        return ResponseEntity.ok(organizationService.listDepartments(id));
+        return ResponseEntity.ok(organizationService.listDepartmentDetails(id));
     }
 
     @PostMapping("/{id}/departments")
-    public ResponseEntity<Void> createDepartment(@PathVariable Long id,
+    public ResponseEntity<DepartmentResponse> createDepartment(
+            @PathVariable Long id,
             @RequestHeader("X-Organization-Id") Long currentOrganizationId,
             @RequestHeader("X-Role") String currentRole,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody DepartmentRequest request
+    ) {
         requireAdminAccess(id, currentOrganizationId, currentRole);
-        String name = body.get("name");
-        organizationService.createDepartment(id, name);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(organizationService.createDepartment(id, request.getName()));
     }
 
-    @PatchMapping("/{id}/departments/{oldName}")
-    public ResponseEntity<Void> renameDepartment(@PathVariable Long id,
-            @PathVariable String oldName,
+    @PatchMapping("/{id}/departments/{departmentId}")
+    public ResponseEntity<DepartmentResponse> renameDepartment(
+            @PathVariable Long id,
+            @PathVariable Long departmentId,
             @RequestHeader("X-Organization-Id") Long currentOrganizationId,
             @RequestHeader("X-Role") String currentRole,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody DepartmentRenameRequest request
+    ) {
         requireAdminAccess(id, currentOrganizationId, currentRole);
-        String newName = body.get("newName");
-        organizationService.renameDepartment(id, oldName, newName);
-        return ResponseEntity.ok().build();
+        String currentName = organizationService.getDepartmentNameById(id, departmentId);
+        return ResponseEntity.ok(organizationService.renameDepartment(id, currentName, request.getNewName()));
     }
 
-    @DeleteMapping("/{id}/departments/{name}")
-    public ResponseEntity<Void> deleteDepartment(@PathVariable Long id,
-            @PathVariable String name,
+    @DeleteMapping("/{id}/departments/{departmentId}")
+    public ResponseEntity<Void> deleteDepartment(
+            @PathVariable Long id,
+            @PathVariable Long departmentId,
             @RequestHeader("X-Organization-Id") Long currentOrganizationId,
-            @RequestHeader("X-Role") String currentRole) {
+            @RequestHeader("X-Role") String currentRole
+    ) {
         requireAdminAccess(id, currentOrganizationId, currentRole);
+        String name = organizationService.getDepartmentNameById(id, departmentId);
         organizationService.deleteDepartment(id, name);
         return ResponseEntity.noContent().build();
     }
-
-    // ================= END =================
-    }
+}
 
 

@@ -88,6 +88,11 @@ const authService = {
     const res = await API.delete(`/auth/admin/invitations/${invitationId}`);
     return res.data;
   },
+
+  assignMemberDepartment: async (memberId, payload) => {
+    const res = await API.patch(`/auth/admin/members/${memberId}/department`, payload);
+    return res.data;
+  },
   updateProfile: async (payload) => {
     const res = await API.put('/auth/profile', payload);
     return res.data;

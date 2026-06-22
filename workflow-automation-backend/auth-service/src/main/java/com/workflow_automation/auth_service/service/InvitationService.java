@@ -67,11 +67,21 @@ public class InvitationService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "An invitation is already pending for this email");
         }
 
+        String department = request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned";
+        if (!department.isBlank()
+                && !"Unassigned".equalsIgnoreCase(department)
+                && !organizationClient.departmentExists(adminOrganizationId, department)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Department does not exist. Create it in Department Management first."
+            );
+        }
+
         String token = UUID.randomUUID().toString();
         Invitation invitation = Invitation.builder()
                 .email(email)
                 .name(request.getName() != null ? request.getName().trim() : email)
-                .department(request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned")
+                .department(department.isBlank() ? "Unassigned" : department)
                 .jobTitle(trimToNull(request.getJobTitle()))
                 .organizationId(adminOrganizationId)
                 .invitedByUserId(adminUserId)

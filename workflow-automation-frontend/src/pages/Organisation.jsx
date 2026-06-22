@@ -7,6 +7,8 @@ import {
   ChevronUp,
   Info,
   Mail,
+  Pencil,
+  Plus,
   Search,
   Shield,
   Trash2,
@@ -16,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import authService, { API } from '../services/authService';
+import organizationService from '../services/organizationService';
 import Toast from '../components/ui/Toast';
 import { useAuthStore } from '../stores/authStore';
 import { isAdmin, ROLES } from '../utils/rbac';
@@ -26,6 +29,7 @@ import {
   memberKey,
   MEMBER_TYPE,
 } from '../constants/memberStatus';
+import { mergeDepartmentsWithMembers, countDepartmentsInUse } from '../utils/departments';
 
 const formatRole = (role = '') => {
   if (!role) return 'Member';
@@ -71,12 +75,20 @@ const ROLE_INFO = [
 const Organisation = () => {
   const [orgMeta, setOrgMeta] = React.useState(null);
   const [members, setMembers] = React.useState([]);
+  const [managedDepartments, setManagedDepartments] = React.useState([]);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   const [selectedDept, setSelectedDept] = React.useState('All');
   const [inviteLoading, setInviteLoading] = React.useState(false);
   const [showInviteForm, setShowInviteForm] = React.useState(false);
+  const [pageView, setPageView] = React.useState('members');
+  const [showDeptForm, setShowDeptForm] = React.useState(false);
+  const [deptFormName, setDeptFormName] = React.useState('');
+  const [editingDepartment, setEditingDepartment] = React.useState(null);
+  const [deptSaving, setDeptSaving] = React.useState(false);
+  const [deletingDeptId, setDeletingDeptId] = React.useState(null);
+  const [updatingMemberDeptKey, setUpdatingMemberDeptKey] = React.useState(null);
   const [inviteForm, setInviteForm] = React.useState({
     name: '',
     email: '',
@@ -102,13 +114,18 @@ const Organisation = () => {
       setError('');
       try {
         const orgId = user?.organizationId;
-        const [orgRes, membersRes] = await Promise.all([
+        const [orgRes, membersRes, departmentsRes] = await Promise.all([
           orgId ? API.get(`/organizations/${orgId}`) : Promise.resolve({ data: null }),
           authService.getMembers(),
+          currentUserIsAdmin ? organizationService.getDepartments() : Promise.resolve([]),
         ]);
         if (isMounted) {
           setOrgMeta(orgRes.data);
-          setMembers(membersRes || []);
+          const memberList = membersRes || [];
+          setMembers(memberList);
+          setManagedDepartments(
+            mergeDepartmentsWithMembers(departmentsRes || [], memberList)
+          );
         }
       } catch (err) {
         if (isMounted) {
@@ -121,7 +138,7 @@ const Organisation = () => {
 
     load();
     return () => { isMounted = false; };
-  }, [user?.organizationId]);
+  }, [user?.organizationId, currentUserIsAdmin]);
 
   const handleRemoveMember = async (member) => {
     const identityId = memberIdentityId(member);
@@ -186,6 +203,119 @@ const Organisation = () => {
     }
   };
 
+  const refreshWorkspace = React.useCallback(async () => {
+    const [membersRes, departmentsRes] = await Promise.all([
+      authService.getMembers(),
+      currentUserIsAdmin ? organizationService.getDepartments() : Promise.resolve([]),
+    ]);
+    const memberList = membersRes || [];
+    setMembers(memberList);
+    setManagedDepartments(mergeDepartmentsWithMembers(departmentsRes || [], memberList));
+  }, [currentUserIsAdmin]);
+
+  const openCreateDepartment = () => {
+    setEditingDepartment(null);
+    setDeptFormName('');
+    setShowDeptForm(true);
+  };
+
+  const openEditDepartment = (department) => {
+    setEditingDepartment(department);
+    setDeptFormName(department.name);
+    setShowDeptForm(true);
+  };
+
+  const handleSaveDepartment = async (e) => {
+    e.preventDefault();
+    const name = deptFormName.trim();
+    if (!name) {
+      showToast('Department name is required.', 'error');
+      return;
+    }
+
+    setDeptSaving(true);
+    try {
+      if (editingDepartment?.id) {
+        await organizationService.renameDepartment(editingDepartment.id, name);
+        showToast(`Department renamed to "${name}".`, 'success');
+      } else {
+        await organizationService.createDepartment(name);
+        showToast(`Department "${name}" created.`, 'success');
+      }
+      setShowDeptForm(false);
+      setEditingDepartment(null);
+      setDeptFormName('');
+      await refreshWorkspace();
+    } catch (err) {
+      showToast(
+        err.response?.data?.message || err.message || 'Failed to save department.',
+        'error'
+      );
+    } finally {
+      setDeptSaving(false);
+    }
+  };
+
+  const handleDeleteDepartment = async (department) => {
+    if (!department.id) {
+      showToast('This department is not synced yet. Refresh the page or recreate it from Department Management.', 'error');
+      return;
+    }
+
+    if (department.memberCount > 0) {
+      showToast('Reassign all members before deleting this department.', 'error');
+      return;
+    }
+
+    if (!window.confirm(`Delete "${department.name}"? This department has no assigned members.`)) {
+      return;
+    }
+
+    setDeletingDeptId(department.id);
+    try {
+      await organizationService.deleteDepartment(department.id);
+      showToast(`Department "${department.name}" deleted.`, 'success');
+      if (selectedDept === department.name) {
+        setSelectedDept('All');
+      }
+      await refreshWorkspace();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to delete department.', 'error');
+    } finally {
+      setDeletingDeptId(null);
+    }
+  };
+
+  const handleAssignMemberDepartment = async (member, nextDepartment) => {
+    const identityId = memberIdentityId(member);
+    const currentDepartment = member.department || 'Unassigned';
+    const normalizedNext = nextDepartment || 'Unassigned';
+
+    if (normalizedNext === currentDepartment) {
+      return;
+    }
+
+    const key = memberKey(member);
+    setUpdatingMemberDeptKey(key);
+    try {
+      const updated = await authService.assignMemberDepartment(identityId, {
+        type: member.type || MEMBER_TYPE.MEMBER,
+        department: normalizedNext === 'Unassigned' ? '' : normalizedNext,
+      });
+
+      setMembers((prev) => prev.map((item) => (memberKey(item) === key ? { ...item, ...updated } : item)));
+      await refreshWorkspace();
+      showToast(
+        `${updated.name || updated.email} assigned to ${updated.department || 'Unassigned'}.`,
+        'success'
+      );
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update member department.', 'error');
+    } finally {
+      setUpdatingMemberDeptKey(null);
+    }
+  };
+
   const activeMembers = members.filter(isActiveMember);
   const pendingMembers = members.filter(isPendingInvitation);
 
@@ -200,17 +330,23 @@ const Organisation = () => {
     return matchesSearch && matchesDept;
   });
 
-  // Fixed: useMemo now properly closed — only the grouped/sort logic inside
-  const departments = React.useMemo(() => {
-    const grouped = activeMembers.reduce((acc, member) => {
-      const key = member.department || 'Unassigned';
-      if (!acc[key]) acc[key] = { name: key, members: 0, admins: 0 };
-      acc[key].members += 1;
-      if ((member.role || '').toUpperCase() === 'ADMIN') acc[key].admins += 1;
-      return acc;
-    }, {});
-    return Object.values(grouped).sort((a, b) => b.members - a.members);
-  }, [members]);
+  const departmentsInUse = React.useMemo(
+    () => countDepartmentsInUse(managedDepartments),
+    [managedDepartments]
+  );
+
+  const departmentFilterOptions = React.useMemo(() => {
+    const options = [...managedDepartments].sort((a, b) => b.memberCount - a.memberCount);
+    const unassignedCount = activeMembers.filter(
+      (member) => !member.department || member.department === 'Unassigned'
+    ).length;
+
+    if (unassignedCount > 0) {
+      options.push({ name: 'Unassigned', memberCount: unassignedCount, adminCount: 0 });
+    }
+
+    return options;
+  }, [managedDepartments, activeMembers]);
 
 
 
@@ -249,11 +385,7 @@ const Organisation = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {orgMeta?.domain && (
-            <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#5C5C5C]">
-              <span className="font-semibold text-[#292D32]">{orgMeta.domain}</span>
-            </div>
-          )}
+          
           {currentUserIsAdmin && (
             <button
               type="button"
@@ -266,6 +398,25 @@ const Organisation = () => {
           )}
         </div>
       </div>
+
+      {currentUserIsAdmin && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setPageView('members')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${pageView === 'members' ? 'bg-[#292D32] text-white' : 'bg-white text-[#5C5C5C] hover:bg-[#F6F5FA]'}`}
+          >
+            Team Directory
+          </button>
+          <button
+            type="button"
+            onClick={() => setPageView('departments')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${pageView === 'departments' ? 'bg-[#292D32] text-white' : 'bg-white text-[#5C5C5C] hover:bg-[#F6F5FA]'}`}
+          >
+            Departments ({managedDepartments.length})
+          </button>
+        </div>
+      )}
 
       {/* Invite Member Modal */}
       {showInviteForm && (
@@ -310,13 +461,16 @@ const Organisation = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Department</label>
-                  <input
-                    type="text"
+                  <select
                     value={inviteForm.department}
                     onChange={(e) => setInviteForm((f) => ({ ...f, department: e.target.value }))}
-                    placeholder="Engineering"
                     className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-                  />
+                  >
+                    <option value="">Unassigned</option>
+                    {managedDepartments.map((dept) => (
+                      <option key={dept.id} value={dept.name}>{dept.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Job Title</label>
@@ -360,7 +514,72 @@ const Organisation = () => {
         </div>
       )}
 
+      {showDeptForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#292D32]">
+                {editingDepartment ? 'Rename Department' : 'Create Department'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeptForm(false);
+                  setEditingDepartment(null);
+                  setDeptFormName('');
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDepartment} className="space-y-4">
+              {editingDepartment?.memberCount > 0 && (
+                <p className="rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2 text-xs text-[#5C5C5C]">
+                  Renaming updates all {editingDepartment.memberCount} assigned member
+                  {editingDepartment.memberCount !== 1 ? 's' : ''} in real time.
+                </p>
+              )}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Department Name *</label>
+                <input
+                  type="text"
+                  value={deptFormName}
+                  onChange={(e) => setDeptFormName(e.target.value)}
+                  placeholder="Engineering"
+                  required
+                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeptForm(false);
+                    setEditingDepartment(null);
+                    setDeptFormName('');
+                  }}
+                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deptSaving}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44] disabled:opacity-60"
+                >
+                  {deptSaving ? 'Saving...' : editingDepartment ? 'Rename' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
+      {pageView === 'members' && (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="enterprise-card p-5">
           <div className="mb-3 flex items-center justify-between">
@@ -376,13 +595,90 @@ const Organisation = () => {
           <div className="mb-3 rounded-xl border border-[#E2E8F0] bg-[#D0FFA4] p-2.5 w-fit">
             <Building2 size={18} className="text-[#292D32]" />
           </div>
-          <p className="text-3xl font-bold text-[#292D32]">{departments.length}</p>
-          <p className="text-sm text-[#5C5C5C]">Departments</p>
+          <p className="text-3xl font-bold text-[#292D32]">{departmentsInUse}</p>
+          <p className="text-sm text-[#5C5C5C]">Departments in use</p>
         </div>
       </div>
+      )}
 
 
-      {/* Team Directory */}
+      {pageView === 'departments' && currentUserIsAdmin && (
+        <section className="enterprise-card overflow-hidden">
+          <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-[#292D32]">Department Management</h2>
+              <p className="text-sm text-[#5C5C5C]">
+                Create departments, rename them in real time for all assigned members, and delete only empty departments.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={openCreateDepartment}
+              className="flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44]"
+            >
+              <Plus size={16} />
+              Add Department
+            </button>
+          </div>
+
+          <div className="divide-y divide-[#E2E8F0]">
+            {managedDepartments.map((department) => (
+              <div
+                key={department.id ?? department.name}
+                className="flex flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#D0FFA4]">
+                    <Building2 size={20} className="text-[#292D32]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#292D32]">{department.name}</p>
+                    <p className="text-xs text-[#5C5C5C]">
+                      {department.memberCount} member{department.memberCount !== 1 ? 's' : ''}
+                      {department.adminCount > 0
+                        ? ` · ${department.adminCount} admin${department.adminCount !== 1 ? 's' : ''}`
+                        : ''}
+                      {department.memberCount === 0 ? ' · unused' : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    title="Rename department"
+                    onClick={() => openEditDepartment(department)}
+                    disabled={!department.id}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-[#292D32] transition-colors hover:bg-[#F6F5FA] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    title={department.memberCount > 0 ? 'Reassign members before deleting' : 'Delete department'}
+                    onClick={() => handleDeleteDepartment(department)}
+                    disabled={
+                      !department.id
+                      || deletingDeptId === department.id
+                      || department.memberCount > 0
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-[#EF4444] transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {!managedDepartments.length && (
+              <div className="px-5 py-8 text-center text-sm text-[#5C5C5C]">
+                No departments yet. Create one to organize your team.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {pageView === 'members' && (
       <section className="enterprise-card overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -421,7 +717,7 @@ const Organisation = () => {
               className="ml-2 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
             >
               <option value="All">All Departments</option>
-              {departments.map((dept) => (
+              {departmentFilterOptions.map((dept) => (
                 <option key={dept.name} value={dept.name}>{dept.name}</option>
               ))}
             </select>
@@ -434,6 +730,7 @@ const Organisation = () => {
             const identityId = memberIdentityId(member);
             const isSelf = member.type !== MEMBER_TYPE.INVITATION && identityId === user?.id;
             const isDeleting = deletingMemberKey === key;
+            const isUpdatingDepartment = updatingMemberDeptKey === key;
 
             return (
               <div key={key} className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
@@ -448,7 +745,6 @@ const Organisation = () => {
                         <span className="rounded-full bg-[#F6F5FA] px-2 py-0.5 text-[10px] text-[#5C5C5C]">You</span>
                       )}
                     </div>
-                    <p className="text-xs text-[#5C5C5C]">{member.department || 'Unassigned'}</p>
                   </div>
                 </div>
 
@@ -456,8 +752,29 @@ const Organisation = () => {
                   <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${roleBadgeClass(member.role)}`}>
                     {formatRole(member.role)}
                   </span>
-                  {member.jobTitle && (
+                  {currentUserIsAdmin && !isSelf ? (
+                    <label className="inline-flex items-center gap-1 text-xs text-[#5C5C5C]">
+                      <Building2 size={12} />
+                      <select
+                        value={member.department || 'Unassigned'}
+                        onChange={(e) => handleAssignMemberDepartment(member, e.target.value)}
+                        disabled={isUpdatingDepartment}
+                        className="rounded-lg border border-[#E2E8F0] bg-white px-2 py-1 text-xs text-[#292D32] focus:border-[#D0FFA4] focus:outline-none disabled:opacity-60"
+                      >
+                        <option value="Unassigned">Unassigned</option>
+                        {managedDepartments.map((dept) => (
+                          <option key={dept.id ?? dept.name} value={dept.name}>{dept.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
                     <span className="inline-flex items-center gap-1 rounded-full border border-[#E2E8F0] bg-white px-3 py-1 text-xs font-medium text-[#5C5C5C]">
+                      <Building2 size={12} />
+                      {member.department || 'Unassigned'}
+                    </span>
+                  )}
+                  {member.jobTitle && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-1 text-xs font-medium text-[#5C5C5C]">
                       <BriefcaseBusiness size={12} />
                       {member.jobTitle}
                     </span>
@@ -477,6 +794,9 @@ const Organisation = () => {
                       <Trash2 size={14} />
                     </button>
                   )}
+                  {isUpdatingDepartment && (
+                    <span className="text-xs text-[#5C5C5C]">Updating department...</span>
+                  )}
                   {isDeleting && (
                     <span className="text-xs text-[#5C5C5C]">
                       {activeTab === 'pending' ? 'Canceling...' : 'Removing...'}
@@ -493,6 +813,7 @@ const Organisation = () => {
           )}
         </div>
       </section>
+      )}
 
       <Toast
         open={toast.open}

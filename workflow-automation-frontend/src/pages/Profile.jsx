@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuthStore } from '../stores/authStore';
 import authService from '../services/authService';
+import organizationService from '../services/organizationService';
 import { getRole } from '../utils/rbac';
 import Toast from '../components/ui/Toast';
 import {
@@ -71,6 +72,31 @@ const Profile = () => {
     jobTitle: user?.jobTitle || '',
   });
   const [profileLoading, setProfileLoading] = React.useState(false);
+  const [departmentOptions, setDepartmentOptions] = React.useState([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const loadDepartments = async () => {
+      if (!user?.organizationId) {
+        return;
+      }
+
+      try {
+        const departments = await organizationService.getDepartments();
+        if (isMounted) {
+          setDepartmentOptions(departments.map((department) => department.name));
+        }
+      } catch {
+        if (isMounted) {
+          setDepartmentOptions([]);
+        }
+      }
+    };
+
+    loadDepartments();
+    return () => { isMounted = false; };
+  }, [user?.organizationId]);
 
   // Password Form State
   const [passwordForm, setPasswordForm] = React.useState({
@@ -255,13 +281,19 @@ const Profile = () => {
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.06em] text-[#5C5C5C]">
                       Department
                     </label>
-                    <input
-                        type="text"
-                        value={profileForm.department}
-                        onChange={(e) => setProfileForm((f) => ({ ...f, department: e.target.value }))}
+                    <select
+                        value={profileForm.department || 'Unassigned'}
+                        onChange={(e) => setProfileForm((f) => ({
+                          ...f,
+                          department: e.target.value === 'Unassigned' ? '' : e.target.value,
+                        }))}
                         className="w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-                        placeholder="e.g. Engineering"
-                    />
+                    >
+                      <option value="Unassigned">Unassigned</option>
+                      {departmentOptions.map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.06em] text-[#5C5C5C]">
