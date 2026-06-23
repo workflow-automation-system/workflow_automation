@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import useWorkflowStore from '../stores/workflowStore';
-import { canCreateWorkflow, getRole, isAdmin } from '../utils/rbac';
+import { canCreateWorkflow, getRole } from '../utils/rbac';
 
 
 
