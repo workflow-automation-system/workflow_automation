@@ -410,7 +410,7 @@ const Organisation = () => {
 
       {/* Invite Member Modal */}
       {showInviteForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#292D32]">Invite New Member</h2>
@@ -505,7 +505,7 @@ const Organisation = () => {
       )}
 
       {showDeptForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#292D32]">

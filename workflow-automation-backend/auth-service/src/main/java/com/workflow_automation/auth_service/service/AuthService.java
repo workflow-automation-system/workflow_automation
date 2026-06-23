@@ -232,6 +232,38 @@ public class AuthService {
         return "Verification email resent successfully";
     }
 
+    public void forgotPassword(ForgotPasswordRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return;
+        }
+
+        String resetToken = UUID.randomUUID().toString();
+        user.setResetPasswordToken(resetToken);
+        user.setResetPasswordTokenExpiresAt(LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
+
+        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+        emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        User user = userRepository.findByResetPasswordToken(request.getToken())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jeton invalide ou expiré"));
+
+        if (user.getResetPasswordTokenExpiresAt() == null ||
+                user.getResetPasswordTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jeton invalide ou expiré");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setResetPasswordToken(null);
+        user.setResetPasswordTokenExpiresAt(null);
+        userRepository.save(user);
+        log.info("Password reset successfully for userId={}", user.getId());
+    }
+
     public AuthResponse getCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));

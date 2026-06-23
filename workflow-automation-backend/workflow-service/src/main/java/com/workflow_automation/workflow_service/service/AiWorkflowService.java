@@ -34,7 +34,6 @@ public class AiWorkflowService {
             Available actions:
             - gmail (send_email: fields 'to', 'subject', 'body'; read_emails: fields 'query', 'maxResults')
             - slack (send_message: fields 'channel', 'message')
-            - webhook (http_request: fields 'url', 'method', 'body')
             - delay (wait_seconds: fields 'duration', 'unit')
 
             Return ONLY valid JSON with structure:

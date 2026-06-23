@@ -57,6 +57,18 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", authService.resendVerificationEmail(request.getEmail())));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(Map.of("message", "Si l'email existe, un lien de réinitialisation a été envoyé."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès."));
+    }
+
     @GetMapping("/verify")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
         HttpHeaders headers = new HttpHeaders();
