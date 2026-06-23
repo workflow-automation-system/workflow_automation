@@ -21,7 +21,7 @@ import authService, { API } from '../services/authService';
 import organizationService from '../services/organizationService';
 import Toast from '../components/ui/Toast';
 import { useAuthStore } from '../stores/authStore';
-import { isAdmin, ROLES } from '../utils/rbac';
+import { isAdmin } from '../utils/rbac';
 import {
   isActiveMember,
   isPendingInvitation,
@@ -45,32 +45,7 @@ const roleBadgeClass = (role) => {
   return 'bg-[#D0FFA4] text-[#292D32]';
 };
 
-// Role options now only include ADMIN and USER (VIEWER role removed)
-const ROLE_OPTIONS = [ROLES.ADMIN, ROLES.USER];
 
-const ROLE_INFO = [
-  {
-    role: 'Admin',
-    badge: 'bg-[#292D32] text-white',
-    permissions: [
-      'Full platform access',
-      'Manage members and assign roles',
-      'Create, edit, delete workflows',
-      'Manage integrations and settings',
-      'View audit logs',
-    ],
-  },
-  {
-    role: 'Member',
-    badge: 'bg-[#D0FFA4] text-[#292D32]',
-    permissions: [
-      'Create and edit own workflows',
-      'Execute permitted workflows',
-      'View templates',
-    ],
-  },
-  // Viewer role removed to streamline permissions
-];
 
 const Organisation = () => {
   const [orgMeta, setOrgMeta] = React.useState(null);
