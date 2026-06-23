@@ -72,15 +72,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                     "#F6F5FA",
                     Map.of("label", "Wait", "duration", 5, "unit", "minutes")
             ),
-            function(
-                    "webhook",
-                    "Webhook",
-                    NodeType.ACTION,
-                    "Call an external API or internal endpoint",
-                    "Globe",
-                    "#E2E8F0",
-                    Map.of("label", "HTTP Request", "url", "", "method", "GET", "body", "")
-            ),
+
             function(
                     "gmail",
                     "Send Email",

@@ -19,7 +19,6 @@ const nodeColor = {
   slack: '#D0FFA4',
   gmail: '#D0FFA4',
   email: '#D0FFA4',
-  webhook: '#E2E8F0',
   delay: '#E2E8F0',
 };
 
@@ -374,34 +373,6 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration,
             </>
           );
 
-      case 'webhook':
-        return (
-          <>
-            <Field label="URL">
-              <input
-                value={node.data?.url || ''}
-                onChange={(event) => update('url', event.target.value)}
-                disabled={readOnly}
-                placeholder="https://api.example.com/endpoint"
-                className={inputStyle}
-              />
-            </Field>
-            <Field label="Method">
-              <select
-                value={node.data?.method || 'GET'}
-                onChange={(event) => update('method', event.target.value)}
-                disabled={readOnly}
-                className={inputStyle}
-              >
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="PATCH">PATCH</option>
-                <option value="DELETE">DELETE</option>
-              </select>
-            </Field>
-          </>
-        );
       case 'delay':
         return (
           <>

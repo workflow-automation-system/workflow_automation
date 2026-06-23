@@ -8,15 +8,17 @@ export function AiGeneratorModal({ isOpen, onClose, onUseWorkflow }) {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleGenerate = async () => {
     if (!description.trim()) return;
     setLoading(true);
+    setError(null);
     try {
       const workflow = await workflowApi.generateWorkflow(description);
       setResult(workflow);
     } catch (err) {
-      alert('Failed to generate: ' + err.message);
+      setError('error try agin');
     } finally {
       setLoading(false);
     }
@@ -25,6 +27,7 @@ export function AiGeneratorModal({ isOpen, onClose, onUseWorkflow }) {
   const handleClose = () => {
     setDescription('');
     setResult(null);
+    setError(null);
     onClose();
   };
 
@@ -42,6 +45,7 @@ export function AiGeneratorModal({ isOpen, onClose, onUseWorkflow }) {
             className="w-full min-h-[140px] p-4 rounded-2xl border border-[#E2E8F0] focus:border-[#D0FFA4] focus:outline-none text-sm text-[var(--text-primary)] resize-none"
             rows="5"
           />
+          {error && <p className="text-sm text-[#EF4444]">{error}</p>}
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="secondary" onClick={handleClose}>
               Cancel

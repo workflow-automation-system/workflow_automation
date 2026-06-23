@@ -200,7 +200,7 @@ function App() {
             <Route
               path="/app-connections"
               element={
-                <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+                <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.USER]}>
                   <AppConnections />
                 </RoleGuard>
               }

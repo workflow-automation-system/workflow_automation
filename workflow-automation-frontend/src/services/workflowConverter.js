@@ -63,21 +63,6 @@ const fallbackFunctions = [
     },
   },
   {
-    key: 'webhook',
-    label: 'Webhook',
-    entity: 'ACTION',
-    description: 'Call an external API or internal endpoint',
-    icon: 'Globe',
-    color: '#E2E8F0',
-    defaultData: {
-      label: 'HTTP Request',
-      url: '',
-      method: 'GET',
-      headers: {},
-      body: '',
-    },
-  },
-  {
     key: 'gmail',
     label: 'Send Email',
     entity: 'ACTION',
@@ -396,6 +381,8 @@ const normalizeWorkflowEdge = (edge, index = 0) => {
     id: String(edge?.id ?? `edge-${index + 1}`),
     source: source !== undefined && source !== null ? String(source) : '',
     target: target !== undefined && target !== null ? String(target) : '',
+    markerEnd: edge?.markerEnd || { type: 'arrowclosed', color: '#D0FFA4' },
+    style: edge?.style || { stroke: '#D0FFA4', strokeWidth: 2.2 },
   };
 };
 

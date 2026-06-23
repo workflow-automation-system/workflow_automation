@@ -54,10 +54,28 @@ const CreateWorkflow = () => {
 
   const handleUseAiWorkflow = (aiWorkflow) => {
     const normalized = normalizeWorkflow(aiWorkflow, workflowConfiguration);
+    
+    const idMap = new Map();
+    
+    const newNodes = (normalized.nodes || []).map((node) => {
+      const newId = generateId('node');
+      idMap.set(String(node.id), newId);
+      return { ...node, id: newId };
+    });
+    
+    const newEdges = (normalized.edges || []).map((edge) => {
+      return {
+        ...edge,
+        id: generateId('edge'),
+        source: idMap.get(String(edge.source)) || edge.source,
+        target: idMap.get(String(edge.target)) || edge.target,
+      };
+    });
+
     setName(normalized.name);
     setDescription(normalized.description || '');
-    setNodes(normalized.nodes || []);
-    setEdges(normalized.edges || []);
+    setNodes(newNodes);
+    setEdges(newEdges);
     setAiModalOpen(false);
   };
   const [loadingWorkflow, setLoadingWorkflow] = React.useState(false);

@@ -328,6 +328,20 @@ const Organisation = () => {
         .some((value) => value.toLowerCase().includes(query));
     const matchesDept = selectedDept === 'All' || (member.department || 'Unassigned') === selectedDept;
     return matchesSearch && matchesDept;
+  }).sort((a, b) => {
+    const isAdminA = (a.role || '').toUpperCase() === 'ADMIN';
+    const isAdminB = (b.role || '').toUpperCase() === 'ADMIN';
+    
+    if (isAdminA && !isAdminB) return -1;
+    if (!isAdminA && isAdminB) return 1;
+    
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    
+    if (dateA && dateB && dateA !== dateB) {
+      return dateA - dateB;
+    }
+    return 0;
   });
 
   const departmentsInUse = React.useMemo(

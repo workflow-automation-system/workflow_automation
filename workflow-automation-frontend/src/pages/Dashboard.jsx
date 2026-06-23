@@ -43,10 +43,10 @@ const Dashboard = () => {
 
   const computedGraphData = React.useMemo(() => {
     if (!workflows || workflows.length === 0) return Array(12).fill(10);
-    
+
     const today = new Date();
     today.setHours(23, 59, 59, 999);
-    
+
     const counts = Array(12).fill(0);
 
     workflows.forEach(w => {
@@ -56,7 +56,7 @@ const Dashboard = () => {
           const exDate = new Date(ex.startedAt);
           const diffTime = today.getTime() - exDate.getTime();
           const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-          
+
           if (diffDays >= 0 && diffDays < 12) {
             counts[11 - diffDays]++;
           }
@@ -70,7 +70,7 @@ const Dashboard = () => {
       return [25, 22, 35, 30, 48, 42, 60, 55, 72, 68, 85, 80];
     }
 
-    const max = Math.max(...counts, 5); 
+    const max = Math.max(...counts, 5);
     return counts.map(c => Math.round((c / max) * 80) + 10);
   }, [workflows]);
 
@@ -116,25 +116,6 @@ const Dashboard = () => {
         <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${banner.bg}`}>
           <banner.icon size={16} className={banner.text} />
           <span className={`text-sm font-medium ${banner.text}`}>{banner.message}</span>
-        </div>
-      ) : null}
-
-      {member ? (
-        <div className="flex flex-col gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-[#292D32]">Your team workspace</p>
-            <p className="text-sm text-[#5C5C5C]">
-              View colleagues, your department ({user?.department || 'Unassigned'}), and quick links to workflows.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate('/organisation')}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3C4249]"
-          >
-            Open My Team
-            <ArrowRight size={14} />
-          </button>
         </div>
       ) : null}
 

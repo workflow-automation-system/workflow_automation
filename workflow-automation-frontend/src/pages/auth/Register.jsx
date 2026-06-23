@@ -240,7 +240,7 @@ const Register = () => {
                   type="email"
                   value={formData.email}
                   onChange={(value) => setFormData((prev) => ({ ...prev, email: value }))}
-                  placeholder="you@company.com"
+                  placeholder="email@example.com"
                 />
                 {formErrors.email && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.email}</span>}
 

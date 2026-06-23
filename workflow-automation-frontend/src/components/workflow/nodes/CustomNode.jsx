@@ -39,7 +39,6 @@ const nodeIconByType = {
   slack: 'MessageSquare',
   email: 'Mail',
   gmail: 'Mail',
-  webhook: 'Globe',
   delay: 'Clock',
 };
 
@@ -54,7 +53,6 @@ const nodeBg = {
   slack: '#D0FFA4',
   email: '#D0FFA4',
   gmail: '#D0FFA4',
-  webhook: '#E2E8F0',
   delay: '#E2E8F0',
 };
 
@@ -79,8 +77,6 @@ const getSubtitle = (type, data) => {
     case 'email':
     case 'gmail':
       return data?.to || 'recipient';
-    case 'webhook':
-      return data?.method || 'GET';
     case 'delay':
       return data?.duration ? `${data.duration} ${data.unit}` : '5 minutes';
     default:

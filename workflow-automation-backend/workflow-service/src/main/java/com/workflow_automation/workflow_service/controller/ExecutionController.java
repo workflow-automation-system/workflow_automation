@@ -53,6 +53,31 @@ public class ExecutionController {
         ));
     }
 
+    @GetMapping("/api/executions/workflow/{workflowId}")
+    public ResponseEntity<List<Map<String, Object>>> getExecutionsByWorkflow(
+            @PathVariable Long workflowId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-Organization-Id") Long organizationId,
+            @RequestHeader("X-Role") String role,
+            HttpServletRequest httpRequest
+    ) {
+        AccessContext accessContext = AccessContext.of(
+                userId,
+                organizationId,
+                role,
+                httpRequest.getRemoteAddr(),
+                httpRequest.getHeader("User-Agent")
+        );
+        
+        workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
+
+        List<Map<String, Object>> executions = executionRepository.findByWorkflowIdOrderByStartedAtDesc(workflowId)
+                .stream()
+                .map(this::toExecutionResponse)
+                .toList();
+
+        return ResponseEntity.ok(executions);
+    }
 
     @GetMapping("/api/executions/{executionId}/steps")
     public ResponseEntity<List<Map<String, Object>>> getSteps(

@@ -167,7 +167,7 @@ public class AiWorkflowService {
             configMap.put("query", getStringField(configNode, "query", "is:unread"));
             configMap.put("maxResults", getIntField(configNode, "maxResults", 10));
         } else {
-            // slack, webhook, delay, etc.
+            // slack, delay, etc.
             configMap.put("functionKey", typeLower);
             Map<String, Object> settings = new HashMap<>();
             if (configNode != null && configNode.isObject()) {

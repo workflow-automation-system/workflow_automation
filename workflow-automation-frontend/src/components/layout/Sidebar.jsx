@@ -35,7 +35,7 @@ const Sidebar = () => {
       label: admin ? 'Organisation' : 'My Team',
     },
     { path: '/workflows', icon: Workflow, label: 'Workflows' },
-    admin ? { path: '/app-connections', icon: Plug, label: 'App Connections' } : null,
+    { path: '/app-connections', icon: Plug, label: 'App Connections' },
     { path: '/templates', icon: Layers, label: 'Templates' },
     admin ? { path: '/audit', icon: ScrollText, label: 'Audit' } : null,
   ].filter(Boolean);

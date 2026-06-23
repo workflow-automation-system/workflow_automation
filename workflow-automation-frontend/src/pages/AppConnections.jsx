@@ -332,7 +332,7 @@ const AppConnections = () => {
         <div>
           <h1 className="text-3xl font-bold text-[#292D32]">App Connections</h1>
           <p className="mt-1 text-sm text-[#5C5C5C]">
-            Govern API integrations, webhook endpoints, and credential hygiene for enterprise automations.
+            Govern API integrations and credential hygiene for enterprise automations.
           </p>
         </div>
         <button

@@ -2,7 +2,6 @@ package com.workflow_automation.workflow_service.controller;
 
 import com.workflow_automation.workflow_service.dto.response.GoogleAuthUrlResponse;
 import com.workflow_automation.workflow_service.entity.UserIntegration;
-import com.workflow_automation.workflow_service.exception.ForbiddenException;
 import com.workflow_automation.workflow_service.repository.UserIntegrationRepository;
 import com.workflow_automation.workflow_service.service.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
@@ -27,21 +26,13 @@ public class GoogleIntegrationController {
     private String frontendUrl;
 
     @GetMapping("/auth-url")
-    public ResponseEntity<GoogleAuthUrlResponse> getAuthUrl(
-            @RequestParam Long userId,
-            @RequestHeader("X-Role") String currentRole
-    ) {
-        requireAdmin(currentRole);
+    public ResponseEntity<GoogleAuthUrlResponse> getAuthUrl(@RequestParam Long userId) {
         String authUrl = googleOAuthService.buildAuthorizationUrl(userId);
         return ResponseEntity.ok(new GoogleAuthUrlResponse(authUrl));
     }
 
     @GetMapping("/status")
-    public ResponseEntity<Map<String, Object>> getStatus(
-            @RequestParam Long userId,
-            @RequestHeader("X-Role") String currentRole
-    ) {
-        requireAdmin(currentRole);
+    public ResponseEntity<Map<String, Object>> getStatus(@RequestParam Long userId) {
         Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "gmail");
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -66,9 +57,4 @@ public class GoogleIntegrationController {
                 .build();
     }
 
-    private void requireAdmin(String currentRole) {
-        if (currentRole == null || !"ADMIN".equalsIgnoreCase(currentRole)) {
-            throw new ForbiddenException("Admin role is required to manage integrations");
-        }
-    }
 }
