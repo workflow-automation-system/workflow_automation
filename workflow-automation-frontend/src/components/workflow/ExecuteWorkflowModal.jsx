@@ -1,42 +1,8 @@
 import React from 'react';
 import Modal from '../ui/Modal';
 
-const VARIABLE_PATTERN = /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g;
+
 const NODE_META_FIELDS = new Set(['label', 'entity', 'functionKey', 'functionLabel', 'icon', 'color']);
-
-const collectVariables = (value, variables = new Set()) => {
-  if (typeof value === 'string') {
-    for (const match of value.matchAll(VARIABLE_PATTERN)) {
-      if (match[1]) {
-        variables.add(match[1]);
-      }
-    }
-    return variables;
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectVariables(item, variables));
-    return variables;
-  }
-
-  if (value && typeof value === 'object') {
-    Object.values(value).forEach((item) => collectVariables(item, variables));
-  }
-
-  return variables;
-};
-
-const buildExecutionInput = (workflow) => {
-  const variables = new Set();
-  (workflow?.nodes || []).forEach((node) => collectVariables(node?.data, variables));
-
-  const initialInput = Array.from(variables).reduce((accumulator, variableName) => {
-    accumulator[variableName] = '';
-    return accumulator;
-  }, {});
-
-  return JSON.stringify(initialInput, null, 2);
-};
 
 const formatNodeSettings = (node) => {
   const data = node?.data && typeof node.data === 'object' ? node.data : {};

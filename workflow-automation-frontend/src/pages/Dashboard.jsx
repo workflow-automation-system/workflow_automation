@@ -35,7 +35,7 @@ const Dashboard = () => {
   const { workflows, isLoading, fetchWorkflows } = useWorkflowStore();
   const role = getRole(user);
   const banner = roleBanners[role];
-  const member = !isAdmin(user);
+
 
   useEffect(() => {
     fetchWorkflows();

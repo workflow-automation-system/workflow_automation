@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   FileText,
-  Globe,
+
   Layout,
   LayoutTemplate,
   Mail,

@@ -232,7 +232,7 @@ const AppConnections = () => {
     }
 
     return list;
-  }, [gmailConnected, gmailStatus.scope, gmailStatus.updatedAt, slackStatus.connected, slackStatus.scope, slackStatus.updatedAt, notionStatus.connected, notionStatus.scope, notionStatus.updatedAt]);
+  }, [gmailConnected, gmailStatus.scope, gmailStatus.updatedAt, slackStatus.connected, slackStatus.scope, slackStatus.updatedAt, notionStatus.connected, notionStatus.updatedAt]);
 
   const filteredConnections = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

@@ -1,10 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import {
-  ArrowRight,
   BriefcaseBusiness,
   Building2,
-  Layers,
   Mail,
   Search,
   UserCircle2,
@@ -13,7 +11,7 @@ import {
 } from 'lucide-react';
 import organizationService from '../services/organizationService';
 import { useAuthStore } from '../stores/authStore';
-import { getRole } from '../utils/rbac';
+
 
 const formatRole = (role = '') => {
   const upper = (role || '').toUpperCase();
@@ -29,7 +27,7 @@ const roleBadgeClass = (role) => {
 };
 
 const MemberWorkspace = () => {
-  const navigate = useNavigate();
+
   const { user } = useAuthStore();
   const [orgMeta, setOrgMeta] = React.useState(null);
   const [members, setMembers] = React.useState([]);
