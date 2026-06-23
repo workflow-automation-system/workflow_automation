@@ -5,6 +5,7 @@ import {
   GitBranch,
   Plus,
   Search,
+  Upload,
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import Toast from '../components/ui/Toast';
@@ -15,11 +16,16 @@ import ExecuteWorkflowModal from '../components/workflow/ExecuteWorkflowModal';
 import { useAuthStore } from '../stores/authStore';
 import {
   canCreateWorkflow,
-  canDeleteWorkflow,
   canEditWorkflow,
   canExecuteWorkflow,
   isViewer,
 } from '../utils/rbac';
+import {
+  downloadWorkflowJson,
+  readWorkflowImportFile,
+  prepareImportedWorkflowForBuilder,
+} from '../services/workflowImportExport';
+import { FALLBACK_WORKFLOW_CONFIGURATION } from '../services/workflowConverter';
 
 const STATUS_FILTERS = [
   { key: 'ALL', label: 'All' },
@@ -51,12 +57,14 @@ const Workflows = () => {
     deleteWorkflow,
     executeWorkflow,
     fetchWorkflows,
+    fetchWorkflowById,
     isLoading,
     error,
     toggleWorkflowStatus,
     clearError,
   } = useWorkflowStore();
 
+  const fileInputRef = React.useRef(null);
   const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('ALL');
@@ -113,8 +121,6 @@ const Workflows = () => {
     return result;
   }, [debouncedSearchQuery, statusFilter, workflows]);
 
-
-
   const handleDeleteWorkflow = async () => {
     const workflowId = deleteModal.workflow?.id;
     if (!workflowId) return;
@@ -162,6 +168,47 @@ const Workflows = () => {
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) return;
+
+    try {
+      const parsed = await readWorkflowImportFile(file);
+      const prepared = prepareImportedWorkflowForBuilder(parsed, FALLBACK_WORKFLOW_CONFIGURATION);
+
+      navigate('/create-workflow', {
+        state: { importedWorkflow: prepared },
+      });
+    } catch (err) {
+      showToast(err.message || 'Failed to import workflow', 'error');
+    }
+  };
+
+  const handleExportWorkflow = async (workflow) => {
+    try {
+      let fullWorkflow = workflow;
+
+      if (!Array.isArray(workflow?.nodes) || workflow.nodes.length === 0) {
+        fullWorkflow = await fetchWorkflowById(workflow.id);
+      }
+
+      if (typeof downloadWorkflowJson !== 'function') {
+        throw new Error('Export service is unavailable. Restart the frontend dev server.');
+      }
+
+      const fileName = downloadWorkflowJson(fullWorkflow || workflow);
+      showToast(`Exported as ${fileName}`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to export workflow', 'error');
+    }
+  };
+
   return (
     <div className="space-y-5 font-urbanist">
       {isViewer(user) ? (
@@ -178,18 +225,35 @@ const Workflows = () => {
           </p>
         </div>
         {canCreateWorkflow(user) && (
-          <button
-            type="button"
-            onClick={() => navigate('/create-workflow')}
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3C4249]"
-          >
-            <Plus size={16} />
-            Create Workflow
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+
+            <button
+              type="button"
+              onClick={handleImportClick}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-semibold text-[#292D32] hover:border-[#D0FFA4]"
+            >
+              <Upload size={16} />
+              Import
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/create-workflow')}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#292D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3C4249]"
+            >
+              <Plus size={16} />
+              Create Workflow
+            </button>
+          </div>
         )}
       </div>
-
-
 
       <div className="flex flex-col gap-3 md:flex-row">
         <div className="relative flex-1">
@@ -263,7 +327,7 @@ const Workflows = () => {
           ) : null}
         </section>
       ) : (
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section className="grid grid-cols-1 gap-4 overflow-visible md:grid-cols-2 xl:grid-cols-3">
           {filteredWorkflows.map((workflow) => (
             <WorkflowCard
               key={workflow.id}
@@ -274,6 +338,7 @@ const Workflows = () => {
               onExecute={canExecuteWorkflow(workflow, user) ? () => setExecuteModal({ open: true, workflow }) : undefined}
               onToggle={canEditWorkflow(workflow, user) ? () => handleToggleStatus(workflow) : undefined}
               onDelete={canEditWorkflow(workflow, user) ? () => setDeleteModal({ open: true, workflow }) : undefined}
+              onExport={() => handleExportWorkflow(workflow)}
               formatDate={(w) => formatDate(w.createdAt || w.updatedAt || w.lastExecution || null)}
             />
           ))}
@@ -303,8 +368,8 @@ const Workflows = () => {
         </div>
       </Modal>
 
-      <ExecuteWorkflowModal 
-        isOpen={executeModal.open} 
+      <ExecuteWorkflowModal
+        isOpen={executeModal.open}
         onClose={() => setExecuteModal({ open: false, workflow: null })}
         onExecute={handleExecuteWorkflow}
         workflow={executeModal.workflow}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   addEdge,
   Background,
@@ -36,6 +36,9 @@ const CreateWorkflow = () => {
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
   const fromTemplate = searchParams.get('fromTemplate') === 'true';
+
+  const location = useLocation();
+  const importedWorkflow = location.state?.importedWorkflow;
 
   const { createWorkflow, fetchWorkflowById, getWorkflowById, updateWorkflow, deleteWorkflow } = useWorkflowStore();
   const user = useAuthStore((state) => state.user);
@@ -213,6 +216,35 @@ const CreateWorkflow = () => {
     workflowId,
     setEdges,
     setNodes,
+    showToast,
+  ]);
+
+  React.useEffect(() => {
+    if (workflowId || !importedWorkflow) return;
+
+    setName(importedWorkflow.name || 'Imported workflow');
+    setDescription(importedWorkflow.description || '');
+    setStatus('INACTIVE');
+
+    setNodes(
+      Array.isArray(importedWorkflow.nodes)
+        ? importedWorkflow.nodes.map((node) => hydrateNodeWithConfiguration(node))
+        : []
+    );
+
+    setEdges(Array.isArray(importedWorkflow.edges) ? importedWorkflow.edges : []);
+
+    showToast('Workflow imported. Review and save to create your copy.', 'info');
+
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [
+    workflowId,
+    importedWorkflow,
+    hydrateNodeWithConfiguration,
+    navigate,
+    location.pathname,
+    setNodes,
+    setEdges,
     showToast,
   ]);
 

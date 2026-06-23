@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Download,
   Edit,
   Eye,
   GitBranch,
@@ -19,6 +20,7 @@ const WorkflowCard = ({
   onExecute,
   onToggle,
   onDelete,
+  onExport,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
   const menuRef = React.useRef(null);
@@ -38,7 +40,7 @@ const WorkflowCard = ({
   }, [showMenu]);
 
   return (
-    <article className="enterprise-card overflow-hidden">
+    <article className="enterprise-card overflow-visible">
       <div className="p-5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -60,7 +62,7 @@ const WorkflowCard = ({
             </div>
           </div>
 
-          <div className="relative" ref={menuRef}>
+          <div className="relative z-20" ref={menuRef}>
             <button
               type="button"
               disabled={actionInProgress}
@@ -68,6 +70,7 @@ const WorkflowCard = ({
               className="rounded-lg p-1.5 text-[#5C5C5C] hover:bg-white"
               aria-expanded={showMenu}
               aria-haspopup="menu"
+              aria-label="Workflow actions"
             >
               <MoreVertical size={16} />
             </button>
@@ -75,7 +78,8 @@ const WorkflowCard = ({
             {showMenu && (
               <div
                 role="menu"
-                className="absolute right-0 z-10 mt-1 max-h-60 w-44 overflow-y-auto overscroll-contain rounded-xl border border-[#E2E8F0] bg-white p-1 shadow-lg"
+                className="absolute right-0 top-full z-50 mt-1 max-h-48 w-44 overflow-y-auto overscroll-contain rounded-xl border border-[#E2E8F0] bg-white p-1 shadow-lg"
+                style={{ scrollbarGutter: 'stable' }}
               >
                 <button
                   type="button"
@@ -115,17 +119,32 @@ const WorkflowCard = ({
                     {isActive ? 'Disable' : 'Enable'}
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMenu(false);
-                    if (onDelete) onDelete();
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#EF4444] hover:bg-red-50"
-                >
-                  <Trash2 size={14} />
-                  Delete
-                </button>
+                {onExport && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onExport();
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#292D32] hover:bg-[#E2E8F0]"
+                  >
+                    <Download size={14} />
+                    Export JSON
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onDelete();
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#EF4444] hover:bg-red-50"
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                )}
               </div>
             )}
           </div>

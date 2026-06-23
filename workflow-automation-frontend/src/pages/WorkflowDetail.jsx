@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Download,
   Edit,
   Pause,
   Play,
@@ -29,7 +30,7 @@ import {
   canEditWorkflow,
   canExecuteWorkflow,
 } from '../utils/rbac';
-
+import { downloadWorkflowJson } from '../services/workflowImportExport';
 const formatDate = (value) => {
   if (!value) return 'Never';
   let date;
@@ -215,7 +216,22 @@ const WorkflowDetail = () => {
       setAction('');
     }
   };
+  const handleExport = async () => {
+    if (!workflow) return;
 
+    try {
+      let fullWorkflow = workflow;
+
+      if (!Array.isArray(workflow.nodes) || workflow.nodes.length === 0) {
+        fullWorkflow = await fetchWorkflowById(workflow.id);
+      }
+
+      const fileName = downloadWorkflowJson(fullWorkflow || workflow);
+      showToast(`Exported as ${fileName}`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to export workflow', 'error');
+    }
+  };
   if (loadingWorkflow && !workflow) {
     return (
       <div className="enterprise-card flex h-72 flex-col items-center justify-center text-center font-urbanist">
@@ -306,6 +322,15 @@ const WorkflowDetail = () => {
                 {isActive ? 'Disable' : 'Enable'}
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={action !== ''}
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-sm font-semibold text-[#292D32] hover:border-[#D0FFA4] disabled:opacity-60"
+            >
+              <Download size={14} />
+              Export JSON
+            </button>
             {canEdit && (
               <>
                 <button
