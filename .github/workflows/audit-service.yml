@@ -1,14 +1,14 @@
-name: Template Service CI
+name: Audit Service CI
 
 on:
   push:
     branches: [ main, master ]
     paths:
-      - 'workflow-automation-backend/template-service/**'
+      - 'workflow-automation-backend/audit-service/**'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'workflow-automation-backend/template-service/**'
+      - 'workflow-automation-backend/audit-service/**'
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: template_db
+          POSTGRES_DB: audit_db
           POSTGRES_USER: ${{ secrets.DB_USERNAME }}
           POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
         options: >-
@@ -29,9 +29,13 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
     defaults:
       run:
-        working-directory: workflow-automation-backend/template-service
+        working-directory: workflow-automation-backend/audit-service
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -39,10 +43,13 @@ jobs:
       - name: Create .env file
         run: |
           cat > .env << EOF
-          DB_URL=jdbc:postgresql://localhost:5432/template_db
+          DB_URL=jdbc:postgresql://localhost:5432/audit_db
           DB_USERNAME=${{ secrets.DB_USERNAME }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          WORKFLOW_SERVICE_URL=http://localhost:8082
+          SPRING_RABBITMQ_HOST=localhost
+          SPRING_RABBITMQ_PORT=5672
+          SPRING_RABBITMQ_USERNAME=guest
+          SPRING_RABBITMQ_PASSWORD=guest
           EOF
 
       - name: Set up JDK 17

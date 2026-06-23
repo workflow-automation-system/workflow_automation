@@ -189,8 +189,13 @@ services:
       - DB_URL=jdbc:postgresql://postgres:5432/audit_db
       - DB_USERNAME=pfa_user
       - DB_PASSWORD=pfa_password
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - postgres
+      - rabbitmq
     networks:
       - pfa-network
 

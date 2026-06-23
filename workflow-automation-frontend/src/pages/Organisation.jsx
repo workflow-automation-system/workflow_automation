@@ -29,7 +29,7 @@ import {
   memberKey,
   MEMBER_TYPE,
 } from '../constants/memberStatus';
-import { mergeDepartmentsWithMembers, countDepartmentsInUse } from '../utils/departments';
+import { mergeDepartmentsWithMembers } from '../utils/departments';
 
 const formatRole = (role = '') => {
   if (!role) return 'Member';
@@ -96,7 +96,7 @@ const Organisation = () => {
     jobTitle: '',
   });
   const [activeTab, setActiveTab] = React.useState('active');
-  const [showRoleGuide, setShowRoleGuide] = React.useState(false);
+
   const { user } = useAuthStore();
   const currentUserIsAdmin = isAdmin(user);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
@@ -344,10 +344,7 @@ const Organisation = () => {
     return 0;
   });
 
-  const departmentsInUse = React.useMemo(
-    () => countDepartmentsInUse(managedDepartments),
-    [managedDepartments]
-  );
+
 
   const departmentFilterOptions = React.useMemo(() => {
     const options = [...managedDepartments].sort((a, b) => b.memberCount - a.memberCount);

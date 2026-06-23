@@ -57,7 +57,14 @@ jobs:
           mkdir -p workflow-automation-backend/organization-service
           mkdir -p workflow-automation-backend/template-service
           mkdir -p workflow-automation-backend/api-gateway
+          mkdir -p workflow-automation-backend/audit-service
           mkdir -p workflow-automation-frontend
+
+          cat > workflow-automation-backend/audit-service/.env << EOF
+          DB_URL=jdbc:postgresql://postgres:5432/audit_db
+          DB_USERNAME=pfa_user
+          DB_PASSWORD=pfa_password
+          EOF
 
           cat > workflow-automation-backend/auth-service/.env << EOF
           DB_URL=jdbc:postgresql://postgres:5432/auth_db
