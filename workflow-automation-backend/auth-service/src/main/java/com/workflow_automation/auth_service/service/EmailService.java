@@ -27,14 +27,19 @@ public class EmailService {
     }
 
     public void sendVerificationEmail(String to, String verificationLink) {
-        String textContent = "Bonjour,\n\n" +
-                "Merci pour votre inscription.\n\n" +
-                "Cliquez sur ce lien pour activer votre compte :\n" +
-                verificationLink + "\n\n" +
-                "Ce lien expire dans 24 heures.\n\n" +
-                "Si vous n'avez pas cree de compte, ignorez cet email.";
+        String htmlContent = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">"
+                + "<h2 style=\"color: #292d32; text-align: center;\">Bienvenue sur Workflow Automation</h2>"
+                + "<p style=\"color: #5c5c5c; font-size: 16px;\">Bonjour,</p>"
+                + "<p style=\"color: #5c5c5c; font-size: 16px;\">Merci pour votre inscription. Veuillez confirmer votre adresse e-mail pour activer votre compte.</p>"
+                + "<div style=\"text-align: center; margin: 30px 0;\">"
+                + "<a href=\"" + verificationLink + "\" style=\"background-color: #292d32; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">Activer mon compte</a>"
+                + "</div>"
+                + "<p style=\"color: #5c5c5c; font-size: 14px;\">Ce lien expirera dans 24 heures.</p>"
+                + "<hr style=\"border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;\" />"
+                + "<p style=\"color: #8a8a8a; font-size: 12px; text-align: center;\">Si vous n'avez pas créé de compte, vous pouvez ignorer cet e-mail.</p>"
+                + "</div>";
 
-        sendBrevoEmail(to, "Verify your Workflow Automation account", textContent, null);
+        sendBrevoEmail(to, "Activation de votre compte Workflow Automation", null, htmlContent);
     }
 
     public void sendInvitationEmail(String to, String name, String invitationLink) {
