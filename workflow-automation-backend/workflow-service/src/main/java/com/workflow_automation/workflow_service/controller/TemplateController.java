@@ -1,7 +1,7 @@
-package com.workflow_automation.template_service.controller;
+package com.workflow_automation.workflow_service.controller;
 
-import com.workflow_automation.template_service.dto.response.TemplateResponse;
-import com.workflow_automation.template_service.service.TemplateService;
+import com.workflow_automation.workflow_service.dto.response.TemplateResponse;
+import com.workflow_automation.workflow_service.service.TemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,5 +29,4 @@ public class TemplateController {
     public ResponseEntity<List<TemplateResponse>> getByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(templateService.getTemplatesByUser(userId));
     }
-
 }

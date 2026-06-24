@@ -1,10 +1,10 @@
-package com.workflow_automation.template_service.service.impl;
+package com.workflow_automation.workflow_service.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.workflow_automation.template_service.dto.response.TemplateResponse;
-import com.workflow_automation.template_service.entity.WorkflowTemplate;
-import com.workflow_automation.template_service.repository.WorkflowTemplateRepository;
-import com.workflow_automation.template_service.service.TemplateService;
+import com.workflow_automation.workflow_service.dto.response.TemplateResponse;
+import com.workflow_automation.workflow_service.entity.WorkflowTemplate;
+import com.workflow_automation.workflow_service.repository.WorkflowTemplateRepository;
+import com.workflow_automation.workflow_service.service.TemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

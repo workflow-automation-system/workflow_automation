@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # ==========================================
@@ -114,13 +113,13 @@ services:
       - AUTH_SERVICE_URI=http://auth-service:8081
       - WORKFLOW_SERVICE_URI=http://workflow-service:8082
       - ORGANIZATION_SERVICE_URI=http://organization-service:8083
-      - TEMPLATE_SERVICE_URI=http://template-service:8084
+
       - AUDIT_SERVICE_URI=http://audit-service:8085
     depends_on:
       - auth-service
       - workflow-service
       - organization-service
-      - template-service
+
       - audit-service
     networks:
       - pfa-network
@@ -152,26 +151,6 @@ services:
     networks:
       - pfa-network
 
-  # ==========================================
-  # Microservice 4 : Template Service
-  # ==========================================
-  template-service:
-    build:
-      context: ./workflow-automation-backend/template-service
-      dockerfile: Dockerfile
-    container_name: pfa-template-service
-    ports:
-      - "8084:8084"
-    env_file:
-      - ./workflow-automation-backend/template-service/.env
-    environment:
-      - DB_URL=jdbc:postgresql://postgres:5432/template_db
-      - WORKFLOW_SERVICE_URL=http://workflow-service:8082
-    depends_on:
-      - postgres
-      - workflow-service
-    networks:
-      - pfa-network
 
     # ==========================================
     # Audit Service
