@@ -22,9 +22,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+
 @RestController
 @RequestMapping("/api/workflows")
 @RequiredArgsConstructor
+@Slf4j
 public class WorkflowController {
 
     private final WorkflowService workflowService;
@@ -44,6 +47,7 @@ public class WorkflowController {
             );
             return ResponseEntity.ok(workflow);
         } catch (Exception e) {
+            log.error("Error generating workflow from AI", e);
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Failed to generate workflow: " + e.getMessage()));
         }
