@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BriefcaseBusiness, Building2, Check, Lock, Mail, User, Workflow, Users } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Building2, Check, Lock, Mail, User, Workflow, Users, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const Register = () => {
@@ -18,6 +18,8 @@ const Register = () => {
     confirmPassword: '',
   });
   const [formErrors, setFormErrors] = React.useState({});
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   React.useEffect(() => {
     if (isAuthenticated) navigate('/');
@@ -247,20 +249,26 @@ const Register = () => {
                 <Field
                   label="Password"
                   icon={Lock}
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(value) => setFormData((prev) => ({ ...prev, password: value }))}
                   placeholder="••••••••"
+                  showPasswordToggle={true}
+                  showPassword={showPassword}
+                  onTogglePassword={() => setShowPassword(!showPassword)}
                 />
                 {formErrors.password && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.password}</span>}
 
                 <Field
                   label="Confirm Password"
                   icon={Lock}
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={(value) => setFormData((prev) => ({ ...prev, confirmPassword: value }))}
                   placeholder="••••••••"
+                  showPasswordToggle={true}
+                  showPassword={showConfirmPassword}
+                  onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
                 />
                 {formErrors.confirmPassword && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.confirmPassword}</span>}
 
@@ -297,7 +305,7 @@ const Register = () => {
   );
 };
 
-const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder }) => (
+const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder, showPasswordToggle, showPassword, onTogglePassword }) => (
   <label className="block">
     <span className="mb-1 block text-sm font-medium text-[#5C5C5C]">{label}</span>
     <div className="relative">
@@ -307,8 +315,17 @@ const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder 
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+        className={`w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 ${showPasswordToggle ? 'pr-10' : 'pr-3'} text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none`}
       />
+      {showPasswordToggle && (
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#292D32]"
+        >
+          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      )}
     </div>
   </label>
 );
