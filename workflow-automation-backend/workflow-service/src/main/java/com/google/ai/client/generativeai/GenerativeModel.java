@@ -22,7 +22,7 @@ public class GenerativeModel {
     }
 
     public GenerateContentResponse generateContent(String prompt) {
-        String url = String.format("https://generativelanguage.googleapis.com/v1/models/%s:generateContent?key=%s", 
+        String url = String.format("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", 
                 modelName, apiKey);
 
         HttpHeaders headers = new HttpHeaders();
