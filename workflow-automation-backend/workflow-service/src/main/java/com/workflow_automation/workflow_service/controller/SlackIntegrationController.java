@@ -66,4 +66,46 @@ public class SlackIntegrationController {
                 .location(URI.create(frontendUrl + "/app-connections?slack=connected"))
                 .build();
     }
+
+    @DeleteMapping("/disconnect")
+    public ResponseEntity<Map<String, Object>> disconnect(@RequestParam Long userId) {
+        Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "slack");
+        if (integration.isPresent()) {
+            userIntegrationRepository.delete(integration.get());
+        }
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Slack account disconnected successfully.");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<Map<String, Object>> testConnection(@RequestParam Long userId) {
+        Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "slack");
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+
+        if (integration.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Slack is not connected.");
+            return ResponseEntity.status(404).body(response);
+        }
+
+        try {
+            org.springframework.web.client.RestClient.create()
+                    .get()
+                    .uri("https://slack.com/api/auth.test")
+                    .header("Authorization", "Bearer " + integration.get().getAccessToken())
+                    .retrieve()
+                    .toBodilessEntity();
+
+            response.put("success", true);
+            response.put("message", "Slack connection is active and working!");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Slack connection failed: " + e.getMessage());
+            return ResponseEntity.status(400).body(response);
+        }
+    }
 }

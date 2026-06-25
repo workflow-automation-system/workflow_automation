@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BriefcaseBusiness, Building2, Check, Lock, Mail, User, Workflow, Users } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Building2, Check, Eye, EyeOff, Lock, Mail, User, Workflow, Users } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const Register = () => {
@@ -18,6 +18,10 @@ const Register = () => {
     confirmPassword: '',
   });
   const [formErrors, setFormErrors] = React.useState({});
+  const [showPassword, setShowPassword] = React.useState({
+    password: false,
+    confirmPassword: false,
+  });
 
   React.useEffect(() => {
     if (isAuthenticated) navigate('/');
@@ -250,6 +254,8 @@ const Register = () => {
                   type="password"
                   value={formData.password}
                   onChange={(value) => setFormData((prev) => ({ ...prev, password: value }))}
+                  showPassword={showPassword.password}
+                  onTogglePassword={() => setShowPassword((prev) => ({ ...prev, password: !prev.password }))}
                   placeholder="••••••••"
                 />
                 {formErrors.password && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.password}</span>}
@@ -260,6 +266,8 @@ const Register = () => {
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(value) => setFormData((prev) => ({ ...prev, confirmPassword: value }))}
+                  showPassword={showPassword.confirmPassword}
+                  onTogglePassword={() => setShowPassword((prev) => ({ ...prev, confirmPassword: !prev.confirmPassword }))}
                   placeholder="••••••••"
                 />
                 {formErrors.confirmPassword && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.confirmPassword}</span>}
@@ -297,18 +305,28 @@ const Register = () => {
   );
 };
 
-const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder }) => (
+const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder, showPassword = false, onTogglePassword }) => (
   <label className="block">
     <span className="mb-1 block text-sm font-medium text-[#5C5C5C]">{label}</span>
     <div className="relative">
       <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
       <input
-        type={type}
+        type={type === 'password' && showPassword ? 'text' : type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+        className={`w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none ${type === 'password' ? 'pr-10' : 'pr-3'}`}
       />
+      {type === 'password' && (
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#292D32]"
+          aria-label={showPassword ? 'Hide password' : 'Show password'}
+        >
+          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      )}
     </div>
   </label>
 );

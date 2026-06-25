@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Lock, Mail, Workflow } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Workflow } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const Login = () => {
@@ -9,6 +9,7 @@ const Login = () => {
   const { clearError, error, isAuthenticated, isLoading, login } = useAuthStore();
   const [formData, setFormData] = React.useState({ email: '', password: '' });
   const [formErrors, setFormErrors] = React.useState({});
+  const [showPassword, setShowPassword] = React.useState(false);
   const [successMessage] = React.useState(location.state?.message || null);
 
   React.useEffect(() => {
@@ -97,12 +98,20 @@ const Login = () => {
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(event) => setFormData((prev) => ({ ...prev, password: event.target.value }))}
-                  className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                  className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-10 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
                   placeholder="Enter your password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#292D32]"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
               {formErrors.password && <span className="mt-1 block text-xs text-[#EF4444]">{formErrors.password}</span>}
               <div className="mt-2 text-right">

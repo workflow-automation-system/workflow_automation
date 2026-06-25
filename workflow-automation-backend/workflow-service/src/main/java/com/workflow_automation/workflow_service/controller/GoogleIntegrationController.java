@@ -57,4 +57,47 @@ public class GoogleIntegrationController {
                 .build();
     }
 
+    @DeleteMapping("/disconnect")
+    public ResponseEntity<Map<String, Object>> disconnect(@RequestParam Long userId) {
+        Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "gmail");
+        if (integration.isPresent()) {
+            userIntegrationRepository.delete(integration.get());
+        }
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Google account disconnected successfully.");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<Map<String, Object>> testConnection(@RequestParam Long userId) {
+        Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "gmail");
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+
+        if (integration.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Gmail is not connected.");
+            return ResponseEntity.status(404).body(response);
+        }
+
+        try {
+            // Appel léger à l'API Google pour vérifier la validité du token
+            org.springframework.web.client.RestClient.create()
+                    .get()
+                    .uri("https://gmail.googleapis.com/gmail/v1/users/me/profile")
+                    .header("Authorization", "Bearer " + integration.get().getAccessToken())
+                    .retrieve()
+                    .toBodilessEntity();
+
+            response.put("success", true);
+            response.put("message", "Gmail connection is active and working!");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Gmail connection failed: " + e.getMessage());
+            return ResponseEntity.status(400).body(response);
+        }
+    }
+
 }

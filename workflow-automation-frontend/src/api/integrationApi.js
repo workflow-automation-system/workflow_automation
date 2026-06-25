@@ -50,11 +50,36 @@ export async function getNotionStatus(userId) {
   return request(`/integrations/notion/status?userId=${userId}`);
 }
 
+export async function disconnectGoogle(userId) {
+  return request(`/integrations/google/disconnect?userId=${userId}`, { method: 'DELETE' });
+}
+export async function testGoogleConnection(userId) {
+  return request(`/integrations/google/test?userId=${userId}`);
+}
+export async function disconnectSlack(userId) {
+  return request(`/integrations/slack/disconnect?userId=${userId}`, { method: 'DELETE' });
+}
+export async function testSlackConnection(userId) {
+  return request(`/integrations/slack/test?userId=${userId}`);
+}
+export async function disconnectNotion(userId) {
+  return request(`/integrations/notion/disconnect?userId=${userId}`, { method: 'DELETE' });
+}
+export async function testNotionConnection(userId) {
+  return request(`/integrations/notion/test?userId=${userId}`);
+}
+
 export const integrationApi = {
   getGoogleAuthUrl,
   getGoogleStatus,
+  disconnectGoogle,
+  testGoogleConnection,
   getSlackAuthUrl,
   getSlackStatus,
+  disconnectSlack,
+  testSlackConnection,
   getNotionAuthUrl,
   getNotionStatus,
+  disconnectNotion,
+  testNotionConnection,
 };
