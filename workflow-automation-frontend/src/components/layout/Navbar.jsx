@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Building2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { isAdmin } from '../../utils/rbac';
 
