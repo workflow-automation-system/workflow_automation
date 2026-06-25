@@ -54,6 +54,7 @@ const AppConnections = () => {
     connected: false,
     scope: '',
     updatedAt: null,
+    healthStatus: 'Warning',
   });
   const [connectingGmail, setConnectingGmail] = React.useState(false);
   const gmailConnected = gmailStatus.connected;
@@ -63,6 +64,7 @@ const AppConnections = () => {
     connected: false,
     scope: '',
     updatedAt: null,
+    healthStatus: 'Warning',
   });
   const [connectingSlack, setConnectingSlack] = React.useState(false);
 
@@ -71,6 +73,7 @@ const AppConnections = () => {
     connected: false,
     scope: '',
     updatedAt: null,
+    healthStatus: 'Warning',
   });
   const [connectingNotion, setConnectingNotion] = React.useState(false);
 
@@ -88,7 +91,7 @@ const AppConnections = () => {
   const loadGmailStatus = React.useCallback(async () => {
     const userId = Number(user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
-      setGmailStatus({ connected: false, scope: '', updatedAt: null });
+      setGmailStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       return;
     }
 
@@ -99,9 +102,10 @@ const AppConnections = () => {
         connected: Boolean(status?.connected),
         scope: status?.scope || '',
         updatedAt: status?.updatedAt || null,
+        healthStatus: status?.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
       });
     } catch (err) {
-      setGmailStatus({ connected: false, scope: '', updatedAt: null });
+      setGmailStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       setError(err.message || 'Failed to load Gmail connection status.');
     } finally {
       setLoadingConnections(false);
@@ -111,7 +115,7 @@ const AppConnections = () => {
   const loadSlackStatus = React.useCallback(async () => {
     const userId = Number(user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
-      setSlackStatus({ connected: false, scope: '', updatedAt: null });
+      setSlackStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       return;
     }
 
@@ -122,9 +126,10 @@ const AppConnections = () => {
         connected: Boolean(status?.connected),
         scope: status?.scope || '',
         updatedAt: status?.updatedAt || null,
+        healthStatus: status?.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
       });
     } catch (err) {
-      setSlackStatus({ connected: false, scope: '', updatedAt: null });
+      setSlackStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       setError(err.message || 'Failed to load Slack connection status.');
     } finally {
       setLoadingConnections(false);
@@ -134,7 +139,7 @@ const AppConnections = () => {
   const loadNotionStatus = React.useCallback(async () => {
     const userId = Number(user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
-      setNotionStatus({ connected: false, scope: '', updatedAt: null });
+      setNotionStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       return;
     }
 
@@ -145,9 +150,10 @@ const AppConnections = () => {
         connected: Boolean(status?.connected),
         scope: status?.scope || '',
         updatedAt: status?.updatedAt || null,
+        healthStatus: status?.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
       });
     } catch (err) {
-      setNotionStatus({ connected: false, scope: '', updatedAt: null });
+      setNotionStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       setError(err.message || 'Failed to load Notion connection status.');
     } finally {
       setLoadingConnections(false);
@@ -202,7 +208,7 @@ const AppConnections = () => {
       list.push({
         name: 'Gmail',
         domain: 'Email',
-        status: 'Healthy',
+        status: gmailStatus.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
         lastSync: gmailStatus.updatedAt
           ? new Date(gmailStatus.updatedAt).toLocaleString()
           : 'Connected',
@@ -217,7 +223,7 @@ const AppConnections = () => {
       list.push({
         name: 'Slack',
         domain: 'Chat',
-        status: 'Healthy',
+        status: slackStatus.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
         lastSync: slackStatus.updatedAt
           ? new Date(slackStatus.updatedAt).toLocaleString()
           : 'Connected',
@@ -229,7 +235,7 @@ const AppConnections = () => {
       list.push({
         name: 'Notion',
         domain: 'Productivity',
-        status: 'Healthy',
+        status: notionStatus.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
         lastSync: notionStatus.updatedAt
           ? new Date(notionStatus.updatedAt).toLocaleString()
           : 'Connected',
@@ -238,7 +244,7 @@ const AppConnections = () => {
     }
 
     return list;
-  }, [gmailConnected, gmailStatus.scope, gmailStatus.updatedAt, slackStatus.connected, slackStatus.scope, slackStatus.updatedAt, notionStatus.connected, notionStatus.updatedAt]);
+  }, [gmailConnected, gmailStatus.healthStatus, gmailStatus.scope, gmailStatus.updatedAt, slackStatus.connected, slackStatus.healthStatus, slackStatus.scope, slackStatus.updatedAt, notionStatus.connected, notionStatus.healthStatus, notionStatus.updatedAt]);
 
   const filteredConnections = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -247,6 +253,16 @@ const AppConnections = () => {
       `${connection.name} ${connection.domain} ${connection.status}`.toLowerCase().includes(query)
     );
   }, [connectedConnections, searchQuery]);
+
+  const getHealthBadgeClass = (status) => {
+    if (status === 'Healthy') {
+      return 'bg-[#D0FFA4] text-[#292D32]';
+    }
+    if (status === 'Warning') {
+      return 'bg-red-50 text-red-600 border border-red-200';
+    }
+    return 'bg-white text-[#5C5C5C] border border-[#E2E8F0]';
+  };
 
   const handleConnectGmail = async () => {
     setConnectingGmail(true);
@@ -352,12 +368,26 @@ const AppConnections = () => {
       if (response?.success) {
         setSuccessMessage(`${appName} connection is active and working perfectly!`);
         setTestingStatus((prev) => ({ ...prev, [appName]: 'success' }));
+        if (appName === 'Gmail') {
+          setGmailStatus((prev) => ({ ...prev, healthStatus: 'Healthy' }));
+        } else if (appName === 'Slack') {
+          setSlackStatus((prev) => ({ ...prev, healthStatus: 'Healthy' }));
+        } else if (appName === 'Notion') {
+          setNotionStatus((prev) => ({ ...prev, healthStatus: 'Healthy' }));
+        }
       } else {
         throw new Error(response?.message || 'Connection test failed.');
       }
     } catch (err) {
       setError(`Test failed for ${appName}: ${err.message}`);
       setTestingStatus((prev) => ({ ...prev, [appName]: 'error' }));
+      if (appName === 'Gmail') {
+        setGmailStatus((prev) => ({ ...prev, healthStatus: 'Warning' }));
+      } else if (appName === 'Slack') {
+        setSlackStatus((prev) => ({ ...prev, healthStatus: 'Warning' }));
+      } else if (appName === 'Notion') {
+        setNotionStatus((prev) => ({ ...prev, healthStatus: 'Warning' }));
+      }
     }
   };
 
@@ -457,17 +487,10 @@ const AppConnections = () => {
               <div className="flex flex-wrap items-center gap-3 text-xs text-[#5C5C5C]">
                 <span className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1">{connection.scopes} scopes</span>
                 <span className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1">Connected {connection.lastSync}</span>
-                {connection.status === 'Healthy' ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2.5 py-1 font-semibold text-[#292D32]">
-                    <CheckCircle2 size={12} />
-                    Healthy
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2.5 py-1 font-semibold text-[#292D32]">
-                    <AlertCircle size={12} />
-                    Warning
-                  </span>
-                )}
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold ${getHealthBadgeClass(connection.status)}`}>
+                  {connection.status === 'Healthy' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                  {connection.status}
+                </span>
                 <div className="relative">
                   <button
                       type="button"
@@ -619,8 +642,8 @@ const AppConnections = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-1">
                   <span className="text-[#5C5C5C] font-semibold text-xs uppercase tracking-wider">Health Status</span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2.5 py-1 font-semibold text-[#292D32] text-xs">
-                    <CheckCircle2 size={12} />
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold text-xs ${getHealthBadgeClass(selectedDetails.status)}`}>
+                    {selectedDetails.status === 'Healthy' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
                     {selectedDetails.status}
                   </span>
                 </div>

@@ -40,6 +40,18 @@ public class GoogleIntegrationController {
         response.put("provider", "gmail");
         response.put("scope", integration.map(UserIntegration::getScope).orElse(""));
         response.put("updatedAt", integration.map(UserIntegration::getUpdatedAt).orElse(null));
+        response.put("healthStatus", "Warning");
+
+        if (integration.isPresent()) {
+            try {
+                verifyGmailConnection(integration.get());
+                response.put("healthStatus", "Healthy");
+                response.put("healthMessage", "Gmail connection is active and working.");
+            } catch (Exception e) {
+                response.put("healthStatus", "Warning");
+                response.put("healthMessage", "Gmail connection needs reconnection.");
+            }
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -83,21 +95,27 @@ public class GoogleIntegrationController {
 
         try {
             // Appel léger à l'API Google pour vérifier la validité du token
-            org.springframework.web.client.RestClient.create()
-                    .get()
-                    .uri("https://gmail.googleapis.com/gmail/v1/users/me/profile")
-                    .header("Authorization", "Bearer " + integration.get().getAccessToken())
-                    .retrieve()
-                    .toBodilessEntity();
+            verifyGmailConnection(integration.get());
 
             response.put("success", true);
             response.put("message", "Gmail connection is active and working!");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.put("success", false);
-            response.put("message", "Gmail connection failed: " + e.getMessage());
+            response.put("message", "Gmail connection failed. Please reconnect Gmail.");
             return ResponseEntity.status(400).body(response);
         }
+    }
+
+    private void verifyGmailConnection(UserIntegration integration) {
+        UserIntegration activeIntegration = googleOAuthService.refreshTokenIfNeeded(integration);
+
+        org.springframework.web.client.RestClient.create()
+                .get()
+                .uri("https://gmail.googleapis.com/gmail/v1/users/me/profile")
+                .header("Authorization", "Bearer " + activeIntegration.getAccessToken())
+                .retrieve()
+                .toBodilessEntity();
     }
 
 }

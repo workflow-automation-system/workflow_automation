@@ -42,6 +42,18 @@ public class SlackIntegrationController {
         response.put("provider", "slack");
         response.put("scope", integration.map(UserIntegration::getScope).orElse(""));
         response.put("updatedAt", integration.map(UserIntegration::getUpdatedAt).orElse(null));
+        response.put("healthStatus", "Warning");
+
+        if (integration.isPresent()) {
+            try {
+                verifySlackConnection(integration.get());
+                response.put("healthStatus", "Healthy");
+                response.put("healthMessage", "Slack connection is active and working.");
+            } catch (Exception e) {
+                response.put("healthStatus", "Warning");
+                response.put("healthMessage", "Slack connection needs reconnection.");
+            }
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -92,12 +104,7 @@ public class SlackIntegrationController {
         }
 
         try {
-            org.springframework.web.client.RestClient.create()
-                    .get()
-                    .uri("https://slack.com/api/auth.test")
-                    .header("Authorization", "Bearer " + integration.get().getAccessToken())
-                    .retrieve()
-                    .toBodilessEntity();
+            verifySlackConnection(integration.get());
 
             response.put("success", true);
             response.put("message", "Slack connection is active and working!");
@@ -106,6 +113,20 @@ public class SlackIntegrationController {
             response.put("success", false);
             response.put("message", "Slack connection failed: " + e.getMessage());
             return ResponseEntity.status(400).body(response);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void verifySlackConnection(UserIntegration integration) {
+        Map<String, Object> slackResponse = org.springframework.web.client.RestClient.create()
+                .get()
+                .uri("https://slack.com/api/auth.test")
+                .header("Authorization", "Bearer " + integration.getAccessToken())
+                .retrieve()
+                .body(Map.class);
+
+        if (slackResponse == null || !Boolean.TRUE.equals(slackResponse.get("ok"))) {
+            throw new IllegalStateException("Slack token is not valid");
         }
     }
 }

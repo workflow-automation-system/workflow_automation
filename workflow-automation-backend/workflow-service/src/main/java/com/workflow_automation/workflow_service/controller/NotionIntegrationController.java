@@ -42,6 +42,18 @@ public class NotionIntegrationController {
         response.put("provider", "notion");
         response.put("scope", integration.map(UserIntegration::getScope).orElse(""));
         response.put("updatedAt", integration.map(UserIntegration::getUpdatedAt).orElse(null));
+        response.put("healthStatus", "Warning");
+
+        if (integration.isPresent()) {
+            try {
+                verifyNotionConnection(integration.get());
+                response.put("healthStatus", "Healthy");
+                response.put("healthMessage", "Notion connection is active and working.");
+            } catch (Exception e) {
+                response.put("healthStatus", "Warning");
+                response.put("healthMessage", "Notion connection needs reconnection.");
+            }
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -92,13 +104,7 @@ public class NotionIntegrationController {
         }
 
         try {
-            org.springframework.web.client.RestClient.create()
-                    .get()
-                    .uri("https://api.notion.com/v1/users/me")
-                    .header("Authorization", "Bearer " + integration.get().getAccessToken())
-                    .header("Notion-Version", "2022-06-28")
-                    .retrieve()
-                    .toBodilessEntity();
+            verifyNotionConnection(integration.get());
 
             response.put("success", true);
             response.put("message", "Notion connection is active and working!");
@@ -108,5 +114,15 @@ public class NotionIntegrationController {
             response.put("message", "Notion connection failed: " + e.getMessage());
             return ResponseEntity.status(400).body(response);
         }
+    }
+
+    private void verifyNotionConnection(UserIntegration integration) {
+        org.springframework.web.client.RestClient.create()
+                .get()
+                .uri("https://api.notion.com/v1/users/me")
+                .header("Authorization", "Bearer " + integration.getAccessToken())
+                .header("Notion-Version", "2022-06-28")
+                .retrieve()
+                .toBodilessEntity();
     }
 }
