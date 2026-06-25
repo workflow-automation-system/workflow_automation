@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Background, Controls, MarkerType, MiniMap, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
@@ -190,7 +190,16 @@ const WorkflowDetail = () => {
       // Refresh history after a short delay to allow backend to start processing
       setTimeout(() => fetchExecutions(workflow.id), 1000);
     } catch (err) {
-      showToast(err.message || 'Failed to execute workflow', 'error');
+      if (err.message && err.message.startsWith('MISSING_INTEGRATION:')) {
+        showToast(
+          <span>
+            You are not connected to this app please go to page app connecion and add it <Link to="/integrations" className="underline font-medium text-blue-600">here</Link>
+          </span>,
+          'error'
+        );
+      } else {
+        showToast(err.message || 'Failed to execute workflow', 'error');
+      }
     } finally {
       setAction('');
     }

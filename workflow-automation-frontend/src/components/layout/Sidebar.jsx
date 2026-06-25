@@ -43,8 +43,8 @@ const Sidebar = () => {
   return (
     <aside className="fixed left-0 top-0 z-50 h-screen w-20 border-r border-[#E2E8F0] p-3">
       <div className="flex h-full flex-col items-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white">
-          <Workflow size={20} className="text-[#292D32]" />
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D0FFA4] shadow-sm">
+          <Workflow size={22} className="text-[#292D32]" />
         </div>
 
         <nav className="flex flex-1 flex-col items-center justify-center gap-2">

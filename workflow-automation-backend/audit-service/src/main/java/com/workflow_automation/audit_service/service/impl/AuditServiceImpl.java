@@ -29,8 +29,6 @@ public class AuditServiceImpl implements AuditService {
                 .entityType(request.getEntityType())
                 .entityId(request.getEntityId())
                 .outcome(normalizeOutcome(request.getOutcome()))
-                .ipAddress(request.getIpAddress())
-                .userAgent(request.getUserAgent())
                 .timestamp(LocalDateTime.now())
                 .build();
 

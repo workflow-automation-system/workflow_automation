@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle2, Monitor, Search, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
 import { AUDIT_ENDPOINT } from '../api/config';
 import { API } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
@@ -85,7 +85,6 @@ const AuditLogs = () => {
             log.action,
             log.entityType,
             log.outcome,
-            log.ipAddress,
             metadata.workflowName,
             metadata.targetEmail,
             metadata.reason,
@@ -153,7 +152,6 @@ const AuditLogs = () => {
                                 <th className="px-5 py-3 font-semibold">Action</th>
                                 <th className="px-5 py-3 font-semibold">Resource</th>
                                 <th className="px-5 py-3 font-semibold">Result</th>
-                                <th className="px-5 py-3 font-semibold">IP / Device</th>
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-[#E2E8F0] bg-white">
@@ -182,15 +180,6 @@ const AuditLogs = () => {
                           {outcome === 'FAILURE' ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
                             {outcome}
                         </span>
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            <div className="flex items-start gap-2 text-[#5C5C5C]">
-                                                <Monitor size={14} className="mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p>{log.ipAddress || 'Unknown IP'}</p>
-                                                    <p className="max-w-xs truncate text-xs">{log.userAgent || 'Unknown device'}</p>
-                                                </div>
-                                            </div>
                                         </td>
                                     </tr>
                                 );

@@ -19,7 +19,8 @@ const Login = () => {
 
   React.useEffect(() => {
     clearError();
-  }, [clearError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validate = () => {
     const errors = {};

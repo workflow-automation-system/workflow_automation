@@ -48,6 +48,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final ObjectMapper objectMapper;
     private final WorkflowAccessService workflowAccessService;
     private final RabbitTemplate rabbitTemplate;
+    private final com.workflow_automation.workflow_service.repository.UserIntegrationRepository userIntegrationRepository;
 
     @Value("${app.rabbitmq.exchange}")
     private String exchangeName;
@@ -59,6 +60,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     public void queueWorkflow(Long workflowId, AccessContext accessContext, Map<String, Object> input) {
         Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
         workflowAccessService.assertCanExecute(workflow, accessContext);
+        validateIntegrations(workflow, accessContext.getUserId());
 
         WorkflowExecutionMessage message = WorkflowExecutionMessage.builder()
                 .workflowId(workflowId)
@@ -366,6 +368,27 @@ public class ExecutionServiceImpl implements ExecutionService {
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
         } catch (Exception exception) {
             return String.valueOf(value);
+        }
+    }
+
+    private void validateIntegrations(Workflow workflow, Long userId) {
+        java.util.Set<String> requiredProviders = new java.util.HashSet<>();
+        if (workflow.getNodes() == null) return;
+        for (Node node : workflow.getNodes()) {
+            if (node.getType() == NodeType.ACTION || node.getType() == NodeType.TRIGGER) {
+                Map<String, Object> config = parseConfig(node.getConfig());
+                String provider = resolveApplicationKey(node, config);
+                if (java.util.Set.of("gmail", "slack", "notion").contains(provider)) {
+                    requiredProviders.add(provider);
+                }
+            }
+        }
+        for (String provider : requiredProviders) {
+            if (userIntegrationRepository.findByUserIdAndProvider(userId, provider).isEmpty()) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST, 
+                        "MISSING_INTEGRATION:" + provider);
+            }
         }
     }
 }

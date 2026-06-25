@@ -11,5 +11,5 @@ public class RegisterRequest {
     @NotBlank private String organizationName;
     @NotBlank private String department;
     private String jobTitle;
-    @NotBlank @Size(min = 6) private String password;
+    @NotBlank @Size(min = 8, message = "Password must be at least 8 characters long") private String password;
 }

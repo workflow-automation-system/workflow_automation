@@ -346,13 +346,21 @@ public class AuthService {
         );
     }
 
+    private static final java.util.Set<String> PUBLIC_DOMAINS = java.util.Set.of(
+            "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "mail.com", "live.com", "protonmail.com"
+    );
+
     private String extractDomain(String email) {
         int separatorIndex = email.indexOf('@');
         if (separatorIndex < 0 || separatorIndex == email.length() - 1) {
             return null;
         }
 
-        return email.substring(separatorIndex + 1).toLowerCase(Locale.ROOT);
+        String domain = email.substring(separatorIndex + 1).toLowerCase(java.util.Locale.ROOT);
+        if (PUBLIC_DOMAINS.contains(domain)) {
+            return null;
+        }
+        return domain;
     }
 
     private String buildOrganizationName(String domain) {
@@ -705,8 +713,6 @@ public class AuthService {
                 .entityType(entityType)
                 .entityId(entityId)
                 .outcome(outcome)
-                .ipAddress(ipAddress)
-                .userAgent(userAgent)
                 .metadata(metadata)
                 .build());
     }

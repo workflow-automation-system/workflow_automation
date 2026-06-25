@@ -25,7 +25,8 @@ const Register = () => {
 
   React.useEffect(() => {
     clearError();
-  }, [clearError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validateStep2 = () => {
     const errors = {};
@@ -49,7 +50,7 @@ const Register = () => {
     }
 
     if (!formData.password) errors.password = 'Password is required';
-    else if (formData.password.length < 6) errors.password = 'Password must be at least 6 characters';
+    else if (formData.password.length < 8) errors.password = 'Password must be at least 8 characters';
     if (formData.password !== formData.confirmPassword) errors.confirmPassword = 'Passwords do not match';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -184,8 +185,8 @@ const Register = () => {
                   value={formData.organizationName}
                   onChange={(value) => setFormData((prev) => ({ ...prev, organizationName: value }))}
                   placeholder="Acme Corporation"
+                  error={formErrors.organizationName}
                 />
-                {formErrors.organizationName && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.organizationName}</span>}
 
                 <Field
                   label="Department"
@@ -193,8 +194,8 @@ const Register = () => {
                   value={formData.department}
                   onChange={(value) => setFormData((prev) => ({ ...prev, department: value }))}
                   placeholder="Operations"
+                  error={formErrors.department}
                 />
-                {formErrors.department && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.department}</span>}
 
                 <Field
                   label="Job Title"
@@ -231,8 +232,8 @@ const Register = () => {
                   value={formData.name}
                   onChange={(value) => setFormData((prev) => ({ ...prev, name: value }))}
                   placeholder="John Doe"
+                  error={formErrors.name}
                 />
-                {formErrors.name && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.name}</span>}
 
                 <Field
                   label="Work Email"
@@ -241,8 +242,8 @@ const Register = () => {
                   value={formData.email}
                   onChange={(value) => setFormData((prev) => ({ ...prev, email: value }))}
                   placeholder="email@example.com"
+                  error={formErrors.email}
                 />
-                {formErrors.email && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.email}</span>}
 
                 <Field
                   label="Password"
@@ -251,8 +252,8 @@ const Register = () => {
                   value={formData.password}
                   onChange={(value) => setFormData((prev) => ({ ...prev, password: value }))}
                   placeholder="••••••••"
+                  error={formErrors.password}
                 />
-                {formErrors.password && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.password}</span>}
 
                 <Field
                   label="Confirm Password"
@@ -261,8 +262,8 @@ const Register = () => {
                   value={formData.confirmPassword}
                   onChange={(value) => setFormData((prev) => ({ ...prev, confirmPassword: value }))}
                   placeholder="••••••••"
+                  error={formErrors.confirmPassword}
                 />
-                {formErrors.confirmPassword && <span className="-mt-2 block text-xs text-[#EF4444]">{formErrors.confirmPassword}</span>}
 
                 <div className="flex gap-3 pt-2">
                   <button
@@ -297,19 +298,20 @@ const Register = () => {
   );
 };
 
-const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder }) => (
+const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder, error }) => (
   <label className="block">
     <span className="mb-1 block text-sm font-medium text-[#5C5C5C]">{label}</span>
     <div className="relative">
-      <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
+      <Icon className={`pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${error ? 'text-[#EF4444]' : 'text-[#8A8A8A]'}`} />
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+        className={`w-full rounded-xl border ${error ? 'border-[#EF4444] focus:border-[#EF4444]' : 'border-[#E2E8F0] focus:border-[#D0FFA4]'} bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:outline-none`}
       />
     </div>
+    {error && <span className="mt-1 block text-xs text-[#EF4444]">{error}</span>}
   </label>
 );
 

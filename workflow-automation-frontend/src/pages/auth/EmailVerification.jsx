@@ -12,7 +12,8 @@ const EmailVerification = () => {
 
   React.useEffect(() => {
     clearError();
-  }, [clearError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleResendVerification = async () => {
     if (!email) {

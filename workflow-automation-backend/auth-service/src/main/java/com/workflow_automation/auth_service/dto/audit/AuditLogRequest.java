@@ -15,7 +15,5 @@ public class AuditLogRequest {
     private String entityType;
     private Long entityId;
     private String outcome;
-    private String ipAddress;
-    private String userAgent;
     private Map<String, Object> metadata;
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
+import { Building2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { isAdmin } from '../../utils/rbac';
 
@@ -47,9 +48,9 @@ const Navbar = () => {
 
         <div className="flex items-center gap-2">
           {user?.organization?.name && (
-            <div className="rounded-2xl border border-[#E2E8F0] bg-white px-3 py-2 text-right">
-              <p className="text-xs font-semibold text-[#292D32]">{user.organization.name}</p>
-              <p className="text-[11px] text-[#8D95A1]">{formatRole(user?.role)} workspace</p>
+            <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2 text-right shadow-sm">
+              <p className="text-sm font-bold text-[#292D32]">{user.organization.name}</p>
+              <p className="text-[11px] font-medium text-[#8D95A1] uppercase tracking-wider mt-0.5">{formatRole(user?.role)} workspace</p>
             </div>
           )}
         </div >

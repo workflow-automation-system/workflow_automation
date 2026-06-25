@@ -37,10 +37,7 @@ public class OrganizationService {
         String name = request.getName().trim();
         String domain = request.getDomain() != null ? normalizeDomain(request.getDomain()) : null;
 
-        Organization org = (domain == null
-                ? organizationRepository.findByNameIgnoreCase(name)
-                : organizationRepository.findByDomainIgnoreCase(domain)
-                .or(() -> organizationRepository.findByNameIgnoreCase(name)))
+        Organization org = organizationRepository.findByNameIgnoreCase(name)
                 .orElseGet(() -> organizationRepository.save(
                         Organization.builder()
                                 .name(name)

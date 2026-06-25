@@ -36,7 +36,8 @@ const VerifyEmail = () => {
 
   React.useEffect(() => {
     clearError();
-  }, [clearError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
       <div className="min-h-screen bg-[#F6F5FA] font-urbanist flex items-center justify-center p-6">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   AlertCircle,
   GitBranch,
@@ -162,7 +162,16 @@ const Workflows = () => {
       setExecuteModal({ open: false, workflow: null });
       showToast('Workflow execution started.', 'success');
     } catch (err) {
-      showToast(err.message || 'Failed to execute workflow', 'error');
+      if (err.message && err.message.startsWith('MISSING_INTEGRATION:')) {
+        showToast(
+          <span>
+            You are not connected to this app please go to page app connecion and add it <Link to="/integrations" className="underline font-medium text-blue-600">here</Link>
+          </span>,
+          'error'
+        );
+      } else {
+        showToast(err.message || 'Failed to execute workflow', 'error');
+      }
     } finally {
       setActionWorkflowId(null);
     }

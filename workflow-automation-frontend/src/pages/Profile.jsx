@@ -167,8 +167,8 @@ const Profile = () => {
       showToast('New passwords do not match.', 'error');
       return;
     }
-    if (newPassword.length < 6) {
-      showToast('New password must be at least 6 characters.', 'error');
+    if (newPassword.length < 8) {
+      showToast('New password must be at least 8 characters.', 'error');
       return;
     }
 

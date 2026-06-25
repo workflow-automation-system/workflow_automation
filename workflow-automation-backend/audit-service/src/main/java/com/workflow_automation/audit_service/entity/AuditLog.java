@@ -35,11 +35,6 @@ public class AuditLog {
     @Column(length = 32, nullable = false)
     private String outcome;
 
-    @Column(length = 64)
-    private String ipAddress;
-
-    @Column(length = 512)
-    private String userAgent;
 
     private LocalDateTime timestamp;
 

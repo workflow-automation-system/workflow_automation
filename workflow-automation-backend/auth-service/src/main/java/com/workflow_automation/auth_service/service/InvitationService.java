@@ -358,8 +358,6 @@ public class InvitationService {
                 .entityType(entityType)
                 .entityId(entityId)
                 .outcome(outcome)
-                .ipAddress(ipAddress)
-                .userAgent(userAgent)
                 .metadata(metadata)
                 .build());
     }
