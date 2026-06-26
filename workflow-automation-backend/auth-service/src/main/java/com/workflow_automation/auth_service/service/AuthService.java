@@ -57,11 +57,7 @@ public class AuthService {
         }
 
         String domain = extractDomain(email);
-        if (domain == null || domain.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Adresse email invalide");
-        }
-
+        
         OrganizationSummary organization = null;
         if (request.getOrganizationName() != null && !request.getOrganizationName().isBlank()) {
             organization = organizationClient.resolveOrganization(
