@@ -57,6 +57,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     private String routingKey;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void queueWorkflow(Long workflowId, AccessContext accessContext, Map<String, Object> input) {
         Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
         workflowAccessService.assertCanExecute(workflow, accessContext);
