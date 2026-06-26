@@ -83,4 +83,41 @@ public class GoogleOAuthServiceImpl implements GoogleOAuthService {
 
         userIntegrationRepository.save(integration);
     }
+
+    @Override
+    public UserIntegration refreshTokenIfNeeded(UserIntegration integration) {
+        if (integration.getExpiresAt() != null && integration.getExpiresAt().isAfter(LocalDateTime.now())) {
+            return integration;
+        }
+
+        if (integration.getRefreshToken() == null || integration.getRefreshToken().isBlank()) {
+            throw new IllegalStateException("Gmail access token expired and refresh token is missing");
+        }
+
+        LinkedMultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("client_id", properties.getClientId());
+        form.add("client_secret", properties.getClientSecret());
+        form.add("refresh_token", integration.getRefreshToken());
+        form.add("grant_type", "refresh_token");
+
+        GoogleTokenResponse tokenResponse = RestClient.create()
+                .post()
+                .uri(GOOGLE_TOKEN_URL)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(form)
+                .retrieve()
+                .body(GoogleTokenResponse.class);
+
+        if (tokenResponse == null || tokenResponse.getAccessToken() == null) {
+            throw new IllegalStateException("Could not refresh Gmail access token");
+        }
+
+        integration.setAccessToken(tokenResponse.getAccessToken());
+        if (tokenResponse.getExpiresIn() != null) {
+            integration.setExpiresAt(LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn()));
+        }
+        integration.setUpdatedAt(LocalDateTime.now());
+
+        return userIntegrationRepository.save(integration);
+    }
 }

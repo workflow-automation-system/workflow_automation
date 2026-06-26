@@ -54,6 +54,7 @@ const AppConnections = () => {
     connected: false,
     scope: '',
     updatedAt: null,
+    healthStatus: 'Warning',
   });
   const [connectingGmail, setConnectingGmail] = React.useState(false);
   const gmailConnected = gmailStatus.connected;
@@ -63,6 +64,7 @@ const AppConnections = () => {
     connected: false,
     scope: '',
     updatedAt: null,
+    healthStatus: 'Warning',
   });
   const [connectingSlack, setConnectingSlack] = React.useState(false);
 
@@ -71,6 +73,7 @@ const AppConnections = () => {
     connected: false,
     scope: '',
     updatedAt: null,
+    healthStatus: 'Warning',
   });
   const [connectingNotion, setConnectingNotion] = React.useState(false);
 
@@ -79,10 +82,16 @@ const AppConnections = () => {
   const [error, setError] = React.useState('');
   const [searchQuery, setSearchQuery] = React.useState('');
 
+  const [activeMenu, setActiveMenu] = React.useState(null); // Stocke le nom de l'app active ('Gmail', 'Slack', 'Notion') ou null
+  const [selectedDetails, setSelectedDetails] = React.useState(null); // Stocke l'application sélectionnée pour les détails ou null
+  const [disconnectModal, setDisconnectModal] = React.useState({ open: false, connection: null });
+  const [disconnectingConnection, setDisconnectingConnection] = React.useState(null);
+  const [testingStatus, setTestingStatus] = React.useState({}); // Stocke le statut du test par application: { Gmail: 'testing' | 'success' | 'error' | null }
+
   const loadGmailStatus = React.useCallback(async () => {
     const userId = Number(user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
-      setGmailStatus({ connected: false, scope: '', updatedAt: null });
+      setGmailStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       return;
     }
 
@@ -93,9 +102,10 @@ const AppConnections = () => {
         connected: Boolean(status?.connected),
         scope: status?.scope || '',
         updatedAt: status?.updatedAt || null,
+        healthStatus: status?.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
       });
     } catch (err) {
-      setGmailStatus({ connected: false, scope: '', updatedAt: null });
+      setGmailStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       setError(err.message || 'Failed to load Gmail connection status.');
     } finally {
       setLoadingConnections(false);
@@ -105,7 +115,7 @@ const AppConnections = () => {
   const loadSlackStatus = React.useCallback(async () => {
     const userId = Number(user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
-      setSlackStatus({ connected: false, scope: '', updatedAt: null });
+      setSlackStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       return;
     }
 
@@ -116,9 +126,10 @@ const AppConnections = () => {
         connected: Boolean(status?.connected),
         scope: status?.scope || '',
         updatedAt: status?.updatedAt || null,
+        healthStatus: status?.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
       });
     } catch (err) {
-      setSlackStatus({ connected: false, scope: '', updatedAt: null });
+      setSlackStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       setError(err.message || 'Failed to load Slack connection status.');
     } finally {
       setLoadingConnections(false);
@@ -128,7 +139,7 @@ const AppConnections = () => {
   const loadNotionStatus = React.useCallback(async () => {
     const userId = Number(user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
-      setNotionStatus({ connected: false, scope: '', updatedAt: null });
+      setNotionStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       return;
     }
 
@@ -139,9 +150,10 @@ const AppConnections = () => {
         connected: Boolean(status?.connected),
         scope: status?.scope || '',
         updatedAt: status?.updatedAt || null,
+        healthStatus: status?.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
       });
     } catch (err) {
-      setNotionStatus({ connected: false, scope: '', updatedAt: null });
+      setNotionStatus({ connected: false, scope: '', updatedAt: null, healthStatus: 'Warning' });
       setError(err.message || 'Failed to load Notion connection status.');
     } finally {
       setLoadingConnections(false);
@@ -196,7 +208,7 @@ const AppConnections = () => {
       list.push({
         name: 'Gmail',
         domain: 'Email',
-        status: 'Healthy',
+        status: gmailStatus.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
         lastSync: gmailStatus.updatedAt
           ? new Date(gmailStatus.updatedAt).toLocaleString()
           : 'Connected',
@@ -211,7 +223,7 @@ const AppConnections = () => {
       list.push({
         name: 'Slack',
         domain: 'Chat',
-        status: 'Healthy',
+        status: slackStatus.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
         lastSync: slackStatus.updatedAt
           ? new Date(slackStatus.updatedAt).toLocaleString()
           : 'Connected',
@@ -223,7 +235,7 @@ const AppConnections = () => {
       list.push({
         name: 'Notion',
         domain: 'Productivity',
-        status: 'Healthy',
+        status: notionStatus.healthStatus === 'Healthy' ? 'Healthy' : 'Warning',
         lastSync: notionStatus.updatedAt
           ? new Date(notionStatus.updatedAt).toLocaleString()
           : 'Connected',
@@ -232,7 +244,7 @@ const AppConnections = () => {
     }
 
     return list;
-  }, [gmailConnected, gmailStatus.scope, gmailStatus.updatedAt, slackStatus.connected, slackStatus.scope, slackStatus.updatedAt, notionStatus.connected, notionStatus.updatedAt]);
+  }, [gmailConnected, gmailStatus.healthStatus, gmailStatus.scope, gmailStatus.updatedAt, slackStatus.connected, slackStatus.healthStatus, slackStatus.scope, slackStatus.updatedAt, notionStatus.connected, notionStatus.healthStatus, notionStatus.updatedAt]);
 
   const filteredConnections = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -241,6 +253,16 @@ const AppConnections = () => {
       `${connection.name} ${connection.domain} ${connection.status}`.toLowerCase().includes(query)
     );
   }, [connectedConnections, searchQuery]);
+
+  const getHealthBadgeClass = (status) => {
+    if (status === 'Healthy') {
+      return 'bg-[#D0FFA4] text-[#292D32]';
+    }
+    if (status === 'Warning') {
+      return 'bg-red-50 text-red-600 border border-red-200';
+    }
+    return 'bg-white text-[#5C5C5C] border border-[#E2E8F0]';
+  };
 
   const handleConnectGmail = async () => {
     setConnectingGmail(true);
@@ -296,6 +318,76 @@ const AppConnections = () => {
     } catch (err) {
       setError(err.message || 'Failed to start Notion connection.');
       setConnectingNotion(false);
+    }
+  };
+  const handleDisconnect = async (appName) => {
+    const userId = Number(user?.id);
+    if (!Number.isFinite(userId) || userId <= 0) return;
+
+    setError('');
+    setSuccessMessage('');
+    setDisconnectingConnection(appName);
+    try {
+      if (appName === 'Gmail') {
+        await integrationApi.disconnectGoogle(userId);
+        loadGmailStatus();
+      } else if (appName === 'Slack') {
+        await integrationApi.disconnectSlack(userId);
+        loadSlackStatus();
+      } else if (appName === 'Notion') {
+        await integrationApi.disconnectNotion(userId);
+        loadNotionStatus();
+      }
+      setDisconnectModal({ open: false, connection: null });
+      setSuccessMessage(`${appName} disconnected successfully.`);
+    } catch (err) {
+      setError(`Failed to disconnect ${appName}: ${err.message}`);
+    } finally {
+      setDisconnectingConnection(null);
+    }
+  };
+
+  const handleTestConnection = async (appName) => {
+    const userId = Number(user?.id);
+    if (!Number.isFinite(userId) || userId <= 0) return;
+
+    setError('');
+    setSuccessMessage('');
+    setTestingStatus((prev) => ({ ...prev, [appName]: 'testing' }));
+
+    try {
+      let response;
+      if (appName === 'Gmail') {
+        response = await integrationApi.testGoogleConnection(userId);
+      } else if (appName === 'Slack') {
+        response = await integrationApi.testSlackConnection(userId);
+      } else if (appName === 'Notion') {
+        response = await integrationApi.testNotionConnection(userId);
+      }
+
+      if (response?.success) {
+        setSuccessMessage(`${appName} connection is active and working perfectly!`);
+        setTestingStatus((prev) => ({ ...prev, [appName]: 'success' }));
+        if (appName === 'Gmail') {
+          setGmailStatus((prev) => ({ ...prev, healthStatus: 'Healthy' }));
+        } else if (appName === 'Slack') {
+          setSlackStatus((prev) => ({ ...prev, healthStatus: 'Healthy' }));
+        } else if (appName === 'Notion') {
+          setNotionStatus((prev) => ({ ...prev, healthStatus: 'Healthy' }));
+        }
+      } else {
+        throw new Error(response?.message || 'Connection test failed.');
+      }
+    } catch (err) {
+      setError(`Test failed for ${appName}: ${err.message}`);
+      setTestingStatus((prev) => ({ ...prev, [appName]: 'error' }));
+      if (appName === 'Gmail') {
+        setGmailStatus((prev) => ({ ...prev, healthStatus: 'Warning' }));
+      } else if (appName === 'Slack') {
+        setSlackStatus((prev) => ({ ...prev, healthStatus: 'Warning' }));
+      } else if (appName === 'Notion') {
+        setNotionStatus((prev) => ({ ...prev, healthStatus: 'Warning' }));
+      }
     }
   };
 
@@ -357,7 +449,7 @@ const AppConnections = () => {
         </div>
       ) : null}
 
-      <section className="enterprise-card overflow-hidden">
+      <section className="enterprise-card overflow-visible">
         <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-[#292D32]">Connected Apps</h2>
@@ -395,20 +487,67 @@ const AppConnections = () => {
               <div className="flex flex-wrap items-center gap-3 text-xs text-[#5C5C5C]">
                 <span className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1">{connection.scopes} scopes</span>
                 <span className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1">Connected {connection.lastSync}</span>
-                {connection.status === 'Healthy' ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2.5 py-1 font-semibold text-[#292D32]">
-                    <CheckCircle2 size={12} />
-                    Healthy
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#D0FFA4] px-2.5 py-1 font-semibold text-[#292D32]">
-                    <AlertCircle size={12} />
-                    Warning
-                  </span>
-                )}
-                <button type="button" className="rounded-lg p-1.5 text-[#5C5C5C] hover:bg-white">
-                  <MoreHorizontal size={16} />
-                </button>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold ${getHealthBadgeClass(connection.status)}`}>
+                  {connection.status === 'Healthy' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                  {connection.status}
+                </span>
+                <div className="relative">
+                  <button
+                      type="button"
+                      onClick={() => setActiveMenu(activeMenu === connection.name ? null : connection.name)}
+                      className="rounded-lg p-1.5 text-[#5C5C5C] hover:bg-white transition-colors"
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+
+                  {activeMenu === connection.name && (
+                      <>
+                        {/* Overlay invisible pour fermer le menu lors d'un clic en dehors */}
+                        <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setActiveMenu(null)}
+                        />
+
+                        <div className="absolute right-0 mt-1 w-48 rounded-xl border border-[#E2E8F0] bg-white p-1.5 shadow-lg z-20 font-urbanist animate-in fade-in slide-in-from-top-2 duration-200">
+                          <button
+                              type="button"
+                              onClick={() => {
+                                setActiveMenu(null);
+                                handleTestConnection(connection.name);
+                              }}
+                              disabled={testingStatus[connection.name] === 'testing'}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#292D32] hover:bg-[#F6F5FA] disabled:opacity-60 transition-colors"
+                          >
+                            {testingStatus[connection.name] === 'testing' ? 'Testing...' : 'Test Connection'}
+                          </button>
+
+                          <button
+                              type="button"
+                              onClick={() => {
+                                setActiveMenu(null);
+                                setSelectedDetails(connection);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#292D32] hover:bg-[#F6F5FA] transition-colors"
+                          >
+                            View Details
+                          </button>
+
+                          <div className="my-1 border-t border-[#E2E8F0]" />
+
+                          <button
+                              type="button"
+                              onClick={() => {
+                                setActiveMenu(null);
+                                setDisconnectModal({ open: true, connection });
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      </>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -450,6 +589,91 @@ const AppConnections = () => {
             ))}
           </div>
         </div>
+      </Modal>
+
+      {/* Modale de Détails de Connexion */}
+      <Modal
+          isOpen={disconnectModal.open}
+          onClose={() => setDisconnectModal({ open: false, connection: null })}
+          title="Disconnect App"
+      >
+        <p className="mb-5 text-sm text-[#5C5C5C]">
+          Disconnect <strong className="text-[#292D32]">{disconnectModal.connection?.name}</strong>? This cannot be undone.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+              type="button"
+              onClick={() => setDisconnectModal({ open: false, connection: null })}
+              className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
+          >
+            Cancel
+          </button>
+          <button
+              type="button"
+              onClick={() => handleDisconnect(disconnectModal.connection?.name)}
+              disabled={disconnectingConnection === disconnectModal.connection?.name}
+              className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-70"
+          >
+            {disconnectingConnection === disconnectModal.connection?.name ? 'Disconnecting...' : 'Disconnect'}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+          isOpen={Boolean(selectedDetails)}
+          onClose={() => setSelectedDetails(null)}
+          title={`${selectedDetails?.name} Connection Details`}
+          size="md"
+      >
+        {selectedDetails && (
+            <div className="space-y-5 font-urbanist text-sm">
+              <div className="flex items-center gap-3 pb-4 border-b border-[#E2E8F0]">
+                <div className="rounded-xl border border-[#E2E8F0] bg-white p-2.5">
+                  {selectedDetails.name === 'Gmail' && <GmailLogo />}
+                  {selectedDetails.name === 'Slack' && <SlackLogo />}
+                  {selectedDetails.name === 'Notion' && <NotionLogo />}
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-[#292D32]">{selectedDetails.name}</h4>
+                  <p className="text-xs text-[#5C5C5C]">{selectedDetails.domain}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-[#5C5C5C] font-semibold text-xs uppercase tracking-wider">Health Status</span>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold text-xs ${getHealthBadgeClass(selectedDetails.status)}`}>
+                    {selectedDetails.status === 'Healthy' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                    {selectedDetails.status}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-1 border-t border-[#F1F5F9]">
+                  <span className="text-[#5C5C5C] font-semibold text-xs uppercase tracking-wider">Permissions Scopes</span>
+                  <span className="text-[#292D32] font-bold text-xs bg-[#F6F5FA] px-2.5 py-1 rounded-lg border border-[#E2E8F0]">
+                    {selectedDetails.scopes} Scopes approved
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-1 border-t border-[#F1F5F9]">
+                  <span className="text-[#5C5C5C] font-semibold text-xs uppercase tracking-wider">Last Sync</span>
+                  <span className="text-[#292D32] font-semibold text-xs">
+                    {selectedDetails.lastSync}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#E2E8F0] flex justify-end">
+                <button
+                    type="button"
+                    onClick={() => setSelectedDetails(null)}
+                    className="rounded-xl bg-[#292D32] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#3C4249] transition-colors"
+                >
+                  Close Details
+                </button>
+              </div>
+            </div>
+        )}
       </Modal>
     </div>
   );

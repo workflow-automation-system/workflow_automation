@@ -40,6 +40,18 @@ public class GoogleIntegrationController {
         response.put("provider", "gmail");
         response.put("scope", integration.map(UserIntegration::getScope).orElse(""));
         response.put("updatedAt", integration.map(UserIntegration::getUpdatedAt).orElse(null));
+        response.put("healthStatus", "Warning");
+
+        if (integration.isPresent()) {
+            try {
+                verifyGmailConnection(integration.get());
+                response.put("healthStatus", "Healthy");
+                response.put("healthMessage", "Gmail connection is active and working.");
+            } catch (Exception e) {
+                response.put("healthStatus", "Warning");
+                response.put("healthMessage", "Gmail connection needs reconnection.");
+            }
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -55,6 +67,55 @@ public class GoogleIntegrationController {
                 .status(302)
                 .location(URI.create(frontendUrl + "/app-connections?gmail=connected"))
                 .build();
+    }
+
+    @DeleteMapping("/disconnect")
+    public ResponseEntity<Map<String, Object>> disconnect(@RequestParam Long userId) {
+        Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "gmail");
+        if (integration.isPresent()) {
+            userIntegrationRepository.delete(integration.get());
+        }
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Google account disconnected successfully.");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<Map<String, Object>> testConnection(@RequestParam Long userId) {
+        Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "gmail");
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+
+        if (integration.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Gmail is not connected.");
+            return ResponseEntity.status(404).body(response);
+        }
+
+        try {
+            // Appel léger à l'API Google pour vérifier la validité du token
+            verifyGmailConnection(integration.get());
+
+            response.put("success", true);
+            response.put("message", "Gmail connection is active and working!");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Gmail connection failed. Please reconnect Gmail.");
+            return ResponseEntity.status(400).body(response);
+        }
+    }
+
+    private void verifyGmailConnection(UserIntegration integration) {
+        UserIntegration activeIntegration = googleOAuthService.refreshTokenIfNeeded(integration);
+
+        org.springframework.web.client.RestClient.create()
+                .get()
+                .uri("https://gmail.googleapis.com/gmail/v1/users/me/profile")
+                .header("Authorization", "Bearer " + activeIntegration.getAccessToken())
+                .retrieve()
+                .toBodilessEntity();
     }
 
 }

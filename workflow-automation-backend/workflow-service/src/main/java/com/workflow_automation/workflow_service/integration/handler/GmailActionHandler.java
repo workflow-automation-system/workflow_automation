@@ -1,11 +1,10 @@
 package com.workflow_automation.workflow_service.integration.handler;
 
-import com.workflow_automation.workflow_service.config.GoogleOAuthProperties;
-import com.workflow_automation.workflow_service.dto.response.GoogleTokenResponse;
 import com.workflow_automation.workflow_service.entity.Node;
 import com.workflow_automation.workflow_service.entity.UserIntegration;
 import com.workflow_automation.workflow_service.integration.ApplicationActionHandler;
 import com.workflow_automation.workflow_service.repository.UserIntegrationRepository;
+import com.workflow_automation.workflow_service.service.GoogleOAuthService;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
@@ -14,11 +13,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestClient;
 
 import java.io.ByteArrayOutputStream;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -31,12 +28,11 @@ import java.util.Properties;
 public class GmailActionHandler implements ApplicationActionHandler {
 
     private static final String PROVIDER_GMAIL = "gmail";
-    private static final String GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
     private static final String GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
     private static final String GMAIL_MESSAGES_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
 
     private final UserIntegrationRepository userIntegrationRepository;
-    private final GoogleOAuthProperties googleOAuthProperties;
+    private final GoogleOAuthService googleOAuthService;
 
     @Override
     public String getApplicationKey() {
@@ -51,7 +47,7 @@ public class GmailActionHandler implements ApplicationActionHandler {
                 .findByUserIdAndProvider(userId, PROVIDER_GMAIL)
                 .orElseThrow(() -> new IllegalStateException("Gmail is not connected for user: " + userId));
 
-        integration = refreshTokenIfNeeded(integration);
+        integration = googleOAuthService.refreshTokenIfNeeded(integration);
 
         String action = stringValue(config.getOrDefault("action", "send_email"));
 
@@ -184,40 +180,6 @@ public class GmailActionHandler implements ApplicationActionHandler {
                 "count", messages.size(),
                 "messages", messages
         );
-    }
-
-    private UserIntegration refreshTokenIfNeeded(UserIntegration integration) {
-        if (integration.getExpiresAt() != null && integration.getExpiresAt().isAfter(LocalDateTime.now())) {
-            return integration;
-        }
-
-        if (integration.getRefreshToken() == null || integration.getRefreshToken().isBlank()) {
-            throw new IllegalStateException("Gmail access token expired and refresh token is missing");
-        }
-
-        LinkedMultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("client_id", googleOAuthProperties.getClientId());
-        form.add("client_secret", googleOAuthProperties.getClientSecret());
-        form.add("refresh_token", integration.getRefreshToken());
-        form.add("grant_type", "refresh_token");
-
-        GoogleTokenResponse tokenResponse = RestClient.create()
-                .post()
-                .uri(GOOGLE_TOKEN_URL)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(form)
-                .retrieve()
-                .body(GoogleTokenResponse.class);
-
-        if (tokenResponse == null || tokenResponse.getAccessToken() == null) {
-            throw new IllegalStateException("Could not refresh Gmail access token");
-        }
-
-        integration.setAccessToken(tokenResponse.getAccessToken());
-        integration.setExpiresAt(LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn()));
-        integration.setUpdatedAt(LocalDateTime.now());
-
-        return userIntegrationRepository.save(integration);
     }
 
     private String createRawEmail(String to, String subject, String body) {

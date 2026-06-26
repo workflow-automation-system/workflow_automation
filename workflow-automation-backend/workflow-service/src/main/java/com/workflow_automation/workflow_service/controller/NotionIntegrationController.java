@@ -42,6 +42,18 @@ public class NotionIntegrationController {
         response.put("provider", "notion");
         response.put("scope", integration.map(UserIntegration::getScope).orElse(""));
         response.put("updatedAt", integration.map(UserIntegration::getUpdatedAt).orElse(null));
+        response.put("healthStatus", "Warning");
+
+        if (integration.isPresent()) {
+            try {
+                verifyNotionConnection(integration.get());
+                response.put("healthStatus", "Healthy");
+                response.put("healthMessage", "Notion connection is active and working.");
+            } catch (Exception e) {
+                response.put("healthStatus", "Warning");
+                response.put("healthMessage", "Notion connection needs reconnection.");
+            }
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -65,5 +77,52 @@ public class NotionIntegrationController {
                 .status(302)
                 .location(URI.create(frontendUrl + "/app-connections?notion=connected"))
                 .build();
+    }
+
+    @DeleteMapping("/disconnect")
+    public ResponseEntity<Map<String, Object>> disconnect(@RequestParam Long userId) {
+        Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "notion");
+        if (integration.isPresent()) {
+            userIntegrationRepository.delete(integration.get());
+        }
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Notion account disconnected successfully.");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<Map<String, Object>> testConnection(@RequestParam Long userId) {
+        Optional<UserIntegration> integration = userIntegrationRepository.findByUserIdAndProvider(userId, "notion");
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+
+        if (integration.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Notion is not connected.");
+            return ResponseEntity.status(404).body(response);
+        }
+
+        try {
+            verifyNotionConnection(integration.get());
+
+            response.put("success", true);
+            response.put("message", "Notion connection is active and working!");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Notion connection failed: " + e.getMessage());
+            return ResponseEntity.status(400).body(response);
+        }
+    }
+
+    private void verifyNotionConnection(UserIntegration integration) {
+        org.springframework.web.client.RestClient.create()
+                .get()
+                .uri("https://api.notion.com/v1/users/me")
+                .header("Authorization", "Bearer " + integration.getAccessToken())
+                .header("Notion-Version", "2022-06-28")
+                .retrieve()
+                .toBodilessEntity();
     }
 }
