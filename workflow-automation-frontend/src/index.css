@@ -199,3 +199,8 @@ body {
   animation: floatY 8s ease-in-out infinite;
 }
 
+/* Hide native browser password reveal icons (e.g. Edge) to prevent double eye icons */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
