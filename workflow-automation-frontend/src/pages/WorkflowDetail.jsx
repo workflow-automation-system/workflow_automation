@@ -74,6 +74,7 @@ const WorkflowDetail = () => {
   const [action, setAction] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
+  const [missingIntegrationError, setMissingIntegrationError] = React.useState(null);
   const { user } = useAuthStore();
 
   React.useEffect(() => {
@@ -191,12 +192,8 @@ const WorkflowDetail = () => {
       setTimeout(() => fetchExecutions(workflow.id), 1000);
     } catch (err) {
       if (err.message && err.message.startsWith('MISSING_INTEGRATION:')) {
-        showToast(
-          <span>
-            You are not connected to this app please go to page app connecion and add it <Link to="/app-connections" className="underline font-medium text-blue-600">here</Link>
-          </span>,
-          'error'
-        );
+        const provider = err.message.split(':')[1] || 'the app';
+        setMissingIntegrationError(provider);
       } else {
         showToast(err.message || 'Failed to execute workflow', 'error');
       }
@@ -517,7 +514,8 @@ const WorkflowDetail = () => {
           <button
             type="button"
             onClick={() => setShowDeleteModal(false)}
-            className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
+            disabled={action === 'delete'}
+            className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:bg-[#F8FAFC]"
           >
             Cancel
           </button>
@@ -525,10 +523,38 @@ const WorkflowDetail = () => {
             type="button"
             onClick={handleDeleteWorkflow}
             disabled={action === 'delete'}
-            className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-60"
+            className="flex min-w-[80px] items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
           >
-            {action === 'delete' ? 'Deleting...' : 'Delete'}
+            {action === 'delete' ? <Loader2 size={16} className="animate-spin" /> : 'Delete'}
           </button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!missingIntegrationError} onClose={() => setMissingIntegrationError(null)} title="Connection Required" size="sm">
+        <div className="flex flex-col items-center justify-center p-4 text-center space-y-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
+            <AlertCircle size={24} />
+          </div>
+          <p className="text-sm text-[#5C5C5C]">
+            You are not connected to <strong className="capitalize">{missingIntegrationError}</strong>. 
+            <br />
+            Please go to the App Connections page and add it before executing this workflow.
+          </p>
+          <div className="pt-4 flex w-full gap-3">
+            <button
+              type="button"
+              onClick={() => setMissingIntegrationError(null)}
+              className="flex-1 rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:bg-[#F8FAFC]"
+            >
+              Cancel
+            </button>
+            <Link
+              to="/app-connections"
+              className="flex-1 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white flex items-center justify-center hover:bg-[#3C4249]"
+            >
+              Go to Connections
+            </Link>
+          </div>
         </div>
       </Modal>
 
