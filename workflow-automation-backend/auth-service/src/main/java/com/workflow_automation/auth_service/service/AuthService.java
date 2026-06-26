@@ -98,8 +98,8 @@ public class AuthService {
                 "USER",
                 savedUser.getId(),
                 "SUCCESS",
-                request.getIpAddress(),
-                request.getUserAgent(),
+                null,
+                null,
                 java.util.Map.of("role", savedUser.getRole().name())
         );
 
