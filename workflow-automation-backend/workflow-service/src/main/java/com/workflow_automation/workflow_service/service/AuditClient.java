@@ -13,7 +13,7 @@ public class AuditClient {
 
     private final RestClient restClient;
 
-    public AuditClient(@Value("${audit.service.url:http://localhost:8086/api/audit}") String auditServiceUrl) {
+    public AuditClient(@Value("${audit.service.url:${AUDIT_SERVICE_URI:http://localhost:8086}/api/audit}") String auditServiceUrl) {
         this.restClient = RestClient.builder()
                 .baseUrl(auditServiceUrl)
                 .build();
