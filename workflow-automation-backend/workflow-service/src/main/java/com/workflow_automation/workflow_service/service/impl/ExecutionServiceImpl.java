@@ -23,6 +23,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.workflow_automation.workflow_service.integration.ApplicationActionHandler;
 import com.workflow_automation.workflow_service.integration.ApplicationActionRegistry;
 import com.workflow_automation.workflow_service.security.AccessContext;
+import com.workflow_automation.workflow_service.service.AuditClient;
+import com.workflow_automation.workflow_service.dto.audit.AuditLogRequest;
 
 
 import java.time.LocalDateTime;
@@ -49,6 +51,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final WorkflowAccessService workflowAccessService;
     private final RabbitTemplate rabbitTemplate;
     private final com.workflow_automation.workflow_service.repository.UserIntegrationRepository userIntegrationRepository;
+    private final AuditClient auditClient;
 
     @Value("${app.rabbitmq.exchange}")
     private String exchangeName;
@@ -62,6 +65,24 @@ public class ExecutionServiceImpl implements ExecutionService {
         Workflow workflow = workflowAccessService.getAccessibleWorkflow(workflowId, accessContext);
         workflowAccessService.assertCanExecute(workflow, accessContext);
         validateIntegrations(workflow, accessContext.getUserId());
+
+        try {
+            auditClient.record(AuditLogRequest.builder()
+                    .userId(accessContext.getUserId())
+                    .actorEmail("User " + accessContext.getUserId())
+                    .organizationId(accessContext.getOrganizationId())
+                    .action("WORKFLOW_EXECUTED")
+                    .entityType("WORKFLOW")
+                    .entityId(workflowId)
+                    .outcome("SUCCESS")
+                    .metadata(Map.of(
+                            "workflowName", workflow.getName(),
+                            "reason", "Triggered by user"
+                    ))
+                    .build());
+        } catch (Exception e) {
+            log.warn("Failed to send audit log", e);
+        }
 
         WorkflowExecutionMessage message = WorkflowExecutionMessage.builder()
                 .workflowId(workflowId)
