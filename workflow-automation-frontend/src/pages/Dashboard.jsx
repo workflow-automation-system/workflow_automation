@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Activity,
   AlertTriangle,
   ArrowRight,
   ChartSpline,
@@ -12,7 +13,6 @@ import {
   Eye,
   Loader2,
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuthStore } from '../stores/authStore';
 import useWorkflowStore from '../stores/workflowStore';
 import { canCreateWorkflow, getRole } from '../utils/rbac';
@@ -42,37 +42,23 @@ const Dashboard = () => {
     fetchWorkflows();
   }, [fetchWorkflows]);
 
-  const computedGraphData = React.useMemo(() => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-
-    const counts = Array(12).fill(0);
-
-    if (workflows && workflows.length > 0) {
+  const recentActivity = React.useMemo(() => {
+    let allExecutions = [];
+    if (workflows) {
       workflows.forEach(w => {
         if (w.executions) {
           w.executions.forEach(ex => {
-            if (!ex.startedAt) return;
-            const exDate = new Date(ex.startedAt);
-            const diffTime = today.getTime() - exDate.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays >= 0 && diffDays < 12) {
-              counts[11 - diffDays]++;
-            }
+            allExecutions.push({
+              ...ex,
+              workflowName: w.name || 'Unnamed Workflow'
+            });
           });
         }
       });
     }
-
-    return counts.map((count, index) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() - (11 - index));
-      return {
-        name: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        executions: count
-      };
-    });
+    // Sort by startedAt descending
+    allExecutions.sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
+    return allExecutions.slice(0, 5); // Take top 5
   }, [workflows]);
 
   // Compute metrics
@@ -164,56 +150,46 @@ const Dashboard = () => {
         <article className="enterprise-card xl:col-span-8 p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-medium text-[#292D32]">Automation Flow Performance</h2>
+              <h2 className="text-2xl font-medium text-[#292D32]">Recent Activity Feed</h2>
               <p className="text-base text-[#5E6672]">
-                Manage, monitor, and scale enterprise connections and data workflows across all business units.
+                Monitor the latest workflow executions across your workspace.
               </p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3 py-1 text-xs font-semibold text-[#5E6672]">
-              <Network size={12} />
-              Weekly Trend
+              <Activity size={12} />
+              Live Updates
             </span>
           </div>
 
-          <div className="rounded-2xl border border-[#E2E8F0] bg-[#FAFAFC] p-4 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={computedGraphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorExecutions" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#D0FFA4" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#D0FFA4" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#8D95A1' }} 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#8D95A1' }}
-                  allowDecimals={false}
-                />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                  itemStyle={{ color: '#292D32', fontWeight: 600 }}
-                  labelStyle={{ color: '#5E6672', marginBottom: '4px' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="executions" 
-                  stroke="#292D32" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorExecutions)" 
-                  activeDot={{ r: 6, fill: '#D0FFA4', stroke: '#292D32', strokeWidth: 2 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-[#FAFAFC] p-2">
+            {recentActivity.length === 0 ? (
+              <div className="flex h-56 flex-col items-center justify-center text-center">
+                <p className="text-sm text-[#5E6672]">No recent activity found. Run a workflow to see it here.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-[#E2E8F0]">
+                {recentActivity.map((activity, index) => (
+                  <div key={activity.id || index} className="flex items-center justify-between p-4 bg-white first:rounded-t-xl last:rounded-b-xl hover:bg-[#F8FFEE] transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${activity.status === 'SUCCESS' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-red-100 text-red-600'}`}>
+                        {activity.status === 'SUCCESS' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+                      </div>
+                      <div>
+                        <p className="text-base font-semibold text-[#292D32]">{activity.workflowName}</p>
+                        <p className="text-sm text-[#5E6672]">
+                          {activity.startedAt ? new Date(activity.startedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Unknown date'}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border ${activity.status === 'SUCCESS' ? 'border-[#D0FFA4] bg-[#F8FFEE] text-[#292D32]' : 'border-red-200 bg-red-50 text-red-700'}`}>
+                        {activity.status === 'SUCCESS' ? 'Success' : 'Failed'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </article>
 
