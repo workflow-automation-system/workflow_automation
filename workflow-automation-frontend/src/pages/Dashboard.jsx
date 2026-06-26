@@ -12,6 +12,7 @@ import {
   Eye,
   Loader2,
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuthStore } from '../stores/authStore';
 import useWorkflowStore from '../stores/workflowStore';
 import { canCreateWorkflow, getRole } from '../utils/rbac';
@@ -42,41 +43,37 @@ const Dashboard = () => {
   }, [fetchWorkflows]);
 
   const computedGraphData = React.useMemo(() => {
-    if (!workflows || workflows.length === 0) return Array(12).fill(10);
-
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
     const counts = Array(12).fill(0);
 
-    workflows.forEach(w => {
-      if (w.executions) {
-        w.executions.forEach(ex => {
-          if (!ex.startedAt) return;
-          const exDate = new Date(ex.startedAt);
-          const diffTime = today.getTime() - exDate.getTime();
-          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (workflows && workflows.length > 0) {
+      workflows.forEach(w => {
+        if (w.executions) {
+          w.executions.forEach(ex => {
+            if (!ex.startedAt) return;
+            const exDate = new Date(ex.startedAt);
+            const diffTime = today.getTime() - exDate.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-          if (diffDays >= 0 && diffDays < 12) {
-            counts[11 - diffDays]++;
-          }
-        });
-      }
-    });
-
-    const totalCounts = counts.reduce((a, b) => a + b, 0);
-    if (totalCounts === 0) {
-      // Return a flat line at the bottom of the graph when there is no data
-      return Array(12).fill(10);
+            if (diffDays >= 0 && diffDays < 12) {
+              counts[11 - diffDays]++;
+            }
+          });
+        }
+      });
     }
 
-    const max = Math.max(...counts, 5);
-    return counts.map(c => Math.round((c / max) * 80) + 10);
+    return counts.map((count, index) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (11 - index));
+      return {
+        name: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        executions: count
+      };
+    });
   }, [workflows]);
-
-  const points = computedGraphData
-    .map((value, index) => `${index * (100 / (computedGraphData.length - 1))},${100 - value}`)
-    .join(' ');
 
   // Compute metrics
   const activeWorkflowsCount = workflows.filter(w => w.status === 'ACTIVE').length;
@@ -178,46 +175,45 @@ const Dashboard = () => {
             </span>
           </div>
 
-          <div className="rounded-2xl border border-[#E2E8F0] bg-[#FAFAFC] p-4">
-            <svg viewBox="0 0 100 100" className="h-72 w-full" preserveAspectRatio="none">
-              <polyline
-                fill="none"
-                stroke="#CBD5E1"
-                strokeWidth="2"
-                points="0,90 100,90"
-                vectorEffect="non-scaling-stroke"
-              />
-              <polyline
-                fill="none"
-                stroke="#CBD5E1"
-                strokeWidth="2"
-                points="0,70 100,70"
-                vectorEffect="non-scaling-stroke"
-              />
-              <polyline
-                fill="none"
-                stroke="#CBD5E1"
-                strokeWidth="2"
-                points="0,50 100,50"
-                vectorEffect="non-scaling-stroke"
-              />
-              <polyline
-                fill="none"
-                stroke="#CBD5E1"
-                strokeWidth="2"
-                points="0,30 100,30"
-                vectorEffect="non-scaling-stroke"
-              />
-              <polyline
-                fill="none"
-                stroke="#292D32"
-                strokeWidth="4"
-                points={points}
-                vectorEffect="non-scaling-stroke"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-[#FAFAFC] p-4 h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={computedGraphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorExecutions" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#D0FFA4" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#D0FFA4" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#8D95A1' }} 
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#8D95A1' }}
+                  allowDecimals={false}
+                />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                  itemStyle={{ color: '#292D32', fontWeight: 600 }}
+                  labelStyle={{ color: '#5E6672', marginBottom: '4px' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="executions" 
+                  stroke="#292D32" 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorExecutions)" 
+                  activeDot={{ r: 6, fill: '#D0FFA4', stroke: '#292D32', strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </article>
 
