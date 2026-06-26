@@ -304,7 +304,7 @@ const Register = () => {
   );
 };
 
-const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder, showPasswordToggle, showPassword, onTogglePassword }) => (
+const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder, error, showPasswordToggle, showPassword, onTogglePassword }) => (
   <label className="block">
     <span className="mb-1 block text-sm font-medium text-[#5C5C5C]">{label}</span>
     <div className="relative">
@@ -314,7 +314,7 @@ const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder,
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className={`w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 ${showPasswordToggle ? 'pr-10' : 'pr-3'} text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none`}
+        className={`w-full rounded-xl border ${error ? 'border-[#EF4444] focus:border-[#EF4444]' : 'border-[#E2E8F0] focus:border-[#D0FFA4]'} bg-white py-2.5 pl-9 ${showPasswordToggle ? 'pr-10' : 'pr-3'} text-sm text-[#292D32] focus:outline-none`}
       />
       {showPasswordToggle && (
         <button
