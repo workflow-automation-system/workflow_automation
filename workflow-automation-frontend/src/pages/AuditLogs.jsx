@@ -140,6 +140,8 @@ const AuditLogs = () => {
                     <div className="p-8 text-center text-sm text-[#5C5C5C]">Loading audit logs...</div>
                 ) : error ? (
                     <div className="p-5 text-sm text-red-600">{error}</div>
+                ) : logs.length === 0 ? (
+                    <div className="p-8 text-center text-sm text-[#5C5C5C]">No audit logs yet.</div>
                 ) : filteredLogs.length === 0 ? (
                     <div className="p-8 text-center text-sm text-[#5C5C5C]">No audit events match your search.</div>
                 ) : (
