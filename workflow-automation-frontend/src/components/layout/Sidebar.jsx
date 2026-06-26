@@ -87,7 +87,12 @@ const Sidebar = () => {
           <button
             type="button"
             title="Sign Out"
-            onClick={logout}
+            onClick={() => {
+              if (window.confirm('Are you sure you want to log out?')) {
+                logout();
+                navigate('/login');
+              }
+            }}
             className="flex h-11 w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#5E6672] transition-colors hover:border-[#D0FFA4] hover:text-[#292D32]"
           >
             <LogOut size={16} />
