@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Lock, Workflow } from 'lucide-react';
+import { ArrowRight, Lock, Workflow, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const ResetPassword = () => {
@@ -11,6 +11,8 @@ const ResetPassword = () => {
   
   const [passwords, setPasswords] = React.useState({ newPassword: '', confirmPassword: '' });
   const [error, setError] = React.useState(null);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   React.useEffect(() => {
     if (!token) {
@@ -65,12 +67,19 @@ const ResetPassword = () => {
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
                   <input
-                    type="password"
+                    type={showNewPassword ? 'text' : 'password'}
                     value={passwords.newPassword}
                     onChange={(e) => setPasswords(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                    className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-10 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
                     placeholder="Min. 8 characters"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#292D32]"
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
               </label>
 
@@ -79,12 +88,19 @@ const ResetPassword = () => {
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={passwords.confirmPassword}
                     onChange={(e) => setPasswords(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                    className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 pr-10 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
                     placeholder="Confirm password"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#292D32]"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
               </label>
 

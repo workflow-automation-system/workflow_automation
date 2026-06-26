@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BriefcaseBusiness, Building2, Check, Lock, Mail, User, Workflow, Users } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Building2, Check, Lock, Mail, User, Workflow, Users, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const Register = () => {
@@ -18,6 +18,8 @@ const Register = () => {
     confirmPassword: '',
   });
   const [formErrors, setFormErrors] = React.useState({});
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   React.useEffect(() => {
     if (isAuthenticated) navigate('/');
@@ -25,7 +27,7 @@ const Register = () => {
 
   React.useEffect(() => {
     clearError();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const validateStep2 = () => {
@@ -67,7 +69,7 @@ const Register = () => {
       return;
     }
     if (!validateStep3()) return;
-    
+
     const submitOrgName = formData.organizationName.trim();
 
     const result = await register({
@@ -136,7 +138,7 @@ const Register = () => {
 
             {step === 1 && (
               <div className="space-y-4 animate-fadeIn">
-                <div 
+                <div
                   onClick={() => setAccountType('admin')}
                   className={`cursor-pointer rounded-2xl border p-4 transition-all ${accountType === 'admin' ? 'border-[#D0FFA4] bg-[#F8FFEE]' : 'border-[#E2E8F0] hover:border-[#292D32]'}`}
                 >
@@ -151,7 +153,7 @@ const Register = () => {
                   </div>
                 </div>
 
-                <div 
+                <div
                   onClick={() => setAccountType('member')}
                   className={`cursor-pointer rounded-2xl border p-4 transition-all ${accountType === 'member' ? 'border-[#D0FFA4] bg-[#F8FFEE]' : 'border-[#E2E8F0] hover:border-[#292D32]'}`}
                 >
@@ -248,21 +250,25 @@ const Register = () => {
                 <Field
                   label="Password"
                   icon={Lock}
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(value) => setFormData((prev) => ({ ...prev, password: value }))}
                   placeholder="••••••••"
-                  error={formErrors.password}
+                  showPasswordToggle={true}
+                  showPassword={showPassword}
+                  onTogglePassword={() => setShowPassword(!showPassword)}
                 />
 
                 <Field
                   label="Confirm Password"
                   icon={Lock}
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={(value) => setFormData((prev) => ({ ...prev, confirmPassword: value }))}
                   placeholder="••••••••"
-                  error={formErrors.confirmPassword}
+                  showPasswordToggle={true}
+                  showPassword={showConfirmPassword}
+                  onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
                 />
 
                 <div className="flex gap-3 pt-2">
@@ -298,7 +304,7 @@ const Register = () => {
   );
 };
 
-const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder, error }) => (
+const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder, showPasswordToggle, showPassword, onTogglePassword }) => (
   <label className="block">
     <span className="mb-1 block text-sm font-medium text-[#5C5C5C]">{label}</span>
     <div className="relative">
@@ -308,8 +314,17 @@ const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder,
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className={`w-full rounded-xl border ${error ? 'border-[#EF4444] focus:border-[#EF4444]' : 'border-[#E2E8F0] focus:border-[#D0FFA4]'} bg-white py-2.5 pl-9 pr-3 text-sm text-[#292D32] focus:outline-none`}
+        className={`w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-9 ${showPasswordToggle ? 'pr-10' : 'pr-3'} text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none`}
       />
+      {showPasswordToggle && (
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#292D32]"
+        >
+          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      )}
     </div>
     {error && <span className="mt-1 block text-xs text-[#EF4444]">{error}</span>}
   </label>
