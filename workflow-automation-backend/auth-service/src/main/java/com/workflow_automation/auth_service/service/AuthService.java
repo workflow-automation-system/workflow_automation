@@ -90,6 +90,19 @@ public class AuthService {
         User savedUser = userRepository.save(user);
         log.info("Registration saved: userId={}, role={}", savedUser.getId(), savedUser.getRole());
 
+        recordAuthAudit(
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getOrganizationId(),
+                "USER_REGISTERED",
+                "USER",
+                savedUser.getId(),
+                "SUCCESS",
+                request.getIpAddress(),
+                request.getUserAgent(),
+                java.util.Map.of("role", savedUser.getRole().name())
+        );
+
         String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
         try {
             emailService.sendVerificationEmail(savedUser.getEmail(), verificationLink);
