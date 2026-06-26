@@ -66,8 +66,8 @@ const Dashboard = () => {
 
     const totalCounts = counts.reduce((a, b) => a + b, 0);
     if (totalCounts === 0) {
-      // Return a realistic baseline curve when there's no data so the dashboard looks alive
-      return [25, 22, 35, 30, 48, 42, 60, 55, 72, 68, 85, 80];
+      // Return a flat line at the bottom of the graph when there is no data
+      return Array(12).fill(10);
     }
 
     const max = Math.max(...counts, 5);
