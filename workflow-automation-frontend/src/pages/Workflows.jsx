@@ -165,7 +165,7 @@ const Workflows = () => {
       if (err.message && err.message.startsWith('MISSING_INTEGRATION:')) {
         showToast(
           <span>
-            You are not connected to this app please go to page app connecion and add it <Link to="/integrations" className="underline font-medium text-blue-600">here</Link>
+            You are not connected to this app please go to page app connecion and add it <Link to="/app-connections" className="underline font-medium text-blue-600">here</Link>
           </span>,
           'error'
         );
