@@ -33,7 +33,7 @@ public class NotionOAuthServiceImpl implements NotionOAuthService {
         // Notion throws a validation error if the state contains only digits (e.g., "1"),
         // because its query parser incorrectly converts numeric strings to numbers.
         // Prefixing with "user_" ensures it remains a string.
-        return UriComponentsBuilder.fromUriString(NOTION_AUTH_URL)
+        String authUrl = UriComponentsBuilder.fromUriString(NOTION_AUTH_URL)
                 .queryParam("client_id", properties.getClientId())
                 .queryParam("redirect_uri", properties.getRedirectUri())
                 .queryParam("response_type", "code")
@@ -41,6 +41,8 @@ public class NotionOAuthServiceImpl implements NotionOAuthService {
                 .queryParam("state", "user_" + userId)
                 .encode()
                 .toUriString();
+        log.info("Built Notion authorization URL: {}", authUrl);
+        return authUrl;
     }
 
     @Override
