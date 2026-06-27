@@ -184,7 +184,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     }
 
     private void executeActionNode(Node node, Map<String, Object> context, Execution execution) {
-        Map<String, Object> config = normalizeActionConfig(parseConfig(node.getConfig()), context);
+        Map<String, Object> config = normalizeActionConfig(node.getConfig(), context);
         String applicationKey = resolveApplicationKey(node, config);
 
         log.info("Executing application action '{}' for node '{}' with config: {}",
@@ -206,7 +206,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     }
 
     private boolean executeConditionNode(Node node, Map<String, Object> context, Execution execution) {
-        Map<String, Object> config = normalizeActionConfig(parseConfig(node.getConfig()), context);
+        Map<String, Object> config = normalizeActionConfig(node.getConfig(), context);
         String expression = stringValue(config.get("expression"));
         boolean matched = evaluateConditionExpression(expression, context);
         Map<String, Object> result = Map.of(
@@ -281,16 +281,11 @@ public class ExecutionServiceImpl implements ExecutionService {
         };
     }
 
-    private Map<String, Object> parseConfig(String rawConfig) {
-        if (rawConfig == null || rawConfig.trim().isEmpty()) {
+    private Map<String, Object> parseConfig(Map<String, Object> rawConfig) {
+        if (rawConfig == null) {
             return new HashMap<>();
         }
-
-        try {
-            return objectMapper.readValue(rawConfig, new TypeReference<>() {});
-        } catch (Exception exception) {
-            throw new IllegalArgumentException("Invalid JSON config for action node: " + rawConfig, exception);
-        }
+        return new HashMap<>(rawConfig);
     }
 
     private Map<String, Object> normalizeActionConfig(Map<String, Object> rawConfig, Map<String, Object> context) {

@@ -99,7 +99,7 @@ public class AiWorkflowService {
                     nodeResp.setName(nodeJson.has("name") ? nodeJson.get("name").asText() : "Node");
 
                     JsonNode configNode = nodeJson.get("config");
-                    String configJson = buildConfigJson(rawType, configNode);
+                    Map<String, Object> configJson = buildConfigJson(rawType, configNode);
                     nodeResp.setConfig(configJson);
 
                     // Position sequentially horizontally on the canvas
@@ -150,7 +150,7 @@ public class AiWorkflowService {
         return NodeType.ACTION;
     }
 
-    private String buildConfigJson(String type, JsonNode configNode) {
+    private Map<String, Object> buildConfigJson(String type, JsonNode configNode) {
         Map<String, Object> configMap = new HashMap<>();
         String typeLower = type != null ? type.toLowerCase() : "";
 
@@ -186,11 +186,7 @@ public class AiWorkflowService {
             configMap.put("settings", settings);
         }
 
-        try {
-            return mapper.writeValueAsString(configMap);
-        } catch (Exception e) {
-            return "{}";
-        }
+        return configMap;
     }
 
     private String getStringField(JsonNode node, String fieldName, String fallback) {

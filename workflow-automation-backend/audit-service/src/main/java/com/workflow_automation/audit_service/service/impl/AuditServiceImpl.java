@@ -33,11 +33,7 @@ public class AuditServiceImpl implements AuditService {
                 .build();
 
         if (request.getMetadata() != null) {
-            try {
-                log.setMetadata(objectMapper.writeValueAsString(request.getMetadata()));
-            } catch (JsonProcessingException e) {
-                log.setMetadata("{}");
-            }
+            log.setMetadata(request.getMetadata());
         }
 
         return repository.save(log);

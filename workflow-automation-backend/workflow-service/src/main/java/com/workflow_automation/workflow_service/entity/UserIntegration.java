@@ -10,6 +10,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import jakarta.persistence.Convert;
+import com.workflow_automation.workflow_service.converter.StringCryptoConverter;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,9 +27,11 @@ public class UserIntegration {
     private Long userId;
     private String provider;
 
+    @Convert(converter = StringCryptoConverter.class)
     @Column(columnDefinition = "TEXT")
     private String accessToken;
 
+    @Convert(converter = StringCryptoConverter.class)
     @Column(columnDefinition = "TEXT")
     private String refreshToken;
 
