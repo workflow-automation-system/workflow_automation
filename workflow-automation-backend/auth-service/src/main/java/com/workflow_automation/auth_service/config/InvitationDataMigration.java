@@ -58,8 +58,6 @@ public class InvitationDataMigration implements ApplicationRunner {
             Invitation invitation = Invitation.builder()
                     .email(user.getEmail())
                     .name(user.getName())
-                    .department(user.getDepartment())
-                    .jobTitle(user.getJobTitle())
                     .organizationId(user.getOrganizationId())
                     .role(user.getRole())
                     .token(user.getVerificationToken())

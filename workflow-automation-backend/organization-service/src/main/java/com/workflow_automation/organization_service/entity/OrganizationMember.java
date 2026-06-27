@@ -5,6 +5,12 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 @Entity
 @Table(
         name = "organization_members",
@@ -16,6 +22,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
+@SQLDelete(sql = "UPDATE organization_members SET deleted = true WHERE id=?")
+@Where(clause = "deleted=false")
 public class OrganizationMember {
 
     @Id
@@ -45,21 +54,13 @@ public class OrganizationMember {
 
     private String status;
 
+    @CreatedDate
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @LastModifiedDate
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    public void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
-        if (createdAt == null) {
-            createdAt = now;
-        }
-        updatedAt = now;
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    
+    @Builder.Default
+    private boolean deleted = false;
 }

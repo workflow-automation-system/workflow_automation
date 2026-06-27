@@ -77,8 +77,6 @@ public class AuthService {
         User user = User.builder()
                 .name(request.getName() != null ? request.getName().trim() : null)
                 .email(email)
-                .department(request.getDepartment() != null ? request.getDepartment().trim() : "Unassigned")
-                .jobTitle(trimToNull(request.getJobTitle()))
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(assignedRole)
                 .organizationId(organization != null ? organization.getId() : null)
@@ -327,8 +325,8 @@ public class AuthService {
                 .token(token)
                 .email(user.getEmail())
                 .name(user.getName())
-                .department(user.getDepartment())
-                .jobTitle(user.getJobTitle())
+                .department("Unassigned")
+                .jobTitle(null)
                 .role(resolveRole(user).name())
                 .status(user.isEnabled() ? MemberStatus.ACCEPTED.name() : MemberStatus.PENDING.name())
                 .organizationId(user.getOrganizationId())
@@ -348,8 +346,8 @@ public class AuthService {
                         .name(user.getName())
                         .email(user.getEmail())
                         .role(resolveRole(user).name())
-                        .department(defaultIfBlank(user.getDepartment(), "Unassigned"))
-                        .jobTitle(defaultIfBlank(user.getJobTitle(), "Team Member"))
+                        .department("Unassigned")
+                        .jobTitle("Team Member")
                         .status(MemberStatus.ACCEPTED.name())
                         .build()
         );
@@ -459,7 +457,6 @@ public class AuthService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only pending invitations can be updated");
             }
 
-            invitation.setDepartment(department);
             Invitation saved = invitationRepository.save(invitation);
 
             return MemberViewResponse.builder()
@@ -468,8 +465,8 @@ public class AuthService {
                     .email(saved.getEmail())
                     .name(saved.getName())
                     .role(saved.getRole() != null ? saved.getRole().name() : Role.USER.name())
-                    .department(saved.getDepartment())
-                    .jobTitle(saved.getJobTitle())
+                    .department("Unassigned")
+                    .jobTitle(null)
                     .status(MemberStatus.PENDING.name())
                     .expiresAt(saved.getExpiresAt())
                     .build();
@@ -484,7 +481,6 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only active members can be reassigned");
         }
 
-        user.setDepartment(department);
         User saved = userRepository.save(user);
         syncOrganizationMember(saved);
 
@@ -495,8 +491,8 @@ public class AuthService {
                 .email(saved.getEmail())
                 .name(saved.getName())
                 .role(resolveRole(saved).name())
-                .department(saved.getDepartment())
-                .jobTitle(saved.getJobTitle())
+                .department("Unassigned")
+                .jobTitle(null)
                 .status(MemberStatus.ACCEPTED.name())
                 .build();
     }
@@ -589,22 +585,7 @@ public class AuthService {
             return;
         }
 
-        userRepository.findByOrganizationId(organizationId).stream()
-                .filter(user -> oldName.equalsIgnoreCase(user.getDepartment()))
-                .forEach(user -> {
-                    user.setDepartment(newName);
-                    User saved = userRepository.save(user);
-                    if (saved.isEnabled()) {
-                        syncOrganizationMember(saved);
-                    }
-                });
-
-        invitationRepository.findByOrganizationId(organizationId).stream()
-                .filter(invitation -> oldName.equalsIgnoreCase(invitation.getDepartment()))
-                .forEach(invitation -> {
-                    invitation.setDepartment(newName);
-                    invitationRepository.save(invitation);
-                });
+        log.info("Renamed department '{}' to '{}' for organization {} (No-op in auth-service)", oldName, newName, organizationId);
 
         log.info("Renamed department '{}' to '{}' for organization {}", oldName, newName, organizationId);
     }
@@ -615,22 +596,7 @@ public class AuthService {
             return;
         }
 
-        userRepository.findByOrganizationId(organizationId).stream()
-                .filter(user -> name.equalsIgnoreCase(user.getDepartment()))
-                .forEach(user -> {
-                    user.setDepartment("Unassigned");
-                    User saved = userRepository.save(user);
-                    if (saved.isEnabled()) {
-                        syncOrganizationMember(saved);
-                    }
-                });
-
-        invitationRepository.findByOrganizationId(organizationId).stream()
-                .filter(invitation -> name.equalsIgnoreCase(invitation.getDepartment()))
-                .forEach(invitation -> {
-                    invitation.setDepartment("Unassigned");
-                    invitationRepository.save(invitation);
-                });
+        log.info("Deleted department '{}' for organization {} (No-op in auth-service)", name, organizationId);
 
         log.info("Deleted department '{}' for organization {}", name, organizationId);
     }
@@ -650,8 +616,6 @@ public class AuthService {
         }
 
         user.setName(request.getName().trim());
-        user.setDepartment(department);
-        user.setJobTitle(trimToNull(request.getJobTitle()));
 
         User savedUser = userRepository.save(user);
         syncOrganizationMember(savedUser);

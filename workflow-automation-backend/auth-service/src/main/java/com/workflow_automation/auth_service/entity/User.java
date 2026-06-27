@@ -4,6 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "users")
@@ -11,6 +16,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
+@SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
+@Where(clause = "deleted=false")
 public class User {
 
     @Id
@@ -28,10 +36,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    private String department;
-
-    private String jobTitle;
-
     @Column(name = "organization_id")
     private Long organizationId;
 
@@ -47,11 +51,18 @@ public class User {
 
     private LocalDateTime resetPasswordTokenExpiresAt;
 
+    @CreatedDate
+    @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    @Builder.Default
+    private boolean deleted = false;
 
     @PrePersist
     public void prePersist() {
-        this.createdAt = LocalDateTime.now();
         if (this.role == null) this.role = Role.USER;
     }
 }

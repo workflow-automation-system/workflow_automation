@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "invitations")
@@ -11,6 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Invitation {
 
     @Id
@@ -21,10 +25,6 @@ public class Invitation {
     private String email;
 
     private String name;
-
-    private String department;
-
-    private String jobTitle;
 
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
@@ -47,15 +47,17 @@ public class Invitation {
     @Column(name = "accepted_user_id")
     private Long acceptedUserId;
 
+    @CreatedDate
+    @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
 
     private LocalDateTime acceptedAt;
 
     @PrePersist
     public void prePersist() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
         if (role == null) {
             role = Role.USER;
         }

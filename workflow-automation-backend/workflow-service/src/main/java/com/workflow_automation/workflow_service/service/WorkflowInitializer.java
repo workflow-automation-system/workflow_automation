@@ -56,7 +56,7 @@ public class WorkflowInitializer {
         }
 
         try {
-            JsonNode configNode = objectMapper.readTree(triggerNode.getConfig());
+            JsonNode configNode = objectMapper.valueToTree(triggerNode.getConfig());
             JsonNode settingsNode = configNode.path("settings");
             String eventType = settingsNode.path("eventType").asText(configNode.path("eventType").asText(""));
             String cronExpression = settingsNode.path("cronExpression").asText(configNode.path("cronExpression").asText(""));

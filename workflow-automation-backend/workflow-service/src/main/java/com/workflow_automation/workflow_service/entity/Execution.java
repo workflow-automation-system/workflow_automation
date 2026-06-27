@@ -26,6 +26,9 @@ public class Execution {
     @Enumerated(EnumType.STRING)
     private ExecutionStatus status;
 
+    @Column(name = "triggered_by_user_id")
+    private Long triggeredByUserId;
+
 
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;

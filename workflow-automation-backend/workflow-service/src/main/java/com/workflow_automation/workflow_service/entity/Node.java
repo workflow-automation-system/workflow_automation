@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
-
+import java.util.Map;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 @Entity
 @Getter
 @Setter
@@ -21,7 +23,10 @@ public class Node {
     private NodeType type;
 
     private String name;
-    private String config;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    private Map<String, Object> config;
+
     private Double positionX;
     private Double positionY;
 
