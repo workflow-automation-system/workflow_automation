@@ -11,20 +11,10 @@ import {
 } from 'lucide-react';
 import organizationService from '../services/organizationService';
 import { useAuthStore } from '../stores/authStore';
+import { formatRole, roleBadgeClass } from '../utils/rbac';
 
 
-const formatRole = (role = '') => {
-  const upper = (role || '').toUpperCase();
-  if (upper === 'ADMIN') return 'Admin';
-  if (upper === 'USER') return 'Member';
-  return role || 'Member';
-};
 
-const roleBadgeClass = (role) => {
-  const upper = (role || '').toUpperCase();
-  if (upper === 'ADMIN') return 'bg-[#292D32] text-white';
-  return 'bg-[#D0FFA4] text-[#292D32]';
-};
 
 const MemberWorkspace = () => {
 

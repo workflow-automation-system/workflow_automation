@@ -1,11 +1,9 @@
 import React from 'react';
 import { Settings2, Trash2, X } from 'lucide-react';
 import {
-  createNodeDataFromFunction,
   FALLBACK_WORKFLOW_CONFIGURATION,
   getFirstFunctionForEntity,
   getFunctionDefinition,
-  normalizeEntity,
 } from '../../services/workflowConverter';
 
 const nodeColor = {
@@ -35,32 +33,10 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration,
   const nodeConfig =
     getFunctionDefinition(activeConfiguration, activeFunctionKey) ||
     getFirstFunctionForEntity(activeConfiguration, node.data?.entity || node.type);
-  const selectedEntity = normalizeEntity(node.data?.entity || nodeConfig?.entity, activeFunctionKey);
-  const availableEntities =
-    Array.isArray(activeConfiguration.entities) && activeConfiguration.entities.length > 0
-      ? activeConfiguration.entities
-      : FALLBACK_WORKFLOW_CONFIGURATION.entities;
-  const availableFunctions = activeConfiguration.functions.filter(
-    (item) => item.entity === selectedEntity
-  );
-  const functionOptions = availableFunctions.length ? availableFunctions : activeConfiguration.functions;
 
   const update = (field, value) => {
     if (readOnly) return;
     onUpdate(node.id, { [field]: value });
-  };
-
-  const updateNodeFunction = (entity, functionKey) => {
-    if (readOnly) return;
-    const nextFunction =
-      getFunctionDefinition(activeConfiguration, functionKey) ||
-      getFirstFunctionForEntity(activeConfiguration, entity);
-    if (!nextFunction) return;
-
-    const nextData = createNodeDataFromFunction(nextFunction, {
-      label: node.data?.label || nextFunction.label,
-    });
-    onUpdate(node.id, { ...nextData, __nodeType: nextFunction.key });
   };
 
   const renderFields = () => {

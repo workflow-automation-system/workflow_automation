@@ -14,12 +14,13 @@ import {
 
   X,
 } from 'lucide-react';
-import authService, { API } from '../services/authService';
+import authService from '../services/authService';
 import organizationService from '../services/organizationService';
 import Toast from '../components/ui/Toast';
 import Modal from '../components/ui/Modal';
 import { useAuthStore } from '../stores/authStore';
-import { isAdmin } from '../utils/rbac';
+import { useOrganizationData } from '../hooks/useOrganizationData';
+import { isAdmin, formatRole, roleBadgeClass } from '../utils/rbac';
 import {
   isActiveMember,
   isPendingInvitation,
@@ -27,31 +28,26 @@ import {
   memberKey,
   MEMBER_TYPE,
 } from '../constants/memberStatus';
-import { mergeDepartmentsWithMembers } from '../utils/departments';
 
-const formatRole = (role = '') => {
-  if (!role) return 'Member';
-  const upper = role.toUpperCase();
-  if (upper === 'ADMIN') return 'Admin';
-  if (upper === 'USER') return 'Member';
-  return role;
-};
 
-const roleBadgeClass = (role) => {
-  const upper = (role || '').toUpperCase();
-  if (upper === 'ADMIN') return 'bg-[#292D32] text-white';
-  return 'bg-[#D0FFA4] text-[#292D32]';
-};
+
 
 
 
 const Organisation = () => {
-  const [orgMeta, setOrgMeta] = React.useState(null);
-  const [members, setMembers] = React.useState([]);
-  const [managedDepartments, setManagedDepartments] = React.useState([]);
+  const { user } = useAuthStore();
+  const currentUserIsAdmin = isAdmin(user);
+  
+  const {
+    orgMeta,
+    members,
+    managedDepartments,
+    isLoading,
+    error,
+    setMembers,
+    refreshWorkspace,
+  } = useOrganizationData(user, currentUserIsAdmin);
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState('');
   const [selectedDept, setSelectedDept] = React.useState('All');
   const [inviteLoading, setInviteLoading] = React.useState(false);
   const [showInviteForm, setShowInviteForm] = React.useState(false);
@@ -70,9 +66,6 @@ const Organisation = () => {
     jobTitle: '',
   });
   const [activeTab, setActiveTab] = React.useState('active');
-
-  const { user } = useAuthStore();
-  const currentUserIsAdmin = isAdmin(user);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
   const [deletingMemberKey, setDeletingMemberKey] = React.useState(null);
   const [deleteMemberModal, setDeleteMemberModal] = React.useState({ open: false, member: null });
@@ -81,39 +74,7 @@ const Organisation = () => {
     setToast({ open: true, message, tone });
   }, []);
 
-  React.useEffect(() => {
-    let isMounted = true;
 
-    const load = async () => {
-      setIsLoading(true);
-      setError('');
-      try {
-        const orgId = user?.organizationId;
-        const [orgRes, membersRes, departmentsRes] = await Promise.all([
-          orgId ? API.get(`/organizations/${orgId}`) : Promise.resolve({ data: null }),
-          authService.getMembers(),
-          currentUserIsAdmin ? organizationService.getDepartments() : Promise.resolve([]),
-        ]);
-        if (isMounted) {
-          setOrgMeta(orgRes.data);
-          const memberList = membersRes || [];
-          setMembers(memberList);
-          setManagedDepartments(
-            mergeDepartmentsWithMembers(departmentsRes || [], memberList)
-          );
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err.response?.data?.message || 'Unable to load your organization workspace.');
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    load();
-    return () => { isMounted = false; };
-  }, [user?.organizationId, currentUserIsAdmin]);
 
   const handleRemoveMember = (member) => {
     const identityId = memberIdentityId(member);
@@ -185,15 +146,7 @@ const Organisation = () => {
     }
   };
 
-  const refreshWorkspace = React.useCallback(async () => {
-    const [membersRes, departmentsRes] = await Promise.all([
-      authService.getMembers(),
-      currentUserIsAdmin ? organizationService.getDepartments() : Promise.resolve([]),
-    ]);
-    const memberList = membersRes || [];
-    setMembers(memberList);
-    setManagedDepartments(mergeDepartmentsWithMembers(departmentsRes || [], memberList));
-  }, [currentUserIsAdmin]);
+
 
   const openCreateDepartment = () => {
     setEditingDepartment(null);

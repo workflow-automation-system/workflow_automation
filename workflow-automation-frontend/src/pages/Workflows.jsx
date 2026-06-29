@@ -18,7 +18,6 @@ import {
   canCreateWorkflow,
   canEditWorkflow,
   canExecuteWorkflow,
-  isViewer,
 } from '../utils/rbac';
 import {
   downloadWorkflowJson,
@@ -217,11 +216,6 @@ const Workflows = () => {
 
   return (
     <div className="space-y-5 font-urbanist">
-      {isViewer(user) ? (
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm font-medium text-[#5C5C5C]">
-          Read only mode is active. Workflow editing controls are disabled for viewer accounts.
-        </div>
-      ) : null}
 
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
