@@ -42,13 +42,16 @@ const Dashboard = () => {
     fetchWorkflows();
   }, [fetchWorkflows]);
 
-  const recentActivity = React.useMemo(() => {
-    let allExecutions = [];
+  const [activityPage, setActivityPage] = React.useState(1);
+  const itemsPerPage = 5;
+
+  const allExecutions = React.useMemo(() => {
+    let all = [];
     if (workflows) {
       workflows.forEach(w => {
         if (w.executions) {
           w.executions.forEach(ex => {
-            allExecutions.push({
+            all.push({
               ...ex,
               workflowName: w.name || 'Unnamed Workflow'
             });
@@ -57,9 +60,12 @@ const Dashboard = () => {
       });
     }
     // Sort by startedAt descending
-    allExecutions.sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
-    return allExecutions.slice(0, 5); // Take top 5
+    all.sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
+    return all;
   }, [workflows]);
+
+  const totalPages = Math.max(1, Math.ceil(allExecutions.length / itemsPerPage));
+  const recentActivity = allExecutions.slice((activityPage - 1) * itemsPerPage, activityPage * itemsPerPage);
 
   // Compute metrics
   const activeWorkflowsCount = workflows.filter(w => w.status === 'ACTIVE').length;
@@ -162,33 +168,54 @@ const Dashboard = () => {
           </div>
 
           <div className="rounded-2xl border border-[#E2E8F0] bg-[#FAFAFC] p-2">
-            {recentActivity.length === 0 ? (
+            {allExecutions.length === 0 ? (
               <div className="flex h-56 flex-col items-center justify-center text-center">
                 <p className="text-sm text-[#5E6672]">No recent activity found. Run a workflow to see it here.</p>
               </div>
             ) : (
-              <div className="divide-y divide-[#E2E8F0]">
-                {recentActivity.map((activity, index) => (
-                  <div key={activity.id || index} className="flex items-center justify-between p-4 bg-white first:rounded-t-xl last:rounded-b-xl hover:bg-[#F8FFEE] transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${activity.status === 'SUCCESS' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-red-100 text-red-600'}`}>
-                        {activity.status === 'SUCCESS' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+              <>
+                <div className="divide-y divide-[#E2E8F0]">
+                  {recentActivity.map((activity, index) => (
+                    <div key={activity.id || index} className="flex items-center justify-between p-4 bg-white first:rounded-t-xl last:rounded-b-xl hover:bg-[#F8FFEE] transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${activity.status === 'COMPLETED' ? 'bg-[#D0FFA4] text-[#292D32]' : 'bg-red-100 text-red-600'}`}>
+                          {activity.status === 'COMPLETED' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+                        </div>
+                        <div>
+                          <p className="text-base font-semibold text-[#292D32]">{activity.workflowName}</p>
+                          <p className="text-sm text-[#5E6672]">
+                            {activity.startedAt ? new Date(activity.startedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Unknown date'}
+                          </p>
+                        </div>
                       </div>
                       <div>
-                        <p className="text-base font-semibold text-[#292D32]">{activity.workflowName}</p>
-                        <p className="text-sm text-[#5E6672]">
-                          {activity.startedAt ? new Date(activity.startedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Unknown date'}
-                        </p>
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border ${activity.status === 'COMPLETED' ? 'border-[#D0FFA4] bg-[#F8FFEE] text-[#292D32]' : 'border-red-200 bg-red-50 text-red-700'}`}>
+                          {activity.status === 'COMPLETED' ? 'Success' : 'Failed'}
+                        </span>
                       </div>
                     </div>
-                    <div>
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border ${activity.status === 'SUCCESS' ? 'border-[#D0FFA4] bg-[#F8FFEE] text-[#292D32]' : 'border-red-200 bg-red-50 text-red-700'}`}>
-                        {activity.status === 'SUCCESS' ? 'Success' : 'Failed'}
-                      </span>
-                    </div>
+                  ))}
+                </div>
+                {allExecutions.length > itemsPerPage && (
+                  <div className="flex items-center justify-between p-3 border-t border-[#E2E8F0]">
+                    <button
+                      onClick={() => setActivityPage(p => Math.max(1, p - 1))}
+                      disabled={activityPage === 1}
+                      className="px-3 py-1.5 text-sm font-medium text-[#292D32] bg-white border border-[#E2E8F0] rounded-lg disabled:opacity-50 hover:bg-[#F6F5FA]"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-[#5E6672]">Page {activityPage} of {totalPages}</span>
+                    <button
+                      onClick={() => setActivityPage(p => Math.min(totalPages, p + 1))}
+                      disabled={activityPage === totalPages}
+                      className="px-3 py-1.5 text-sm font-medium text-[#292D32] bg-white border border-[#E2E8F0] rounded-lg disabled:opacity-50 hover:bg-[#F6F5FA]"
+                    >
+                      Next
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         </article>

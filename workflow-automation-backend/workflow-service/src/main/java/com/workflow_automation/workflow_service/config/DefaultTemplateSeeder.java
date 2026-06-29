@@ -59,7 +59,7 @@ public class DefaultTemplateSeeder implements CommandLineRunner {
                                 List.of(
                                         connection("trigger-email", "gmail-read"),
                                         connection("gmail-read", "condition-word"),
-                                        connection("condition-word", "slack-alert")
+                                        connection("condition-word", "slack-alert", "true")
                                 )
                         ),
                         now
@@ -124,7 +124,7 @@ public class DefaultTemplateSeeder implements CommandLineRunner {
                                 List.of(
                                         connection("trigger-email", "gmail-read"),
                                         connection("gmail-read", "condition-stage"),
-                                        connection("condition-stage", "gmail-send")
+                                        connection("condition-stage", "gmail-send", "true")
                                 )
                         ),
                         now
@@ -217,6 +217,14 @@ public class DefaultTemplateSeeder implements CommandLineRunner {
         return Map.of(
                 "sourceClientId", sourceClientId,
                 "targetClientId", targetClientId
+        );
+    }
+
+    private Map<String, String> connection(String sourceClientId, String targetClientId, String sourceHandle) {
+        return Map.of(
+                "sourceClientId", sourceClientId,
+                "targetClientId", targetClientId,
+                "sourceHandle", sourceHandle
         );
     }
 }
