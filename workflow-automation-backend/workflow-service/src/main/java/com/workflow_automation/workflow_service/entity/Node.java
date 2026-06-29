@@ -21,6 +21,7 @@ public class Node {
     private NodeType type;
 
     private String name;
+    @Column(columnDefinition = "TEXT")
     private String config;
     private Double positionX;
     private Double positionY;

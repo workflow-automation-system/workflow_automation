@@ -90,6 +90,46 @@ public class DefaultTemplateSeeder implements CommandLineRunner {
                         now
                 ),
                 template(
+                        "Auto-respond to Internships",
+                        "Fetches unread emails, checks if subject or content contains 'condition' that the user has to specify, and auto-replies to the sender.",
+                        "Automation",
+                        content(
+                                List.of(
+                                        node("trigger-email", "trigger", "Manual Trigger", 80, 120,
+                                                Map.of("label", "Trigger",
+                                                        "eventType", "manual",
+                                                        "functionKey", "trigger")),
+                                        node("gmail-read", "gmail_read", "Fetch Emails", 350, 120,
+                                                Map.of("label", "Fetch Emails",
+                                                        "action", "read_emails",
+                                                        "query", "is:unread",
+                                                        "maxResults", 10,
+                                                        "functionKey", "gmail_read",
+                                                        "application", "gmail")),
+                                        node("condition-stage", "condition", "Check Content", 620, 120,
+                                                Map.of("label", "Branch Condition",
+                                                        "expression", "{{gmail_read_result.messages.0.subject}} {{gmail_read_result.messages.0.snippet}} contains 'condition'",
+                                                        "truePath", "True",
+                                                        "falsePath", "False",
+                                                        "functionKey", "condition")),
+                                        node("gmail-send", "gmail", "Send Email", 890, 120,
+                                                Map.of("label", "Send Email",
+                                                        "action", "send_email",
+                                                        "to", "{{gmail_read_result.messages.0.from}}",
+                                                        "subject", "Re: {{gmail_read_result.messages.0.subject}}",
+                                                        "body", "Bonjour, bien reçus",
+                                                        "functionKey", "gmail",
+                                                        "application", "gmail"))
+                                ),
+                                List.of(
+                                        connection("trigger-email", "gmail-read"),
+                                        connection("gmail-read", "condition-stage"),
+                                        connection("condition-stage", "gmail-send")
+                                )
+                        ),
+                        now
+                ),
+                template(
                         "Gmail to Notion Archive & Slack Alert",
                         "Fetches unread emails, creates archive pages in a Notion database, and alerts the team on Slack.",
                         "Automation",
