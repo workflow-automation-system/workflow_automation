@@ -5,12 +5,21 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+
 @Entity
 @Table(name = "users")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
+@SQLDelete(sql = "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 public class User {
 
     @Id
@@ -28,13 +37,11 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    private String department;
-
-    private String jobTitle;
 
     @Column(name = "organization_id")
     private Long organizationId;
 
+    @Builder.Default
     private boolean enabled = false;
 
     @Column(unique = true)
@@ -47,11 +54,17 @@ public class User {
 
     private LocalDateTime resetPasswordTokenExpiresAt;
 
+    @CreatedDate
     private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @PrePersist
     public void prePersist() {
-        this.createdAt = LocalDateTime.now();
         if (this.role == null) this.role = Role.USER;
     }
 }

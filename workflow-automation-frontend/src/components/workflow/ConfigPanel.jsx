@@ -25,16 +25,6 @@ const nodeColor = {
 const inputStyle =
   'w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none';
 
-const CRON_PRESETS = [
-  { label: 'Every Minute', value: '0 * * * * ?' },
-  { label: 'Every 5 Minutes', value: '0 */5 * * * ?' },
-  { label: 'Every 15 Minutes', value: '0 */15 * * * ?' },
-  { label: 'Every 30 Minutes', value: '0 */30 * * * ?' },
-  { label: 'Every Hour', value: '0 0 * * * ?' },
-  { label: 'Every Day (Midnight)', value: '0 0 0 * * ?' },
-  { label: 'Every Monday (Midnight)', value: '0 0 0 ? * MON' },
-  { label: 'Custom', value: 'custom' }
-];
 
 const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration, readOnly = false }) => {
   const activeConfiguration =
@@ -90,36 +80,107 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration,
               </select>
             </Field>
             {node.data?.eventType === 'schedule' && (
-              <Field label="Schedule Frequency">
-                <select
-                  value={
-                    CRON_PRESETS.find((p) => p.value === node.data?.cronExpression && p.value !== 'custom')
-                      ? node.data?.cronExpression
-                      : 'custom'
-                  }
-                  onChange={(event) => {
-                    if (event.target.value !== 'custom') {
-                      update('cronExpression', event.target.value);
-                    }
-                  }}
-                  disabled={readOnly}
-                  className={inputStyle}
-                >
-                  {CRON_PRESETS.map((preset) => (
-                    <option key={preset.value} value={preset.value}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </select>
-                {!CRON_PRESETS.find((p) => p.value === node.data?.cronExpression && p.value !== 'custom') && (
-                  <input
-                    value={node.data?.cronExpression || ''}
-                    onChange={(event) => update('cronExpression', event.target.value)}
+              <Field label="Schedule configuration">
+                <div className="space-y-3 mt-1 border-l-2 border-[#E2E8F0] pl-3">
+                  <select
+                    value={node.data?.scheduleFrequency || 'daily'}
+                    onChange={(e) => {
+                      const newFreq = e.target.value;
+                      update('scheduleFrequency', newFreq);
+                      if (newFreq === 'daily') {
+                        update('cronExpression', '0 0 0 * * ?');
+                        update('scheduleTime', '00:00');
+                      } else if (newFreq === 'weekly') {
+                        update('cronExpression', '0 0 0 ? * MON');
+                        update('scheduleTime', '00:00');
+                        update('scheduleDayOfWeek', 'MON');
+                      } else if (newFreq === 'monthly') {
+                        update('cronExpression', '0 0 0 1 * ?');
+                        update('scheduleTime', '00:00');
+                        update('scheduleDayOfMonth', 1);
+                      } else {
+                        update('cronExpression', '');
+                      }
+                    }}
                     disabled={readOnly}
-                    placeholder="Enter custom cron (e.g. 0 0 * * * ?)"
-                    className={`${inputStyle} mt-2`}
-                  />
-                )}
+                    className={inputStyle}
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+
+                  {node.data?.scheduleFrequency !== 'custom' && (
+                    <div className="flex flex-col gap-2 mt-2">
+                      {node.data.scheduleFrequency === 'weekly' && (
+                        <select
+                          value={node.data?.scheduleDayOfWeek || 'MON'}
+                          onChange={(e) => {
+                            const dow = e.target.value;
+                            update('scheduleDayOfWeek', dow);
+                            const time = node.data?.scheduleTime || '00:00';
+                            const [hour, minute] = time.split(':').map(Number);
+                            update('cronExpression', `0 ${minute || 0} ${hour || 0} ? * ${dow}`);
+                          }}
+                          disabled={readOnly}
+                          className={inputStyle}
+                        >
+                          <option value="MON">Monday</option>
+                          <option value="TUE">Tuesday</option>
+                          <option value="WED">Wednesday</option>
+                          <option value="THU">Thursday</option>
+                          <option value="FRI">Friday</option>
+                          <option value="SAT">Saturday</option>
+                          <option value="SUN">Sunday</option>
+                        </select>
+                      )}
+                      
+                      {node.data.scheduleFrequency === 'monthly' && (
+                        <select
+                          value={node.data?.scheduleDayOfMonth || 1}
+                          onChange={(e) => {
+                            const dom = e.target.value;
+                            update('scheduleDayOfMonth', dom);
+                            const time = node.data?.scheduleTime || '00:00';
+                            const [hour, minute] = time.split(':').map(Number);
+                            update('cronExpression', `0 ${minute || 0} ${hour || 0} ${dom} * ?`);
+                          }}
+                          disabled={readOnly}
+                          className={inputStyle}
+                        >
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                            <option key={day} value={day}>Day {day}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-[#5C5C5C] w-12">Time:</span>
+                        <input
+                          type="time"
+                          value={node.data?.scheduleTime || '00:00'}
+                          onChange={(e) => {
+                            const time = e.target.value;
+                            update('scheduleTime', time);
+                            const [hour, minute] = time.split(':').map(Number);
+                            const freq = node.data?.scheduleFrequency || 'daily';
+                            if (freq === 'daily') {
+                              update('cronExpression', `0 ${minute || 0} ${hour || 0} * * ?`);
+                            } else if (freq === 'weekly') {
+                              const dow = node.data?.scheduleDayOfWeek || 'MON';
+                              update('cronExpression', `0 ${minute || 0} ${hour || 0} ? * ${dow}`);
+                            } else if (freq === 'monthly') {
+                              const dom = node.data?.scheduleDayOfMonth || 1;
+                              update('cronExpression', `0 ${minute || 0} ${hour || 0} ${dom} * ?`);
+                            }
+                          }}
+                          disabled={readOnly}
+                          className={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </Field>
             )}
           </>
@@ -156,40 +217,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration,
             </Field>
           </>
         );
-      case 'data_mapper':
-        return (
-          <>
-            <Field label="Source Path">
-              <input
-                value={node.data?.source || ''}
-                onChange={(event) => update('source', event.target.value)}
-                disabled={readOnly}
-                placeholder="payload.customer"
-                className={inputStyle}
-              />
-            </Field>
-            <Field label="Target Path">
-              <input
-                value={node.data?.target || ''}
-                onChange={(event) => update('target', event.target.value)}
-                disabled={readOnly}
-                placeholder="crm.contact"
-                className={inputStyle}
-              />
-            </Field>
-            <Field label="Mapping Mode">
-              <select
-                value={node.data?.mappingMode || 'strict'}
-                onChange={(event) => update('mappingMode', event.target.value)}
-                disabled={readOnly}
-                className={inputStyle}
-              >
-                <option value="strict">Strict</option>
-                <option value="lenient">Lenient</option>
-              </select>
-            </Field>
-          </>
-        );
+
       case 'error_handler':
         return (
           <>
@@ -238,54 +266,6 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration,
                 disabled={readOnly}
                 placeholder="notion_database_id"
                 className={inputStyle}
-              />
-            </Field>
-          </>
-        );
-      case 'google_sheets':
-        return (
-          <>
-            <Field label="Spreadsheet ID">
-              <input
-                value={node.data?.spreadsheetId || ''}
-                onChange={(event) => update('spreadsheetId', event.target.value)}
-                disabled={readOnly}
-                placeholder="sheet_id"
-                className={inputStyle}
-              />
-            </Field>
-            <Field label="Worksheet">
-              <input
-                value={node.data?.worksheet || ''}
-                onChange={(event) => update('worksheet', event.target.value)}
-                disabled={readOnly}
-                placeholder="Sheet1"
-                className={inputStyle}
-              />
-            </Field>
-          </>
-        );
-      case 'chatgpt':
-        return (
-          <>
-            <Field label="Model">
-              <select
-                value={node.data?.model || 'gpt-5.4-mini'}
-                onChange={(event) => update('model', event.target.value)}
-                disabled={readOnly}
-                className={inputStyle}
-              >
-                <option value="gpt-5.4-mini">gpt-5.4-mini</option>
-                <option value="gpt-5.4">gpt-5.4</option>
-              </select>
-            </Field>
-            <Field label="Prompt">
-              <textarea
-                value={node.data?.prompt || ''}
-                onChange={(event) => update('prompt', event.target.value)}
-                disabled={readOnly}
-                placeholder="Summarize incident details and propose next actions."
-                className={`${inputStyle} min-h-[90px] resize-y`}
               />
             </Field>
           </>
@@ -450,39 +430,7 @@ const ConfigPanel = ({ node, onClose, onUpdate, onDelete, workflowConfiguration,
       </div>
 
       <div className="max-h-[calc(100vh-18rem)] space-y-3 overflow-y-auto p-4">
-        <Field label="Entity">
-          <select
-            value={selectedEntity}
-            onChange={(event) => {
-              if (readOnly) return;
-              const nextEntity = event.target.value;
-              const firstFunction = getFirstFunctionForEntity(activeConfiguration, nextEntity);
-              updateNodeFunction(nextEntity, firstFunction?.key);
-            }}
-            disabled={readOnly}
-            className={inputStyle}
-          >
-            {availableEntities.map((entity) => (
-              <option key={entity} value={entity}>
-                {entity}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Function">
-          <select
-            value={activeFunctionKey}
-            onChange={(event) => updateNodeFunction(selectedEntity, event.target.value)}
-            disabled={readOnly}
-            className={inputStyle}
-          >
-            {functionOptions.map((item) => (
-              <option key={item.key} value={item.key}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+
         <Field label="Label">
           <input
             value={node.data?.label || ''}

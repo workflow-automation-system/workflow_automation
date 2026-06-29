@@ -8,4 +8,5 @@ public class ConnectionResponse {
     private Long id;
     private String sourceNodeId;
     private String targetNodeId;
+    private String sourceHandle;
 }

@@ -63,10 +63,82 @@ public class OrganizationService {
 
     // ================= MEMBERS =================
 
+    public OrganizationMemberResponse inviteMember(Long organizationId, String email, String name, String role, String department, String jobTitle, Long invitedByUserId) {
+        Organization org = findOrganization(organizationId);
+        
+        String normalizedEmail = email.trim().toLowerCase();
+        organizationMemberRepository.findByOrganization_IdAndEmailIgnoreCase(organizationId, normalizedEmail)
+                .ifPresent(m -> {
+                    if ("PENDING".equals(m.getStatus())) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "User is already invited");
+                    } else {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "User is already a member");
+                    }
+                });
+
+        OrganizationMember member = OrganizationMember.builder()
+                .organization(org)
+                .email(normalizedEmail)
+                .name(name != null ? name.trim() : null)
+                .role(sanitizeRole(role))
+                .department(defaultIfBlank(department, UNASSIGNED))
+                .jobTitle(defaultIfBlank(jobTitle, "Team Member"))
+                .status("PENDING")
+                .inviteToken(java.util.UUID.randomUUID().toString())
+                .inviteExpiresAt(java.time.LocalDateTime.now().plusDays(7))
+                .invitedByUserId(invitedByUserId)
+                .build();
+
+        return toMemberResponse(organizationMemberRepository.save(member));
+    }
+
+    public List<OrganizationMemberResponse> listPendingInvitations(Long organizationId) {
+        return organizationMemberRepository.findAllByOrganization_Id(organizationId)
+                .stream()
+                .filter(m -> "PENDING".equalsIgnoreCase(m.getStatus()))
+                .map(this::toMemberResponse)
+                .toList();
+    }
+
+    public void cancelInvitation(Long organizationId, Long inviteId) {
+        OrganizationMember member = organizationMemberRepository.findByIdAndOrganization_Id(inviteId, organizationId)
+                .orElseThrow(() -> new NoSuchElementException("Invitation not found"));
+                
+        if (!"PENDING".equalsIgnoreCase(member.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot cancel an accepted membership");
+        }
+        
+        organizationMemberRepository.delete(member);
+    }
+
+    public OrganizationSummary acceptInvitation(String token, Long userId, String email, String name) {
+        OrganizationMember member = organizationMemberRepository.findByInviteToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid or expired invitation token"));
+                
+        if (!"PENDING".equalsIgnoreCase(member.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invitation has already been accepted");
+        }
+        
+        if (member.getInviteExpiresAt() != null && member.getInviteExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invitation has expired");
+        }
+
+        member.setUserId(userId);
+        member.setEmail(email.trim().toLowerCase());
+        member.setName(name);
+        member.setStatus("ACCEPTED");
+        member.setInviteToken(null);
+        member.setInviteExpiresAt(null);
+        
+        organizationMemberRepository.save(member);
+        return toSummary(member.getOrganization());
+    }
+
+
     public OrganizationSummary syncMember(Long organizationId, OrganizationMemberSyncRequest request) {
-        String rawStatus = defaultIfBlank(request.getStatus(), MemberStatus.ACCEPTED.name());
-        if (!MemberStatus.ACCEPTED.name().equalsIgnoreCase(rawStatus)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only ACCEPTED members can be synced");
+        String rawStatus = request.getStatus();
+        if (rawStatus == null || rawStatus.isBlank()) {
+            rawStatus = MemberStatus.ACCEPTED.name();
         }
 
         Organization org = findOrganization(organizationId);
@@ -78,9 +150,13 @@ public class OrganizationService {
         member.setName(request.getName().trim());
         member.setEmail(request.getEmail().trim().toLowerCase());
         member.setRole(resolveSyncedRole(member, request.getRole()));
-        member.setDepartment(defaultIfBlank(request.getDepartment(), "Unassigned"));
-        member.setJobTitle(defaultIfBlank(request.getJobTitle(), "Team Member"));
-        member.setStatus(MemberStatus.ACCEPTED.name());
+        if (request.getDepartment() != null) {
+            member.setDepartment(request.getDepartment());
+        }
+        if (request.getJobTitle() != null) {
+            member.setJobTitle(request.getJobTitle());
+        }
+        member.setStatus(rawStatus.toUpperCase());
         organizationMemberRepository.save(member);
         return toSummary(org);
     }
@@ -89,6 +165,13 @@ public class OrganizationService {
         OrganizationMember member = organizationMemberRepository
                 .findByOrganization_IdAndUserId(organizationId, userId)
                 .orElseThrow(() -> new NoSuchElementException("Member not found"));
+        return toMemberResponse(member);
+    }
+
+    public OrganizationMemberResponse getMemberByToken(String token) {
+        OrganizationMember member = organizationMemberRepository
+                .findByInviteToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid or expired invitation token"));
         return toMemberResponse(member);
     }
 
@@ -354,6 +437,7 @@ public class OrganizationService {
                 .department(m.getDepartment())
                 .jobTitle(m.getJobTitle())
                 .status(m.getStatus())
+                .organizationId(m.getOrganization() != null ? m.getOrganization().getId() : null)
                 .build();
     }
 

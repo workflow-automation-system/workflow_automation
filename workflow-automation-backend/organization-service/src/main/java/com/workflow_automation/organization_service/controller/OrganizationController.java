@@ -76,6 +76,13 @@ public class OrganizationController {
         return ResponseEntity.ok(organizationService.getMember(id, userId));
     }
 
+    @GetMapping("/internal/{id}/members")
+    public ResponseEntity<?> internalMembers(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(organizationService.getMembers(id));
+    }
+
     @DeleteMapping("/{id}/members/{userId}")
     public ResponseEntity<Void> deleteMember(
             @PathVariable Long id,
@@ -158,6 +165,53 @@ public class OrganizationController {
         if (currentRole == null || !"ADMIN".equalsIgnoreCase(currentRole)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin role is required");
         }
+    }
+
+    // ================= INVITATIONS =================
+
+    @GetMapping("/internal/invitations/token")
+    public ResponseEntity<?> getMemberByToken(@RequestParam String token) {
+        return ResponseEntity.ok(organizationService.getMemberByToken(token));
+    }
+
+    @PostMapping("/internal/invitations/accept")
+    public ResponseEntity<?> acceptInvitation(@Valid @RequestBody OrganizationAcceptInviteRequest request) {
+        return ResponseEntity.ok(organizationService.acceptInvitation(
+                request.getToken(),
+                request.getUserId(),
+                request.getEmail(),
+                request.getName()
+        ));
+    }
+
+    @PostMapping("/internal/{id}/invitations")
+    public ResponseEntity<?> createInvitation(
+            @PathVariable Long id,
+            @Valid @RequestBody OrganizationInviteRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(organizationService.inviteMember(
+                id,
+                request.getEmail(),
+                request.getName(),
+                request.getRole(),
+                request.getDepartment(),
+                request.getJobTitle(),
+                request.getInvitedByUserId()
+        ));
+    }
+
+    @GetMapping("/internal/{id}/invitations")
+    public ResponseEntity<?> listPendingInvitations(@PathVariable Long id) {
+        return ResponseEntity.ok(organizationService.listPendingInvitations(id));
+    }
+
+    @DeleteMapping("/internal/{id}/invitations/{inviteId}")
+    public ResponseEntity<Void> cancelInvitation(
+            @PathVariable Long id,
+            @PathVariable Long inviteId
+    ) {
+        organizationService.cancelInvitation(id, inviteId);
+        return ResponseEntity.noContent().build();
     }
 
     // ================= DEPARTMENTS =================

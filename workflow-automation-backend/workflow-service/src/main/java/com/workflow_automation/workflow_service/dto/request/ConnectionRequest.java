@@ -8,4 +8,5 @@ public class ConnectionRequest {
     private Long targetNodeId;
     private String sourceClientId;
     private String targetClientId;
+    private String sourceHandle;
 }

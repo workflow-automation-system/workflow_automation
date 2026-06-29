@@ -2,7 +2,7 @@ package com.workflow_automation.auth_service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import com.workflow_automation.auth_service.service.EmailService;
 import com.workflow_automation.auth_service.service.OrganizationClient;
@@ -11,10 +11,10 @@ import com.workflow_automation.auth_service.service.OrganizationClient;
 @ActiveProfiles("test")
 class AuthServiceApplicationTests {
 
-	@MockBean
+	@MockitoBean
 	private OrganizationClient organizationClient;
 
-	@MockBean
+	@MockitoBean
 	private EmailService emailService;
 
 	@Test

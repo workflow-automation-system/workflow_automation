@@ -25,4 +25,7 @@ public class Connection {
     @ManyToOne
     @JoinColumn(name = "target_node_id")
     private Node targetNode;
+
+    @Column(name = "source_handle", length = 50)
+    private String sourceHandle;
 }

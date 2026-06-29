@@ -141,8 +141,8 @@ public class ExecutionServiceImpl implements ExecutionService {
 
     private void processNode(Node node, Map<String, Object> context, Execution execution) {
         log.info("Processing node: {} (Type: {})", node.getName(), node.getType());
-        boolean shouldContinue = true;
-        
+        boolean conditionResult = true;
+
         // Basic node execution logic
         switch (node.getType()) {
             case TRIGGER:
@@ -153,19 +153,32 @@ public class ExecutionServiceImpl implements ExecutionService {
                 executeActionNode(node, context, execution);
                 break;
             case CONDITION:
-                shouldContinue = executeConditionNode(node, context, execution);
+                conditionResult = executeConditionNode(node, context, execution);
                 break;
-        }
-
-        if (!shouldContinue) {
-            log.info("Condition stopped workflow branch at node '{}'", node.getName());
-            return;
         }
 
         // Follow outgoing connections
         if (node.getOutgoingConnections() != null) {
             for (Connection connection : node.getOutgoingConnections()) {
-                processNode(connection.getTargetNode(), context, execution);
+                if (node.getType() == NodeType.CONDITION) {
+                    String handle = connection.getSourceHandle();
+                    if (handle != null && !handle.isBlank()) {
+                        // Route strictly based on handle match
+                        if (conditionResult && "true".equalsIgnoreCase(handle)) {
+                            processNode(connection.getTargetNode(), context, execution);
+                        } else if (!conditionResult && "false".equalsIgnoreCase(handle)) {
+                            processNode(connection.getTargetNode(), context, execution);
+                        }
+                    } else {
+                        // Legacy fallback: no handle specified, follow only if true
+                        if (conditionResult) {
+                            processNode(connection.getTargetNode(), context, execution);
+                        }
+                    }
+                } else {
+                    // Non-condition nodes always follow outgoing connections
+                    processNode(connection.getTargetNode(), context, execution);
+                }
             }
         }
     }

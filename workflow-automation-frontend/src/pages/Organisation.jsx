@@ -60,7 +60,7 @@ const Organisation = () => {
   const [editingDepartment, setEditingDepartment] = React.useState(null);
   const [deptSaving, setDeptSaving] = React.useState(false);
   const [deletingDeptId, setDeletingDeptId] = React.useState(null);
-  const [updatingMemberDeptKey, setUpdatingMemberDeptKey] = React.useState(null);
+
   const [inviteForm, setInviteForm] = React.useState({
     name: '',
     email: '',
@@ -258,35 +258,7 @@ const Organisation = () => {
     }
   };
 
-  const handleAssignMemberDepartment = async (member, nextDepartment) => {
-    const identityId = memberIdentityId(member);
-    const currentDepartment = member.department || 'Unassigned';
-    const normalizedNext = nextDepartment || 'Unassigned';
 
-    if (normalizedNext === currentDepartment) {
-      return;
-    }
-
-    const key = memberKey(member);
-    setUpdatingMemberDeptKey(key);
-    try {
-      const updated = await authService.assignMemberDepartment(identityId, {
-        type: member.type || MEMBER_TYPE.MEMBER,
-        department: normalizedNext === 'Unassigned' ? '' : normalizedNext,
-      });
-
-      setMembers((prev) => prev.map((item) => (memberKey(item) === key ? { ...item, ...updated } : item)));
-      await refreshWorkspace();
-      showToast(
-        `${updated.name || updated.email} assigned to ${updated.department || 'Unassigned'}.`,
-        'success'
-      );
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to update member department.', 'error');
-    } finally {
-      setUpdatingMemberDeptKey(null);
-    }
-  };
 
   const activeMembers = members.filter(isActiveMember);
   const pendingMembers = members.filter(isPendingInvitation);
@@ -357,7 +329,8 @@ const Organisation = () => {
   }
 
   return (
-    <div className="space-y-5 font-urbanist animate-fadeIn">
+    <>
+      <div className="space-y-5 font-urbanist animate-fadeIn">
       {/* 1. Global Header and Stats */}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
@@ -390,6 +363,233 @@ const Organisation = () => {
           </button>
         </div>
       )}
+
+      {/* Departments View */}
+      {pageView === 'departments' && currentUserIsAdmin && (
+        <section className="enterprise-card overflow-hidden animate-fadeIn">
+          <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between bg-[#f9fafb]">
+            <div>
+              <h2 className="text-lg font-semibold text-[#292D32]">Department Management</h2>
+              <p className="text-sm text-[#5C5C5C]">
+                Create departments, rename them in real time for all assigned members, and delete only empty departments.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={openCreateDepartment}
+              className="flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44]"
+            >
+              <Plus size={16} />
+              Add Department
+            </button>
+          </div>
+
+          <div className="divide-y divide-[#E2E8F0]">
+            {managedDepartments.map((department) => (
+              <div
+                key={department.id ?? department.name}
+                className="flex flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between transition-colors hover:bg-[#F6F5FA]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#D0FFA4]">
+                    <Building2 size={20} className="text-[#292D32]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#292D32]">{department.name}</p>
+                    <p className="text-xs text-[#5C5C5C]">
+                      {department.memberCount} member{department.memberCount !== 1 ? 's' : ''}
+                      {department.adminCount > 0
+                        ? ` · ${department.adminCount} admin${department.adminCount !== 1 ? 's' : ''}`
+                        : ''}
+                      {department.memberCount === 0 ? ' · unused' : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    title="Rename department"
+                    onClick={() => openEditDepartment(department)}
+                    disabled={!department.id}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#292D32] transition-colors hover:bg-[#E2E8F0] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    title={department.memberCount > 0 ? 'Reassign members before deleting' : 'Delete department'}
+                    onClick={() => handleDeleteDepartment(department)}
+                    disabled={
+                      !department.id
+                      || deletingDeptId === department.id
+                      || department.memberCount > 0
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#EF4444] transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {!managedDepartments.length && (
+              <div className="px-5 py-8 text-center text-sm text-[#5C5C5C]">
+                No departments yet. Create one to organize your team.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Members View */}
+      {pageView === 'members' && (
+        <section className="enterprise-card overflow-hidden animate-fadeIn">
+          <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between bg-[#f9fafb]">
+            <div>
+              <h2 className="text-lg font-semibold text-[#292D32]">Team Directory</h2>
+              <p className="text-sm text-[#5C5C5C]">Role-based access controls for automation assets.</p>
+            </div>
+            {currentUserIsAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowInviteForm(true)}
+                className="flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44]"
+              >
+                <UserPlus size={16} />
+                Invite Member
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-3 md:flex-row md:items-center md:justify-between bg-white">
+            <div className="flex gap-2">
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                className="rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2 text-sm font-semibold text-[#292D32] focus:border-[#D0FFA4] focus:outline-none transition-colors hover:bg-[#E2E8F0]"
+              >
+                <option value="active">Status: Active ({activeMembers.length})</option>
+                <option value="pending">Status: Pending ({pendingMembers.length})</option>
+              </select>
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                className="rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2 text-sm font-semibold text-[#292D32] focus:border-[#D0FFA4] focus:outline-none transition-colors hover:bg-[#E2E8F0]"
+              >
+                <option value="All">All Departments</option>
+                {departmentFilterOptions.map((dept) => (
+                  <option key={dept.name} value={dept.name}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
+              <input
+                type="text"
+                placeholder="Search members"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none md:w-64"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            {filteredMembers.length > 0 ? (
+              <table className="w-full text-left text-sm text-[#5C5C5C]">
+                <thead className="bg-[#f9fafb] text-xs uppercase text-[#8D95A1] border-b border-[#E2E8F0]">
+                  <tr>
+                    <th scope="col" className="px-5 py-3 font-semibold">Member</th>
+                    <th scope="col" className="px-5 py-3 font-semibold">Role</th>
+                    <th scope="col" className="px-5 py-3 font-semibold">Department</th>
+                    <th scope="col" className="px-5 py-3 font-semibold">Job Title</th>
+                    <th scope="col" className="px-5 py-3 font-semibold">Email</th>
+                    <th scope="col" className="px-5 py-3 font-semibold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2E8F0]">
+                  {filteredMembers.map((member) => {
+                    const key = memberKey(member);
+                    const identityId = memberIdentityId(member);
+                    const isSelf = member.type !== MEMBER_TYPE.INVITATION && identityId === user?.id;
+                    const isDeleting = deletingMemberKey === key;
+
+
+                    return (
+                      <tr key={key} className="bg-white hover:bg-[#F6F5FA] transition-colors">
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E2E8F0]">
+                              <UserCircle2 size={18} className="text-[#292D32]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-[#292D32]">{member.name || member.email}</span>
+                                {isSelf && (
+                                  <span className="rounded-full bg-[#E2E8F0] px-2 py-0.5 text-[10px] font-medium text-[#5C5C5C]">You</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${roleBadgeClass(member.role)}`}>
+                            {formatRole(member.role)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-2 py-1 text-xs font-medium text-[#5C5C5C]">
+                            <Building2 size={12} />
+                            {member.department || 'Unassigned'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          {member.jobTitle ? (
+                            <span className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-2 py-1 text-xs font-medium text-[#5C5C5C]">
+                              <BriefcaseBusiness size={12} />
+                              {member.jobTitle}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-[#8D95A1] italic">None</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            <Mail size={14} className="text-[#8D95A1]" />
+                            <span className="text-xs">{member.email}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap text-right">
+                          {currentUserIsAdmin && !isSelf && (
+                            <div className="flex justify-end items-center gap-2">
+                              {isDeleting && <span className="text-xs text-[#5C5C5C]">...</span>}
+                              <button
+                                type="button"
+                                title={activeTab === 'pending' ? 'Cancel invitation' : 'Remove member'}
+                                onClick={() => handleRemoveMember(member)}
+                                disabled={isDeleting}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#EF4444] transition-colors hover:bg-red-50 disabled:opacity-50"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="px-5 py-8 text-center text-sm text-[#5C5C5C]">
+                No members match your search criteria.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      </div>
 
       {/* Invite Member Modal */}
       {showInviteForm && (
@@ -551,260 +751,13 @@ const Organisation = () => {
         </div>
       )}
 
-      {/* Departments View */}
-      {pageView === 'departments' && currentUserIsAdmin && (
-        <section className="enterprise-card overflow-hidden animate-fadeIn">
-          <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between bg-[#f9fafb]">
-            <div>
-              <h2 className="text-lg font-semibold text-[#292D32]">Department Management</h2>
-              <p className="text-sm text-[#5C5C5C]">
-                Create departments, rename them in real time for all assigned members, and delete only empty departments.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={openCreateDepartment}
-              className="flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44]"
-            >
-              <Plus size={16} />
-              Add Department
-            </button>
-          </div>
-
-          <div className="divide-y divide-[#E2E8F0]">
-            {managedDepartments.map((department) => (
-              <div
-                key={department.id ?? department.name}
-                className="flex flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between transition-colors hover:bg-[#F6F5FA]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#D0FFA4]">
-                    <Building2 size={20} className="text-[#292D32]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[#292D32]">{department.name}</p>
-                    <p className="text-xs text-[#5C5C5C]">
-                      {department.memberCount} member{department.memberCount !== 1 ? 's' : ''}
-                      {department.adminCount > 0
-                        ? ` · ${department.adminCount} admin${department.adminCount !== 1 ? 's' : ''}`
-                        : ''}
-                      {department.memberCount === 0 ? ' · unused' : ''}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    title="Rename department"
-                    onClick={() => openEditDepartment(department)}
-                    disabled={!department.id}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#292D32] transition-colors hover:bg-[#E2E8F0] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    title={department.memberCount > 0 ? 'Reassign members before deleting' : 'Delete department'}
-                    onClick={() => handleDeleteDepartment(department)}
-                    disabled={
-                      !department.id
-                      || deletingDeptId === department.id
-                      || department.memberCount > 0
-                    }
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#EF4444] transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {!managedDepartments.length && (
-              <div className="px-5 py-8 text-center text-sm text-[#5C5C5C]">
-                No departments yet. Create one to organize your team.
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Members View */}
-      {pageView === 'members' && (
-        <section className="enterprise-card overflow-hidden animate-fadeIn">
-          <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-4 md:flex-row md:items-center md:justify-between bg-[#f9fafb]">
-            <div>
-              <h2 className="text-lg font-semibold text-[#292D32]">Team Directory</h2>
-              <p className="text-sm text-[#5C5C5C]">Role-based access controls for automation assets.</p>
-            </div>
-            {currentUserIsAdmin && (
-              <button
-                type="button"
-                onClick={() => setShowInviteForm(true)}
-                className="flex items-center gap-2 rounded-xl bg-[#292D32] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44]"
-              >
-                <UserPlus size={16} />
-                Invite Member
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-3 border-b border-[#E2E8F0] px-5 py-3 md:flex-row md:items-center md:justify-between bg-white">
-            <div className="flex gap-2">
-              <select
-                value={activeTab}
-                onChange={(e) => setActiveTab(e.target.value)}
-                className="rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2 text-sm font-semibold text-[#292D32] focus:border-[#D0FFA4] focus:outline-none transition-colors hover:bg-[#E2E8F0]"
-              >
-                <option value="active">Status: Active ({activeMembers.length})</option>
-                <option value="pending">Status: Pending ({pendingMembers.length})</option>
-              </select>
-              <select
-                value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value)}
-                className="rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2 text-sm font-semibold text-[#292D32] focus:border-[#D0FFA4] focus:outline-none transition-colors hover:bg-[#E2E8F0]"
-              >
-                <option value="All">All Departments</option>
-                {departmentFilterOptions.map((dept) => (
-                  <option key={dept.name} value={dept.name}>{dept.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
-              <input
-                type="text"
-                placeholder="Search members"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-[#E2E8F0] bg-white py-2 pl-9 pr-3 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none md:w-64"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            {filteredMembers.length > 0 ? (
-              <table className="w-full text-left text-sm text-[#5C5C5C]">
-                <thead className="bg-[#f9fafb] text-xs uppercase text-[#8D95A1] border-b border-[#E2E8F0]">
-                  <tr>
-                    <th scope="col" className="px-5 py-3 font-semibold">Member</th>
-                    <th scope="col" className="px-5 py-3 font-semibold">Role</th>
-                    <th scope="col" className="px-5 py-3 font-semibold">Department</th>
-                    <th scope="col" className="px-5 py-3 font-semibold">Job Title</th>
-                    <th scope="col" className="px-5 py-3 font-semibold">Email</th>
-                    <th scope="col" className="px-5 py-3 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E2E8F0]">
-                  {filteredMembers.map((member) => {
-                    const key = memberKey(member);
-                    const identityId = memberIdentityId(member);
-                    const isSelf = member.type !== MEMBER_TYPE.INVITATION && identityId === user?.id;
-                    const isDeleting = deletingMemberKey === key;
-                    const isUpdatingDepartment = updatingMemberDeptKey === key;
-
-                    return (
-                      <tr key={key} className="bg-white hover:bg-[#F6F5FA] transition-colors">
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E2E8F0]">
-                              <UserCircle2 size={18} className="text-[#292D32]" />
-                            </div>
-                            <div className="flex flex-col">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-[#292D32]">{member.name || member.email}</span>
-                                {isSelf && (
-                                  <span className="rounded-full bg-[#E2E8F0] px-2 py-0.5 text-[10px] font-medium text-[#5C5C5C]">You</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${roleBadgeClass(member.role)}`}>
-                            {formatRole(member.role)}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          {currentUserIsAdmin && !isSelf ? (
-                            <div className="flex flex-col">
-                              <label className="inline-flex items-center gap-1">
-                                <Building2 size={14} className="text-[#8D95A1]" />
-                                <select
-                                  value={member.department || 'Unassigned'}
-                                  onChange={(e) => handleAssignMemberDepartment(member, e.target.value)}
-                                  disabled={isUpdatingDepartment}
-                                  className="rounded-lg border border-[#E2E8F0] bg-white px-2 py-1 text-xs font-medium text-[#292D32] focus:border-[#D0FFA4] focus:outline-none disabled:opacity-60 hover:bg-[#F6F5FA] transition-colors cursor-pointer"
-                                >
-                                  <option value="Unassigned">Unassigned</option>
-                                  {managedDepartments.map((dept) => (
-                                    <option key={dept.id ?? dept.name} value={dept.name}>{dept.name}</option>
-                                  ))}
-                                </select>
-                              </label>
-                              {isUpdatingDepartment && (
-                                <span className="text-[10px] text-[#5C5C5C] ml-5 mt-0.5">Updating...</span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-2 py-1 text-xs font-medium text-[#5C5C5C]">
-                              <Building2 size={12} />
-                              {member.department || 'Unassigned'}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          {member.jobTitle ? (
-                            <span className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-2 py-1 text-xs font-medium text-[#5C5C5C]">
-                              <BriefcaseBusiness size={12} />
-                              {member.jobTitle}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-[#8D95A1] italic">None</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1">
-                            <Mail size={14} className="text-[#8D95A1]" />
-                            <span className="text-xs">{member.email}</span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 whitespace-nowrap text-right">
-                          {currentUserIsAdmin && !isSelf && (
-                            <div className="flex justify-end items-center gap-2">
-                              {isDeleting && <span className="text-xs text-[#5C5C5C]">...</span>}
-                              <button
-                                type="button"
-                                title={activeTab === 'pending' ? 'Cancel invitation' : 'Remove member'}
-                                onClick={() => handleRemoveMember(member)}
-                                disabled={isDeleting}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#EF4444] transition-colors hover:bg-red-50 disabled:opacity-50"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="px-5 py-8 text-center text-sm text-[#5C5C5C]">
-                No members match your search criteria.
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
       <Toast
         open={toast.open}
         message={toast.message}
         tone={toast.tone}
         onClose={() => setToast((t) => ({ ...t, open: false }))}
       />
-    </div>
+    </>
   );
 };
 

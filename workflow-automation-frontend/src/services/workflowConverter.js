@@ -91,6 +91,19 @@ const fallbackFunctions = [
     },
   },
   {
+    key: 'notion',
+    label: 'Notion',
+    entity: 'ACTION',
+    description: 'Create and update Notion pages or databases',
+    icon: 'BookCopy',
+    color: '#D0FFA4',
+    defaultData: {
+      label: 'Notion Action',
+      action: 'create_page',
+      database: '',
+    },
+  },
+  {
     key: 'slack',
     label: 'Slack',
     entity: 'ACTION',
@@ -381,6 +394,7 @@ const normalizeWorkflowEdge = (edge, index = 0) => {
     id: String(edge?.id ?? `edge-${index + 1}`),
     source: source !== undefined && source !== null ? String(source) : '',
     target: target !== undefined && target !== null ? String(target) : '',
+    sourceHandle: edge?.sourceHandle || null,
     markerEnd: edge?.markerEnd || { type: 'arrowclosed', color: '#D0FFA4' },
     style: edge?.style || { stroke: '#D0FFA4', strokeWidth: 2.2 },
   };
@@ -431,6 +445,7 @@ export const buildMutationPayload = (payload = {}, { requireName = true } = {}) 
         targetNodeId: Number.isFinite(targetNodeId) ? targetNodeId : null,
         sourceClientId: Number.isFinite(sourceNodeId) ? null : String(edge.source || ''),
         targetClientId: Number.isFinite(targetNodeId) ? null : String(edge.target || ''),
+        sourceHandle: edge.sourceHandle || null,
       };
     })
     .filter(

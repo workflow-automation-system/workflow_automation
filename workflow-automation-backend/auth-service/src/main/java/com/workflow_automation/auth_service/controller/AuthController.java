@@ -195,20 +195,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(invited);
     }
 
-    @PatchMapping("/admin/members/{memberId}/department")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateMemberDepartment(
-            @PathVariable Long memberId,
-            @Valid @RequestBody UpdateMemberDepartmentRequest request,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        AuthResponse admin = authService.getCurrentUser(userDetails.getUsername());
-        return ResponseEntity.ok(authService.updateMemberDepartment(
-                admin.getOrganizationId(),
-                memberId,
-                request
-        ));
-    }
+
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<?> handleResponseStatus(ResponseStatusException ex) {

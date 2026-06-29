@@ -384,6 +384,8 @@ public class WorkflowServiceImpl implements WorkflowService {
                         : null
         );
 
+        response.setSourceHandle(connection.getSourceHandle());
+
         return response;
     }
 
@@ -513,6 +515,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                     .sourceNode(source)
                     .targetNode(target)
                     .workflow(workflow)
+                    .sourceHandle(request.getSourceHandle())
                     .build();
         } catch (RuntimeException exception) {
             log.warn(

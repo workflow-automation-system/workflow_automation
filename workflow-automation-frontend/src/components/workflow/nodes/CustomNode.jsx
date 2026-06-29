@@ -31,11 +31,8 @@ const iconMap = {
 const nodeIconByType = {
   trigger: 'Zap',
   condition: 'GitBranch',
-  data_mapper: 'Table2',
   error_handler: 'ShieldAlert',
   notion: 'BookCopy',
-  google_sheets: 'Sheet',
-  chatgpt: 'Bot',
   slack: 'MessageSquare',
   email: 'Mail',
   gmail: 'Mail',
@@ -45,11 +42,8 @@ const nodeIconByType = {
 const nodeBg = {
   trigger: '#D0FFA4',
   condition: '#E2E8F0',
-  data_mapper: '#E2E8F0',
   error_handler: '#D0FFA4',
   notion: '#D0FFA4',
-  google_sheets: '#D0FFA4',
-  chatgpt: '#D0FFA4',
   slack: '#D0FFA4',
   email: '#D0FFA4',
   gmail: '#D0FFA4',
@@ -62,16 +56,10 @@ const getSubtitle = (type, data) => {
       return data?.eventType || 'Manual event';
     case 'condition':
       return data?.expression || 'branch expression';
-    case 'data_mapper':
-      return data?.mappingMode || 'strict mapping';
     case 'error_handler':
       return data?.policy || 'retry policy';
     case 'notion':
       return data?.action || 'create page';
-    case 'google_sheets':
-      return data?.worksheet || 'Sheet1';
-    case 'chatgpt':
-      return data?.model || 'gpt model';
     case 'slack':
       return data?.channel || '#channel';
     case 'email':
@@ -118,11 +106,34 @@ const CustomNode = ({ data, selected, type }) => {
         </div>
       </div>
 
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-white !bg-[#D0FFA4]"
-      />
+      {type === 'condition' ? (
+        <div className="absolute right-[-6px] top-0 flex h-full flex-col justify-center gap-4">
+          <div className="relative flex items-center">
+            <span className="absolute right-4 text-[10px] font-medium text-[#5C5C5C]">True</span>
+            <Handle
+              type="source"
+              id="true"
+              position={Position.Right}
+              className="!relative !right-0 !transform-none !h-3 !w-3 !border-2 !border-white !bg-[#D0FFA4]"
+            />
+          </div>
+          <div className="relative flex items-center">
+            <span className="absolute right-4 text-[10px] font-medium text-[#5C5C5C]">False</span>
+            <Handle
+              type="source"
+              id="false"
+              position={Position.Right}
+              className="!relative !right-0 !transform-none !h-3 !w-3 !border-2 !border-white !bg-[#EF4444]"
+            />
+          </div>
+        </div>
+      ) : (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!h-3 !w-3 !border-2 !border-white !bg-[#D0FFA4]"
+        />
+      )}
     </div>
   );
 };

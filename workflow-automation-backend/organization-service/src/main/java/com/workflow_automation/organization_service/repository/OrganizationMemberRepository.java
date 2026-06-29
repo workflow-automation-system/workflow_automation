@@ -26,4 +26,10 @@ public interface OrganizationMemberRepository
 
     Optional<OrganizationMember>
     findByOrganization_IdAndUserId(Long organizationId, Long userId);
+
+    Optional<OrganizationMember> findByInviteToken(String token);
+
+    Optional<OrganizationMember> findByOrganization_IdAndEmailIgnoreCase(Long organizationId, String email);
+
+    Optional<OrganizationMember> findByIdAndOrganization_Id(Long id, Long organizationId);
 }

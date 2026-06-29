@@ -15,4 +15,5 @@ public class OrganizationMemberResponse {
     private String department;
     private String jobTitle;
     private String status;
+    private Long organizationId;
 }
