@@ -17,6 +17,7 @@ import {
 import authService, { API } from '../services/authService';
 import organizationService from '../services/organizationService';
 import Toast from '../components/ui/Toast';
+import Modal from '../components/ui/Modal';
 import { useAuthStore } from '../stores/authStore';
 import { isAdmin } from '../utils/rbac';
 import {
@@ -60,6 +61,7 @@ const Organisation = () => {
   const [editingDepartment, setEditingDepartment] = React.useState(null);
   const [deptSaving, setDeptSaving] = React.useState(false);
   const [deletingDeptId, setDeletingDeptId] = React.useState(null);
+  const [deleteDeptModal, setDeleteDeptModal] = React.useState({ open: false, department: null });
   const [updatingMemberDeptKey, setUpdatingMemberDeptKey] = React.useState(null);
   const [inviteForm, setInviteForm] = React.useState({
     name: '',
@@ -73,6 +75,7 @@ const Organisation = () => {
   const currentUserIsAdmin = isAdmin(user);
   const [toast, setToast] = React.useState({ open: false, message: '', tone: 'info' });
   const [deletingMemberKey, setDeletingMemberKey] = React.useState(null);
+  const [deleteMemberModal, setDeleteMemberModal] = React.useState({ open: false, member: null });
 
   const showToast = React.useCallback((message, tone = 'info') => {
     setToast({ open: true, message, tone });
@@ -112,7 +115,7 @@ const Organisation = () => {
     return () => { isMounted = false; };
   }, [user?.organizationId, currentUserIsAdmin]);
 
-  const handleRemoveMember = async (member) => {
+  const handleRemoveMember = (member) => {
     const identityId = memberIdentityId(member);
     const isInvitation = member.type === MEMBER_TYPE.INVITATION;
     const isSelf = !isInvitation && identityId === user?.id;
@@ -122,12 +125,18 @@ const Organisation = () => {
       return;
     }
 
-    const actionLabel = isInvitation ? 'cancel this invitation for' : 'remove';
-    if (!window.confirm(`${isInvitation ? 'Cancel' : 'Remove'} ${member.name || member.email} from the organization? This action cannot be undone.`)) {
-      return;
-    }
+    setDeleteMemberModal({ open: true, member });
+  };
 
+  const confirmRemoveMember = async () => {
+    const member = deleteMemberModal.member;
+    if (!member) return;
+
+    const identityId = memberIdentityId(member);
+    const isInvitation = member.type === MEMBER_TYPE.INVITATION;
+    const actionLabel = isInvitation ? 'cancel this invitation for' : 'remove';
     const key = memberKey(member);
+
     setDeletingMemberKey(key);
     try {
       if (isInvitation) {
@@ -142,6 +151,7 @@ const Organisation = () => {
           : `${member.name || member.email} has been removed.`,
         'success'
       );
+      setDeleteMemberModal({ open: false, member: null });
     } catch (err) {
       showToast(err.response?.data?.message || `Failed to ${actionLabel} member.`, 'error');
     } finally {
@@ -228,7 +238,7 @@ const Organisation = () => {
     }
   };
 
-  const handleDeleteDepartment = async (department) => {
+  const handleDeleteDepartment = (department) => {
     if (!department.id) {
       showToast('This department is not synced yet. Refresh the page or recreate it from Department Management.', 'error');
       return;
@@ -239,9 +249,12 @@ const Organisation = () => {
       return;
     }
 
-    if (!window.confirm(`Delete "${department.name}"? This department has no assigned members.`)) {
-      return;
-    }
+    setDeleteDeptModal({ open: true, department });
+  };
+
+  const confirmDeleteDepartment = async () => {
+    const department = deleteDeptModal.department;
+    if (!department) return;
 
     setDeletingDeptId(department.id);
     try {
@@ -250,6 +263,7 @@ const Organisation = () => {
       if (selectedDept === department.name) {
         setSelectedDept('All');
       }
+      setDeleteDeptModal({ open: false, department: null });
       await refreshWorkspace();
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to delete department.', 'error');
@@ -797,6 +811,61 @@ const Organisation = () => {
           </div>
         </section>
       )}
+
+      <Modal
+        isOpen={deleteDeptModal.open}
+        onClose={() => setDeleteDeptModal({ open: false, department: null })}
+        title="Delete Department"
+      >
+        <p className="mb-5 text-sm text-[#5C5C5C]">
+          Delete department <strong className="text-[#292D32]">{deleteDeptModal.department?.name}</strong>? This department has no assigned members.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setDeleteDeptModal({ open: false, department: null })}
+            className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={confirmDeleteDepartment}
+            disabled={deletingDeptId === deleteDeptModal.department?.id}
+            className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-70"
+          >
+            {deletingDeptId === deleteDeptModal.department?.id ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={deleteMemberModal.open}
+        onClose={() => setDeleteMemberModal({ open: false, member: null })}
+        title={deleteMemberModal.member?.type === MEMBER_TYPE.INVITATION ? 'Cancel Invitation' : 'Remove Member'}
+      >
+        <p className="mb-5 text-sm text-[#5C5C5C]">
+          {deleteMemberModal.member?.type === MEMBER_TYPE.INVITATION ? 'Cancel' : 'Remove'}{' '}
+          <strong className="text-[#292D32]">{deleteMemberModal.member?.name || deleteMemberModal.member?.email}</strong> from the organization? This action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setDeleteMemberModal({ open: false, member: null })}
+            className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5C5C] hover:border-[#D0FFA4]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={confirmRemoveMember}
+            disabled={deletingMemberKey === memberKey(deleteMemberModal.member || {})}
+            className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-70"
+          >
+            {deletingMemberKey === memberKey(deleteMemberModal.member || {}) ? 'Deleting...' : (deleteMemberModal.member?.type === MEMBER_TYPE.INVITATION ? 'Cancel Invitation' : 'Remove')}
+          </button>
+        </div>
+      </Modal>
 
       <Toast
         open={toast.open}
