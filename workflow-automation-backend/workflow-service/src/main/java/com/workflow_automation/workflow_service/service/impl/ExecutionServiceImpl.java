@@ -26,6 +26,7 @@ import com.workflow_automation.workflow_service.security.AccessContext;
 
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -129,7 +130,41 @@ public class ExecutionServiceImpl implements ExecutionService {
                 executeActionNode(node, context, execution);
                 break;
             case CONDITION:
-                shouldContinue = executeConditionNode(node, context, execution);
+                // Check if the condition targets a list structure (e.g. messages.0)
+                String expression = getConditionExpression(node);
+                String listPath = detectListPathFromExpression(node, context);
+                
+                if (listPath != null) {
+                    List<?> list = (List<?>) resolveContextValue(context, listPath);
+                    log.info("Detected list for condition iteration: {} (size={})", listPath, list.size());
+                    
+                    int matchedCount = 0;
+                    // Loop over each element in the list and branch execution
+                    for (int i = 0; i < list.size(); i++) {
+                        Map<String, Object> iteratedContext = new HashMap<>(context);
+                        // Rewrite the specific indexed element in the local context so nodes down the branch use the correct index
+                        rewriteContextForIndex(iteratedContext, listPath, i);
+                        
+                        boolean itemMatched = evaluateConditionForContext(node, iteratedContext);
+                        if (itemMatched) {
+                            matchedCount++;
+                            log.info("Item at index {} matched condition. Executing branch.", i);
+                            // Follow outgoing connections immediately for this iterated context
+                            if (node.getOutgoingConnections() != null) {
+                                for (Connection connection : node.getOutgoingConnections()) {
+                                    processNode(connection.getTargetNode(), iteratedContext, execution);
+                                }
+                            }
+                        }
+                    }
+                    
+                    saveStep(execution, node, matchedCount > 0 ? "COMPLETED" : "SKIPPED", 
+                            String.format("Condition expression '%s' matched %d/%d items in list '%s'", expression, matchedCount, list.size(), listPath));
+                    // We already processed outgoing nodes inside the loop, so stop parent execution path here
+                    return;
+                } else {
+                    shouldContinue = executeConditionNode(node, context, execution);
+                }
                 break;
         }
 
@@ -138,10 +173,89 @@ public class ExecutionServiceImpl implements ExecutionService {
             return;
         }
 
-        // Follow outgoing connections
+        // Follow outgoing connections (standard non-iterated flow)
         if (node.getOutgoingConnections() != null) {
             for (Connection connection : node.getOutgoingConnections()) {
                 processNode(connection.getTargetNode(), context, execution);
+            }
+        }
+    }
+
+    private String getConditionExpression(Node node) {
+        try {
+            Map<String, Object> rawConfig = parseConfig(node.getConfig());
+            Object settings = rawConfig.get("settings");
+            if (settings instanceof Map<?, ?> settingsMap) {
+                return stringValue(settingsMap.get("expression"));
+            }
+            return stringValue(rawConfig.get("expression"));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private boolean evaluateConditionForContext(Node node, Map<String, Object> context) {
+        Map<String, Object> config = normalizeActionConfig(parseConfig(node.getConfig()), context);
+        String expression = stringValue(config.get("expression"));
+        return evaluateConditionExpression(expression, context);
+    }
+
+    private String detectListPathFromExpression(Node node, Map<String, Object> context) {
+        String rawExpression = getConditionExpression(node);
+        log.info("[DEBUG-LOOP] Raw expression from DB config: '{}'", rawExpression);
+
+        if (rawExpression.isBlank()) {
+            return null;
+        }
+        
+        // Find pattern like {{prefix.messages.0.subject}} or prefix.messages.0.subject
+        // We look for a path segment that is followed by ".0" (or any numeric index)
+        Pattern indexPattern = Pattern.compile("([a-zA-Z0-9_.-]+)\\.(\\d+)\\.([a-zA-Z0-9_.-]+)");
+        Matcher matcher = indexPattern.matcher(rawExpression);
+        if (matcher.find()) {
+            String listPath = matcher.group(1);
+            log.info("[DEBUG-LOOP] Matched regex. listPath found: '{}'", listPath);
+            Object resolved = resolveContextValue(context, listPath);
+            if (resolved instanceof List) {
+                log.info("[DEBUG-LOOP] Successfully verified listPath '{}' is a List in context", listPath);
+                return listPath;
+            } else {
+                log.warn("[DEBUG-LOOP] listPath '{}' is not a List. It is: {}", listPath, resolved != null ? resolved.getClass().getName() : "null");
+            }
+        } else {
+            log.warn("[DEBUG-LOOP] Regex did not match rawExpression");
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void rewriteContextForIndex(Map<String, Object> context, String listPath, int index) {
+        // Rewrite references of "listPath.0.field" to actually use the value at listPath.get(index)
+        // To make it simple, we can copy the specific item at list.get(index) and bind it to path.0
+        Object listObj = resolveContextValue(context, listPath);
+        if (listObj instanceof List<?> list && index < list.size()) {
+            Object targetItem = list.get(index);
+            
+            // Navigate the nested structure in context to find where the list lives and inject a "0" key with the current item
+            String[] parts = listPath.split("\\.");
+            Map<String, Object> currentMap = context;
+            for (int i = 0; i < parts.length; i++) {
+                Object next = currentMap.get(parts[i]);
+                if (i == parts.length - 1) {
+                    if (next instanceof List) {
+                        // We found the list. We want to mock index 0 to contain the target item!
+                        // So if expression resolves `messages.0.subject`, resolving it will pick up listObj at index 0.
+                        // We can modify the list references, or we can simply inject a virtual path or replace list items.
+                        List<Object> mockedList = new ArrayList<>(list);
+                        // Set the current loop item at index 0, so any reference to .0 in evaluateConditionExpression picks this current item!
+                        mockedList.set(0, targetItem);
+                        currentMap.put(parts[i], mockedList);
+                    }
+                } else if (next instanceof Map) {
+                    Map<String, Object> newNestedMap = new HashMap<>((Map<String, Object>) next);
+                    currentMap.put(parts[i], newNestedMap);
+                    currentMap = newNestedMap;
+                }
             }
         }
     }
