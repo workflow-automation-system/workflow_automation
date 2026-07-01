@@ -386,11 +386,8 @@ public class AuthService {
                         .name(user.getName())
                         .email(user.getEmail())
                         .role(resolveRole(user).name())
-<<<<<<< HEAD
-=======
                         .department("Unassigned")
                         .jobTitle("Team Member")
->>>>>>> 7c78c1f (database correction)
                         .status(MemberStatus.ACCEPTED.name())
                         .build()
         );
@@ -639,22 +636,15 @@ public class AuthService {
     }
 
     public List<InvitationResponse> listPendingInvitations(Long organizationId) {
-        return organizationClient.listPendingInvitations(organizationId).stream()
-                .map(m -> InvitationResponse.builder()
-                        .id(m.getId())
-                        .email(m.getEmail())
-                        .name(m.getName())
-                        .role(m.getRole() != null ? m.getRole() : Role.USER.name())
-                        .department(m.getDepartment())
-                        .jobTitle(m.getJobTitle())
-                        .status(MemberStatus.PENDING.name())
-                        .build())
-                .collect(Collectors.toList());
+        return invitationService.listPendingInvitations(organizationId);
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public void renameDepartmentForOrganization(Long organizationId, String oldName, String newName) {
+        if (organizationId == null) {
+            return;
+        }
 
-<<<<<<< HEAD
-=======
         log.info("Renamed department '{}' to '{}' for organization {} (No-op in auth-service)", oldName, newName, organizationId);
 
         log.info("Renamed department '{}' to '{}' for organization {}", oldName, newName, organizationId);

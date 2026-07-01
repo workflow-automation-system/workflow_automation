@@ -23,8 +23,10 @@ public class Node {
     private NodeType type;
 
     private String name;
-    @Column(columnDefinition = "TEXT")
-    private String config;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    private Map<String, Object> config;
+
     private Double positionX;
     private Double positionY;
 

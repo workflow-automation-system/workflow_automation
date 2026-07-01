@@ -5,11 +5,11 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(
@@ -23,8 +23,8 @@ import org.hibernate.annotations.SQLRestriction;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
-@SQLDelete(sql = "UPDATE organization_members SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE organization_members SET deleted = true WHERE id=?")
+@Where(clause = "deleted=false")
 public class OrganizationMember {
 
     @Id
@@ -54,28 +54,13 @@ public class OrganizationMember {
 
     private String status;
 
-    @Column(name = "invite_token", unique = true)
-    private String inviteToken;
-
-    @Column(name = "invite_expires_at")
-    private LocalDateTime inviteExpiresAt;
-
-    @Column(name = "invited_by_user_id")
-    private Long invitedByUserId;
-
     @CreatedDate
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
-
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
-
-    @PrePersist
-    public void prePersist() {
-        if (status == null) {
-            status = "PENDING";
-        }
-    }
+    
+    @Builder.Default
+    private boolean deleted = false;
 }
