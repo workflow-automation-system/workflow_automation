@@ -36,7 +36,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         String authHeader = request.getHeaders().getFirst("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return chain.filter(exchange);
+            return this.onError(exchange, "Authorization header is missing or invalid", org.springframework.http.HttpStatus.UNAUTHORIZED);
         }
 
         String token = authHeader.substring(7);
@@ -60,8 +60,14 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         } catch (Exception e) {
-            return chain.filter(exchange);
+            return this.onError(exchange, "Invalid JWT token", org.springframework.http.HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    private Mono<Void> onError(ServerWebExchange exchange, String err, org.springframework.http.HttpStatus httpStatus) {
+        org.springframework.http.server.reactive.ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(httpStatus);
+        return response.setComplete();
     }
 
     @Override

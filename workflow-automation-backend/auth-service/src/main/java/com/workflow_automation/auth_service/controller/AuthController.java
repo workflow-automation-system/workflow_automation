@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.net.URI;
 import java.util.List;
@@ -207,6 +208,13 @@ public class AuthController {
     public ResponseEntity<?> handleRuntime(RuntimeException ex) {
         return ResponseEntity.badRequest()
                 .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "An error occurred"));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<?> handleDataIntegrity(DataIntegrityViolationException ex) {
+        // We do not return ex.getMessage() here to avoid leaking SQL statements
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", "Une erreur est survenue : cette donnée (ex: email) existe déjà dans notre système."));
     }
 
     private String clientIp(HttpServletRequest request) {

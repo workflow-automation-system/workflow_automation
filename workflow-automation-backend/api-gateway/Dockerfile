@@ -1,6 +1,4 @@
-# ==========================================
 # Étape 1 : Construction (Build)
-# ==========================================
 # Image Maven pour builder le projet
 FROM maven:3.9.4-eclipse-temurin-17 AS build
 WORKDIR /app
@@ -13,9 +11,7 @@ RUN mvn dependency:go-offline -B || true
 COPY src ./src
 RUN mvn clean package -Dmaven.test.skip=true
 
-# ==========================================
 # Étape 2 : Exécution (Run)
-# ==========================================
 # Image plus légère avec uniquement le JRE (Java Runtime Environment)
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app

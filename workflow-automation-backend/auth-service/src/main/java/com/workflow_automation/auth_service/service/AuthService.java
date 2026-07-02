@@ -489,66 +489,7 @@ public class AuthService {
     }
 
 
-<<<<<<< HEAD
-=======
-        String department = defaultIfBlank(request.getDepartment(), "Unassigned");
-        if (!"Unassigned".equalsIgnoreCase(department) && !organizationClient.departmentExists(organizationId, department)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Department does not exist. Create it in Department Management first."
-            );
-        }
 
-        if ("INVITATION".equalsIgnoreCase(request.getType())) {
-            Invitation invitation = invitationRepository.findById(targetId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invitation not found"));
-            if (!organizationId.equals(invitation.getOrganizationId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invitation does not belong to organization");
-            }
-            if (!MemberStatus.PENDING.name().equalsIgnoreCase(invitation.getStatus().name())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only pending invitations can be updated");
-            }
-
-            Invitation saved = invitationRepository.save(invitation);
-
-            return MemberViewResponse.builder()
-                    .type("INVITATION")
-                    .id(saved.getId())
-                    .email(saved.getEmail())
-                    .name(saved.getName())
-                    .role(saved.getRole() != null ? saved.getRole().name() : Role.USER.name())
-                    .department("Unassigned")
-                    .jobTitle(null)
-                    .status(MemberStatus.PENDING.name())
-                    .expiresAt(saved.getExpiresAt())
-                    .build();
-        }
-
-        User user = userRepository.findById(targetId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
-        if (!organizationId.equals(user.getOrganizationId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Member does not belong to organization");
-        }
-        if (!user.isEnabled()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only active members can be reassigned");
-        }
-
-        User saved = userRepository.save(user);
-        syncOrganizationMember(saved);
-
-        return MemberViewResponse.builder()
-                .type("MEMBER")
-                .id(saved.getId())
-                .userId(saved.getId())
-                .email(saved.getEmail())
-                .name(saved.getName())
-                .role(resolveRole(saved).name())
-                .department("Unassigned")
-                .jobTitle(null)
-                .status(MemberStatus.ACCEPTED.name())
-                .build();
-    }
->>>>>>> 7c78c1f (database correction)
 
     public void deleteUser(Long targetUserId, Long adminOrganizationId, Long adminUserId) {
         deleteUser(targetUserId, adminOrganizationId, adminUserId, null, null, null);
@@ -636,7 +577,17 @@ public class AuthService {
     }
 
     public List<InvitationResponse> listPendingInvitations(Long organizationId) {
-        return invitationService.listPendingInvitations(organizationId);
+        return organizationClient.listPendingInvitations(organizationId).stream()
+                .map(member -> InvitationResponse.builder()
+                        .id(member.getId())
+                        .email(member.getEmail())
+                        .name(member.getName())
+                        .role(member.getRole() != null ? member.getRole() : Role.USER.name())
+                        .department(member.getDepartment())
+                        .jobTitle(member.getJobTitle())
+                        .status(MemberStatus.PENDING.name())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @org.springframework.transaction.annotation.Transactional
@@ -660,7 +611,6 @@ public class AuthService {
 
         log.info("Deleted department '{}' for organization {}", name, organizationId);
     }
->>>>>>> 7c78c1f (database correction)
 
     public AuthResponse updateProfile(String email, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(email)

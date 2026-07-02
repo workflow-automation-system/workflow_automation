@@ -175,6 +175,16 @@ public class OrganizationClient {
                     ))
                     .retrieve()
                     .body(OrganizationSummary.class);
+        } catch (RestClientResponseException exception) {
+            String message = "Unable to accept invitation";
+            try {
+                java.util.Map<?, ?> body = exception.getResponseBodyAs(java.util.Map.class);
+                if (body != null && body.containsKey("message")) {
+                    message = body.get("message").toString();
+                }
+            } catch (Exception ignored) {
+            }
+            throw new ResponseStatusException(exception.getStatusCode(), message);
         } catch (RestClientException exception) {
             throw new RuntimeException("Unable to accept invitation", exception);
         }
@@ -194,6 +204,16 @@ public class OrganizationClient {
                     ))
                     .retrieve()
                     .body(OrganizationMemberResponse.class);
+        } catch (RestClientResponseException exception) {
+            String message = "Unable to invite member";
+            try {
+                java.util.Map<?, ?> body = exception.getResponseBodyAs(java.util.Map.class);
+                if (body != null && body.containsKey("message")) {
+                    message = body.get("message").toString();
+                }
+            } catch (Exception ignored) {
+            }
+            throw new ResponseStatusException(exception.getStatusCode(), message);
         } catch (RestClientException exception) {
             throw new RuntimeException("Unable to invite member", exception);
         }
