@@ -33,4 +33,4 @@ spring:
         - id: audit-service
           uri: ${AUDIT_SERVICE_URI:http://localhost:8086}
           predicates:
-            - Path=/api/audit/**
+            - Path=/api/audit/**, /api/notifications/**, /ws-notifications/**

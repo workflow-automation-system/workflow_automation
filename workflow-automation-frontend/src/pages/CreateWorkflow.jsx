@@ -315,11 +315,6 @@ const CreateWorkflow = () => {
   );
 
   const handleSave = async () => {
-    if (isCreateMode && !canCreate) {
-      showToast('Viewer accounts cannot create workflows.', 'error');
-      return;
-    }
-
     if (!isCreateMode && editorReadOnly) {
       showToast('You do not have permission to modify this workflow.', 'error');
       return;
@@ -423,12 +418,6 @@ const CreateWorkflow = () => {
 
   return (
     <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4 font-urbanist">
-      {isCreateMode && !canCreate ? (
-        <div className="enterprise-card p-5 text-sm text-[#5C5C5C]">
-          Viewer accounts cannot create workflows. You can still open shared workflows in read-only mode from the workflow list.
-        </div>
-      ) : null}
-
       {editorReadOnly ? (
         <div className="enterprise-card p-5 text-sm text-[#5C5C5C]">
           Read only mode is active for this workflow. Drag-and-drop, node edits, and save actions are disabled by RBAC.

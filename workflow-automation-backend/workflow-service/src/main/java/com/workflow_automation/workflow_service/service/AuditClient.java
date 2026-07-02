@@ -30,4 +30,25 @@ public class AuditClient {
                     request.getAction(), request.getEntityType(), request.getEntityId(), exception);
         }
     }
+
+    public void sendNotification(Long organizationId, Long userId, String type, String message) {
+        try {
+            java.util.Map<String, Object> requestBody = new java.util.HashMap<>();
+            requestBody.put("organizationId", organizationId);
+            requestBody.put("userId", userId);
+            requestBody.put("type", type);
+            requestBody.put("message", message);
+
+            RestClient.builder()
+                .baseUrl(restClient.toString().replace("/api/audit", "/api/notifications")) // fallback hack, better to use environment variable
+                .build()
+                .post()
+                .uri("http://audit-service:8085/api/notifications") // Or use the direct URL
+                .body(requestBody)
+                .retrieve()
+                .toBodilessEntity();
+        } catch (Exception exception) {
+            log.warn("Unable to send notification type={}", type, exception);
+        }
+    }
 }

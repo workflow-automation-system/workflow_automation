@@ -22,12 +22,6 @@ import { canCreateWorkflow, getRole } from '../utils/rbac';
 const roleBanners = {
   ADMIN: null,
   USER: null,
-  VIEWER: {
-    bg: 'border-[#E2E8F0] bg-white',
-    text: 'text-[#5C5C5C]',
-    icon: Eye,
-    message: 'Read-only mode. You can review workflows and execution history, and execute only where access is granted.',
-  },
 };
 
 const Dashboard = () => {

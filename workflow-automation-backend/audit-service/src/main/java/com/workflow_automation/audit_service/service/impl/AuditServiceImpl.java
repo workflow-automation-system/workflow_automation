@@ -17,6 +17,7 @@ import java.util.List;
 public class AuditServiceImpl implements AuditService {
 
     private final AuditLogRepository repository;
+    private final com.workflow_automation.audit_service.service.NotificationService notificationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -40,7 +41,9 @@ public class AuditServiceImpl implements AuditService {
             }
         }
 
-        return repository.save(log);
+        AuditLog savedLog = repository.save(log);
+
+        return savedLog;
     }
 
     @Override

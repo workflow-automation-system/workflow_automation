@@ -4,11 +4,10 @@ import { ShieldAlert } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { getRole } from '../utils/rbac';
 
-const roleLabelMap = { ADMIN: 'Administrator', USER: 'Member', VIEWER: 'Viewer' };
+const roleLabelMap = { ADMIN: 'Administrator', USER: 'Member' };
 const roleBadgeStyles = {
   ADMIN: 'bg-[#292D32] text-white',
   USER: 'bg-[#D0FFA4] text-[#292D32]',
-  VIEWER: 'bg-[#E2E8F0] text-[#5C5C5C]',
 };
 
 const PermissionDenied = () => {

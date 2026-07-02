@@ -58,9 +58,7 @@ public class WorkflowAccessService {
     }
 
     public void assertCanCreate(AccessContext context) {
-        if (context.getRole() == PlatformRole.VIEWER) {
-            throw new ForbiddenException("Viewer accounts cannot create workflows");
-        }
+        // All active roles (ADMIN, USER) can create workflows
     }
 
     public void assertCanEdit(Workflow workflow, AccessContext context) {

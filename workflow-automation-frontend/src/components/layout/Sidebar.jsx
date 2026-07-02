@@ -17,10 +17,9 @@ import { isAdmin, getRole } from '../../utils/rbac';
 const roleBadgeStyles = {
   ADMIN: 'bg-[#292D32] text-white',
   USER: 'bg-[#D0FFA4] text-[#292D32]',
-  VIEWER: 'bg-[#E2E8F0] text-[#5C5C5C]',
 };
 
-const roleLabel = { ADMIN: 'A', USER: 'U', VIEWER: 'V' };
+const roleLabel = { ADMIN: 'A', USER: 'U' };
 
 const Sidebar = () => {
   const { logout, user } = useAuthStore();

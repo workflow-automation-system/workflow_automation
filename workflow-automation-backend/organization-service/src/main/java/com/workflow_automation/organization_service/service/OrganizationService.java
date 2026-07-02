@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Comparator;
 import java.util.List;
@@ -27,6 +29,10 @@ public class OrganizationService {
 
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    @Value("${audit.service.url:http://audit-service:8085/api/notifications}")
+    private String auditServiceUrl;
     private final DepartmentRepository departmentRepository;
     private final AuthClient authClient;
 
@@ -131,6 +137,25 @@ public class OrganizationService {
         member.setInviteExpiresAt(null);
         
         organizationMemberRepository.save(member);
+
+        try {
+            String message = String.format(
+                "%s a rejoint %s et est prêt à collaborer sur vos workflows.",
+                name != null ? name : email,
+                member.getOrganization().getName()
+            );
+
+            var requestBody = new java.util.HashMap<String, Object>();
+            requestBody.put("organizationId", member.getOrganization().getId());
+            requestBody.put("userId", member.getInvitedByUserId());
+            requestBody.put("type", "MEMBER_JOINED");
+            requestBody.put("message", message);
+
+            restTemplate.postForEntity(auditServiceUrl, requestBody, Void.class);
+        } catch (Exception ex) {
+            System.err.println("Failed to send invitation acceptance notification: " + ex.getMessage());
+        }
+
         return toSummary(member.getOrganization());
     }
 
@@ -201,6 +226,19 @@ public class OrganizationService {
         }
         member.setRole(sanitizeRole(role));
         organizationMemberRepository.save(member);
+
+        try {
+            String message = String.format("Votre rôle a été mis à jour vers : %s", member.getRole());
+            var requestBody = new java.util.HashMap<String, Object>();
+            requestBody.put("organizationId", organizationId);
+            requestBody.put("userId", userId);
+            requestBody.put("type", "ROLE_UPDATED");
+            requestBody.put("message", message);
+
+            restTemplate.postForEntity(auditServiceUrl, requestBody, Void.class);
+        } catch (Exception ex) {
+            System.err.println("Failed to send role update notification: " + ex.getMessage());
+        }
     }
 
     // ================= DEPARTMENTS =================

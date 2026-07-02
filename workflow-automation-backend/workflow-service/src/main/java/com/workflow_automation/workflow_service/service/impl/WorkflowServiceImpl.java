@@ -24,6 +24,8 @@ import com.workflow_automation.workflow_service.service.WorkflowService;
 import com.workflow_automation.workflow_service.service.PermissionService;
 import com.workflow_automation.workflow_service.service.WorkflowAccessService;
 import com.workflow_automation.workflow_service.security.AccessContext;
+import com.workflow_automation.workflow_service.service.AuditClient;
+import com.workflow_automation.workflow_service.dto.audit.AuditLogRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -135,6 +137,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     private final WorkflowAccessService workflowAccessService;
     private final com.workflow_automation.workflow_service.service.WorkflowInitializer workflowInitializer;
     private final com.workflow_automation.workflow_service.service.WorkflowSchedulingService schedulingService;
+    private final AuditClient auditClient;
 
     @Override
     public WorkflowResponse create(CreateWorkflowRequest request, AccessContext accessContext) {
@@ -159,6 +162,20 @@ public class WorkflowServiceImpl implements WorkflowService {
         workflow = workflowRepository.save(workflow);
         permissionService.ensureOwnerPermissions(workflow);
         workflowInitializer.scheduleIfRequired(workflow);
+        
+        // Enregistrer l'action d'audit pour déclencher la notification
+        auditClient.record(AuditLogRequest.builder()
+                .userId(accessContext.getUserId())
+                .organizationId(accessContext.getOrganizationId())
+                .action("CREATE_WORKFLOW")
+                .entityType("WORKFLOW")
+                .entityId(workflow.getId())
+                .outcome("SUCCESS")
+                .build());
+
+        // Envoyer une notification ciblée à toute l'organisation
+        String notificationMessage = String.format("Nouveau workflow disponible : '%s'", workflow.getName());
+        auditClient.sendNotification(accessContext.getOrganizationId(), null, "WORKFLOW_CREATED", notificationMessage);
 
         return toWorkflowResponse(workflow, accessContext);
     }

@@ -7,8 +7,14 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Configurer le réseau pour éviter la saturation du NAT Docker sur Windows (ECONNRESET)
+RUN npm config set registry http://registry.npmjs.org/ \
+    && npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set maxsockets 1 \
+    && npm install
+    
 
 # Copy the rest of the application code
 COPY . .

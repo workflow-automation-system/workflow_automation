@@ -31,7 +31,7 @@ public class OrganizationMember {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = true)
     private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)

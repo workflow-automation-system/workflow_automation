@@ -18,13 +18,11 @@ import {
 const roleBadgeStyles = {
   ADMIN: 'bg-[#292D32] text-white',
   USER: 'bg-[#D0FFA4] text-[#292D32]',
-  VIEWER: 'bg-[#E2E8F0] text-[#5C5C5C]',
 };
 
 const roleLabels = {
   ADMIN: 'Admin',
   USER: 'Member',
-  VIEWER: 'Viewer',
 };
 
 const ROLE_DESCRIPTIONS = {
@@ -46,15 +44,6 @@ const ROLE_DESCRIPTIONS = {
       'Edit own workflows',
       'Execute permitted workflows',
       'View organization members',
-      'View templates',
-    ],
-  },
-  VIEWER: {
-    description: 'Read-only access. You can view workflows and execution history, but cannot create, edit, or delete anything.',
-    capabilities: [
-      'View all workflows (read-only)',
-      'View execution history',
-      'Execute workflows where access is granted',
       'View templates',
     ],
   },
