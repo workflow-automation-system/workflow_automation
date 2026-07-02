@@ -46,9 +46,14 @@ services:
       - DB_URL=jdbc:postgresql://postgres:5432/auth_db
       - ORGANIZATION_SERVICE_URL=http://organization-service:8083/api/organizations
       - AUDIT_SERVICE_URL=http://audit-service:8085/api/audit
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - postgres
       - organization-service
+      - rabbitmq
     networks:
       - pfa-network
 
@@ -92,8 +97,13 @@ services:
       - ./workflow-automation-backend/organization-service/.env
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/organization_db
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - postgres
+      - rabbitmq
     networks:
       - pfa-network
 

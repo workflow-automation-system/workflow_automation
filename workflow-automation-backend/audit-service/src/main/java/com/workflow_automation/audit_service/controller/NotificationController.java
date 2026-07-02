@@ -16,16 +16,6 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    @PostMapping
-    public ResponseEntity<Notification> sendNotification(@RequestBody NotificationRequest request) {
-        Notification notification = notificationService.createAndSendNotification(
-                request.getOrganizationId(),
-                request.getUserId(),
-                request.getType(),
-                request.getMessage()
-        );
-        return ResponseEntity.ok(notification);
-    }
 
     @GetMapping
     public ResponseEntity<List<Notification>> getNotifications(

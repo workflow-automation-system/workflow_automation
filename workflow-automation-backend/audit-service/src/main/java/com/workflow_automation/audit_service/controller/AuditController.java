@@ -16,10 +16,6 @@ public class AuditController {
 
     private final AuditService auditService;
 
-    @PostMapping
-    public ResponseEntity<AuditLog> record(@RequestBody AuditLogRequest request) {
-        return ResponseEntity.ok(auditService.record(request));
-    }
 
     @GetMapping("/organization/{organizationId}")
     public ResponseEntity<List<AuditLog>> byOrganization(@PathVariable Long organizationId) {

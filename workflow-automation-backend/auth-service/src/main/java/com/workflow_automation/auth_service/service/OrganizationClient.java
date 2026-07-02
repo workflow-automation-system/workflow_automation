@@ -17,11 +17,15 @@ import org.springframework.http.HttpStatus;
 public class OrganizationClient {
 
     private final RestClient restClient;
+    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
-    public OrganizationClient(@Value("${organization.service.url:http://localhost:8083/api/organizations}") String organizationServiceUrl) {
+    public OrganizationClient(
+            @Value("${organization.service.url:http://localhost:8083/api/organizations}") String organizationServiceUrl,
+            org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate) {
         this.restClient = RestClient.builder()
                 .baseUrl(organizationServiceUrl)
                 .build();
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public OrganizationSummary resolveOrganization(String name, String domain) {
@@ -66,13 +70,12 @@ public class OrganizationClient {
         }
 
         try {
-            restClient.post()
-                    .uri("/internal/{organizationId}/members/sync", organizationId)
-                    .body(request)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to sync organization member", exception);
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("organizationId", organizationId);
+            payload.put("request", request);
+            rabbitTemplate.convertAndSend("organization.exchange", "organization.member.sync", payload);
+        } catch (Exception exception) {
+            throw new RuntimeException("Unable to sync organization member via RabbitMQ", exception);
         }
     }
 
@@ -97,21 +100,6 @@ public class OrganizationClient {
         }
     }
 
-    public void updateMemberRole(Long organizationId, Long userId, String role) {
-        if (organizationId == null || userId == null) {
-            return;
-        }
-
-        try {
-            restClient.patch()
-                    .uri("/internal/{organizationId}/members/{userId}/role", organizationId, userId)
-                    .body(java.util.Map.of("role", role))
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to update member role", exception);
-        }
-    }
 
     public void removeMember(Long organizationId, Long userId) {
         if (organizationId == null || userId == null) {
@@ -119,12 +107,12 @@ public class OrganizationClient {
         }
 
         try {
-            restClient.delete()
-                    .uri("/internal/{organizationId}/members/{userId}", organizationId, userId)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientException exception) {
-            // Silently ignore if member doesn't exist in org-service
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("organizationId", organizationId);
+            payload.put("userId", userId);
+            rabbitTemplate.convertAndSend("organization.exchange", "organization.member.remove", payload);
+        } catch (Exception exception) {
+            // Silently ignore if failed to send
         }
     }
 

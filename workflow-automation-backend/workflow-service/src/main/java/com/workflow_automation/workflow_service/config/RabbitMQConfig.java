@@ -43,4 +43,14 @@ public class RabbitMQConfig {
     public MessageConverter jsonMessageConverter(ObjectMapper objectMapper) {
         return new Jackson2JsonMessageConverter(objectMapper);
     }
+
+    @Bean
+    public TopicExchange auditExchange() {
+        return new TopicExchange("audit.exchange");
+    }
+
+    @Bean
+    public TopicExchange notificationExchange() {
+        return new TopicExchange("notification.exchange");
+    }
 }

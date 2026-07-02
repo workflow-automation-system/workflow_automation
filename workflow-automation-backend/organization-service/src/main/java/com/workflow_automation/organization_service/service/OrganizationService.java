@@ -12,8 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.util.Comparator;
 import java.util.List;
@@ -29,10 +28,7 @@ public class OrganizationService {
 
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    @Value("${audit.service.url:http://audit-service:8085/api/notifications}")
-    private String auditServiceUrl;
+    private final RabbitTemplate rabbitTemplate;
     private final DepartmentRepository departmentRepository;
     private final AuthClient authClient;
 
@@ -151,7 +147,7 @@ public class OrganizationService {
             requestBody.put("type", "MEMBER_JOINED");
             requestBody.put("message", message);
 
-            restTemplate.postForEntity(auditServiceUrl, requestBody, Void.class);
+            rabbitTemplate.convertAndSend("notification.exchange", "notification.send", requestBody);
         } catch (Exception ex) {
             System.err.println("Failed to send invitation acceptance notification: " + ex.getMessage());
         }
@@ -218,28 +214,6 @@ public class OrganizationService {
         organizationMemberRepository.delete(member);
     }
 
-    public void updateRole(Long organizationId, Long userId, String role) {
-        OrganizationMember member = organizationMemberRepository.findByUserId(userId)
-                .orElseThrow(() -> new NoSuchElementException("Member not found"));
-        if (!member.getOrganization().getId().equals(organizationId)) {
-            throw new RuntimeException("Member does not belong to organization");
-        }
-        member.setRole(sanitizeRole(role));
-        organizationMemberRepository.save(member);
-
-        try {
-            String message = String.format("Votre rôle a été mis à jour vers : %s", member.getRole());
-            var requestBody = new java.util.HashMap<String, Object>();
-            requestBody.put("organizationId", organizationId);
-            requestBody.put("userId", userId);
-            requestBody.put("type", "ROLE_UPDATED");
-            requestBody.put("message", message);
-
-            restTemplate.postForEntity(auditServiceUrl, requestBody, Void.class);
-        } catch (Exception ex) {
-            System.err.println("Failed to send role update notification: " + ex.getMessage());
-        }
-    }
 
     // ================= DEPARTMENTS =================
 
