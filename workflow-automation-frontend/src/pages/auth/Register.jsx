@@ -76,6 +76,7 @@ const Register = () => {
       name: formData.name.trim(),
       email: formData.email.trim(),
       organizationName: submitOrgName,
+      isCreateOrganization: accountType === 'admin',
       department: formData.department.trim(),
       jobTitle: formData.jobTitle.trim(),
       password: formData.password,

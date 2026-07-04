@@ -60,6 +60,10 @@ public class AuthService {
         if (request.getOrganizationName() != null && !request.getOrganizationName().isBlank()) {
             organization = organizationClient.resolveOrganization(
                     request.getOrganizationName().trim(), domain);
+            
+            if (Boolean.TRUE.equals(request.getIsCreateOrganization()) && !isFirstOrganizationMember(organization)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This organization already exists, try to join it");
+            }
         } else {
             organization = organizationClient.resolveOrganization("", domain);
         }
