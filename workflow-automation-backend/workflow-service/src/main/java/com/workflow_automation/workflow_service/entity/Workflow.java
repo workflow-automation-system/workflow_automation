@@ -43,6 +43,7 @@ public class Workflow {
     private LocalDateTime updatedAt;
 
     @Builder.Default
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean deleted = false;
 
     @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL,orphanRemoval = true)

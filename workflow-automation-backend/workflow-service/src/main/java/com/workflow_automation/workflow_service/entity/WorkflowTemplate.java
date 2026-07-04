@@ -38,5 +38,6 @@ public class WorkflowTemplate {
     private LocalDateTime updatedAt;
 
     @Builder.Default
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean deleted = false;
 }
