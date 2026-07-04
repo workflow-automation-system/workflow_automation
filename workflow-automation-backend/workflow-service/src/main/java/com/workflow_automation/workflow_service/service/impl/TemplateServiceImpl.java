@@ -40,7 +40,7 @@ public class TemplateServiceImpl implements TemplateService {
 
     private WorkflowTemplate findTemplate(Long id) {
         return templateRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Template not found"));
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Template not found"));
     }
 
     private TemplateResponse toResponse(WorkflowTemplate template) {
@@ -61,7 +61,7 @@ public class TemplateServiceImpl implements TemplateService {
                     .updatedAt(template.getUpdatedAt())
                     .build();
         } catch (Exception e) {
-            throw new RuntimeException("Cannot parse template content", e);
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Cannot parse template content", e);
         }
     }
 }

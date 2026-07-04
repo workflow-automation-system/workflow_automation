@@ -16,4 +16,5 @@ public class OrganizationMemberResponse {
     private String jobTitle;
     private String status;
     private Long organizationId;
+    private String inviteToken;
 }

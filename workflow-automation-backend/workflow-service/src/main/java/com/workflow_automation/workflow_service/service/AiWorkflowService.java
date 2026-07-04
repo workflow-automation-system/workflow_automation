@@ -56,10 +56,10 @@ public class AiWorkflowService {
         // Use response.getText() which is the cleanest way in Google AI SDK
         String jsonText = response.getText();
         if (jsonText == null) {
-            throw new RuntimeException("Gemini returned an empty response");
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Gemini returned an empty response");
         }
         if (jsonText.trim().startsWith("Error")) {
-            throw new RuntimeException(jsonText.trim());
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, jsonText.trim());
         }
 
         // Clean up markdown code block wrapper if present
@@ -135,7 +135,7 @@ public class AiWorkflowService {
 
         } catch (Exception e) {
             log.error("Failed to parse Gemini generated JSON", e);
-            throw new RuntimeException("Failed to generate workflow. Invalid response structure from AI: " + e.getMessage(), e);
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Failed to generate workflow. Invalid response structure from AI: " + e.getMessage(), e);
         }
     }
 

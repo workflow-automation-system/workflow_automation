@@ -90,7 +90,7 @@ public class DefaultTemplateSeeder implements CommandLineRunner {
                         now
                 ),
                 template(
-                        "Auto-respond to Internships",
+                        "Conditional Email Responder",
                         "Fetches unread emails, checks if subject or content contains 'condition' that the user has to specify, and auto-replies to the sender.",
                         "Automation",
                         content(

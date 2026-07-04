@@ -29,7 +29,11 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        if (path.startsWith("/api/auth/")) {
+        if (org.springframework.http.HttpMethod.OPTIONS.equals(request.getMethod())) {
+            return chain.filter(exchange);
+        }
+
+        if (path.startsWith("/api/auth/") || path.matches("^/api/integrations/.+/callback$")) {
             return chain.filter(exchange);
         }
 

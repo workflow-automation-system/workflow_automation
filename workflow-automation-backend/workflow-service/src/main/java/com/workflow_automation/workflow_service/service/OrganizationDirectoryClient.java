@@ -36,9 +36,9 @@ public class OrganizationDirectoryClient {
                     || exception.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(400))) {
                 return null;
             }
-            throw new RuntimeException("Unable to validate organization member", exception);
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Unable to validate organization member", exception);
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to validate organization member", exception);
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Unable to validate organization member", exception);
         }
     }
 }

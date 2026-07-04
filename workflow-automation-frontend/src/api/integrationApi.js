@@ -23,7 +23,7 @@ async function request(path, options = {}) {
     throw new Error(payload?.message || `Request failed (${response.status})`);
   }
 
-  return response.json();
+  return response.json().catch(() => null);
 }
 
 export async function getGoogleAuthUrl(userId) {

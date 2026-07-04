@@ -18,7 +18,11 @@ async function request(path, options = {}) {
         throw new Error(errorText || `Template request failed: ${response.status}`);
     }
 
-    return response.status === 204 ? null : response.json();
+    if (response.status === 204) {
+        return null;
+    }
+    
+    return response.json().catch(() => null);
 }
 
 export const templateApi = {

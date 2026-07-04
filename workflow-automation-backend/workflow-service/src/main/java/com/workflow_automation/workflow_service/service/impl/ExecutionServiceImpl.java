@@ -1,6 +1,6 @@
 package com.workflow_automation.workflow_service.service.impl;
 
-import com.workflow_automation.workflow_service.dto.request.WorkflowExecutionMessage;
+
 import com.workflow_automation.workflow_service.entity.Connection;
 import com.workflow_automation.workflow_service.entity.Execution;
 import com.workflow_automation.workflow_service.entity.ExecutionStep;
@@ -14,8 +14,7 @@ import com.workflow_automation.workflow_service.service.ExecutionService;
 import com.workflow_automation.workflow_service.service.WorkflowAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,9 +24,12 @@ import com.workflow_automation.workflow_service.integration.ApplicationActionReg
 import com.workflow_automation.workflow_service.security.AccessContext;
 import com.workflow_automation.workflow_service.service.AuditClient;
 import com.workflow_automation.workflow_service.dto.audit.AuditLogRequest;
+import org.springframework.context.annotation.Lazy;
+import java.util.concurrent.CompletableFuture;
 
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -49,15 +51,13 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final ApplicationActionRegistry actionRegistry;
     private final ObjectMapper objectMapper;
     private final WorkflowAccessService workflowAccessService;
-    private final RabbitTemplate rabbitTemplate;
-    private final com.workflow_automation.workflow_service.repository.UserIntegrationRepository userIntegrationRepository;
     private final AuditClient auditClient;
-
-    @Value("${app.rabbitmq.exchange}")
-    private String exchangeName;
-
-    @Value("${app.rabbitmq.routingkey}")
-    private String routingKey;
+    private final com.workflow_automation.workflow_service.repository.UserIntegrationRepository userIntegrationRepository;
+    
+    
+    @org.springframework.beans.factory.annotation.Autowired
+    @Lazy
+    private ExecutionService self;
 
     @Override
     @org.springframework.transaction.annotation.Transactional
@@ -84,17 +84,14 @@ public class ExecutionServiceImpl implements ExecutionService {
             log.warn("Failed to send audit log", e);
         }
 
-        WorkflowExecutionMessage message = WorkflowExecutionMessage.builder()
-                .workflowId(workflowId)
-                .userId(accessContext.getUserId())
-                .organizationId(accessContext.getOrganizationId())
-                .role(accessContext.getRole() != null ? accessContext.getRole().name() : null)
-                .ipAddress(accessContext.getIpAddress())
-                .userAgent(accessContext.getUserAgent())
-                .input(input)
-                .build();
-
-        rabbitTemplate.convertAndSend(exchangeName, routingKey, message);
+        CompletableFuture.runAsync(() -> {
+            try {
+                self.executeWorkflow(workflowId, accessContext, input);
+            } catch (Exception e) {
+                log.error("Failed to execute workflow async. Workflow ID: {}", workflowId, e);
+            }
+        });
+        
         log.info("Workflow execution queued: workflowId={}, userId={}, organizationId={}",
                 workflowId, accessContext.getUserId(), accessContext.getOrganizationId());
     }
@@ -153,7 +150,44 @@ public class ExecutionServiceImpl implements ExecutionService {
                 executeActionNode(node, context, execution);
                 break;
             case CONDITION:
-                conditionResult = executeConditionNode(node, context, execution);
+                String listPath = detectListPathFromExpression(node, context);
+                if (listPath != null) {
+                    List<?> list = (List<?>) resolveContextValue(context, listPath);
+                    log.info("Detected list for condition iteration: {} (size={})", listPath, list.size());
+                    
+                    int matchedCount = 0;
+                    for (int i = 0; i < list.size(); i++) {
+                        Map<String, Object> iteratedContext = new HashMap<>(context);
+                        rewriteContextForIndex(iteratedContext, listPath, i);
+                        
+                        boolean itemMatched = evaluateConditionForContext(node, iteratedContext);
+                        if (itemMatched) matchedCount++;
+                        
+                        // Follow outgoing connections for THIS iteration
+                        if (node.getOutgoingConnections() != null) {
+                            for (Connection connection : node.getOutgoingConnections()) {
+                                String handle = connection.getSourceHandle();
+                                if (handle != null && !handle.isBlank()) {
+                                    if (itemMatched && "true".equalsIgnoreCase(handle)) {
+                                        processNode(connection.getTargetNode(), iteratedContext, execution);
+                                    } else if (!itemMatched && "false".equalsIgnoreCase(handle)) {
+                                        processNode(connection.getTargetNode(), iteratedContext, execution);
+                                    }
+                                } else {
+                                    // Legacy fallback
+                                    if (itemMatched) {
+                                        processNode(connection.getTargetNode(), iteratedContext, execution);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    saveStep(execution, node, matchedCount > 0 ? "COMPLETED" : "SKIPPED", 
+                            String.format("Condition matched %d/%d items in list '%s'", matchedCount, list.size(), listPath));
+                    return; // Early return to avoid following outgoing connections again below
+                } else {
+                    conditionResult = executeConditionNode(node, context, execution);
+                }
                 break;
         }
 
@@ -178,6 +212,79 @@ public class ExecutionServiceImpl implements ExecutionService {
                 } else {
                     // Non-condition nodes always follow outgoing connections
                     processNode(connection.getTargetNode(), context, execution);
+                }
+            }
+        }
+    }
+
+    private String getConditionExpression(Node node) {
+        try {
+            Map<String, Object> rawConfig = parseConfig(node.getConfig());
+            Object settings = rawConfig.get("settings");
+            if (settings instanceof Map<?, ?> settingsMap) {
+                return stringValue(settingsMap.get("expression"));
+            }
+            return stringValue(rawConfig.get("expression"));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private boolean evaluateConditionForContext(Node node, Map<String, Object> context) {
+        Map<String, Object> config = normalizeActionConfig(parseConfig(node.getConfig()), context);
+        String expression = stringValue(config.get("expression"));
+        return evaluateConditionExpression(expression, context);
+    }
+
+    private String detectListPathFromExpression(Node node, Map<String, Object> context) {
+        String rawExpression = getConditionExpression(node);
+        log.info("[DEBUG-LOOP] Raw expression from DB config: '{}'", rawExpression);
+
+        if (rawExpression.isBlank()) {
+            return null;
+        }
+        
+        // Find pattern like {{prefix.messages.0.subject}} or prefix.messages.0.subject
+        // We look for a path segment that is followed by ".0" (or any numeric index)
+        Pattern indexPattern = Pattern.compile("([a-zA-Z0-9_.-]+)\\.(\\d+)\\.([a-zA-Z0-9_.-]+)");
+        Matcher matcher = indexPattern.matcher(rawExpression);
+        if (matcher.find()) {
+            String listPath = matcher.group(1);
+            log.info("[DEBUG-LOOP] Matched regex. listPath found: '{}'", listPath);
+            Object resolved = resolveContextValue(context, listPath);
+            if (resolved instanceof List) {
+                log.info("[DEBUG-LOOP] Successfully verified listPath '{}' is a List in context", listPath);
+                return listPath;
+            } else {
+                log.warn("[DEBUG-LOOP] listPath '{}' is not a List. It is: {}", listPath, resolved != null ? resolved.getClass().getName() : "null");
+            }
+        } else {
+            log.warn("[DEBUG-LOOP] Regex did not match rawExpression");
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void rewriteContextForIndex(Map<String, Object> context, String listPath, int index) {
+        // Rewrite references of "listPath.0.field" to actually use the value at listPath.get(index)
+        Object listObj = resolveContextValue(context, listPath);
+        if (listObj instanceof List<?> list && index < list.size()) {
+            Object targetItem = list.get(index);
+            
+            String[] parts = listPath.split("\\.");
+            Map<String, Object> currentMap = context;
+            for (int i = 0; i < parts.length; i++) {
+                Object next = currentMap.get(parts[i]);
+                if (i == parts.length - 1) {
+                    if (next instanceof List) {
+                        List<Object> mockedList = new ArrayList<>(list);
+                        mockedList.set(0, targetItem);
+                        currentMap.put(parts[i], mockedList);
+                    }
+                } else if (next instanceof Map) {
+                    Map<String, Object> newNestedMap = new HashMap<>((Map<String, Object>) next);
+                    currentMap.put(parts[i], newNestedMap);
+                    currentMap = newNestedMap;
                 }
             }
         }

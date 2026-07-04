@@ -95,28 +95,7 @@ public class OrganizationController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/members/{userId}/role")
-    public ResponseEntity<Void> updateRole(
-            @PathVariable Long id,
-            @PathVariable Long userId,
-            @RequestBody @Valid UpdateRoleRequest request,
-            @RequestHeader("X-Organization-Id") Long currentOrganizationId,
-            @RequestHeader("X-Role") String currentRole
-    ) {
-        requireAdminAccess(id, currentOrganizationId, currentRole);
-        organizationService.updateRole(id, userId, request.getRole());
-        return ResponseEntity.ok().build();
-    }
 
-    @PatchMapping("/internal/{id}/members/{userId}/role")
-    public ResponseEntity<Void> internalUpdateRole(
-            @PathVariable Long id,
-            @PathVariable Long userId,
-            @RequestBody @Valid UpdateRoleRequest request
-    ) {
-        organizationService.updateRole(id, userId, request.getRole());
-        return ResponseEntity.ok().build();
-    }
 
     @DeleteMapping("/internal/{id}/members/{userId}")
     public ResponseEntity<Void> internalDeleteMember(

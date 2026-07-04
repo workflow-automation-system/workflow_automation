@@ -35,7 +35,7 @@ public class OrganizationClient {
                     .retrieve()
                     .body(OrganizationSummary.class);
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to resolve organization workspace", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to resolve organization workspace", exception);
         }
     }
 
@@ -54,9 +54,9 @@ public class OrganizationClient {
                     || exception.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(400))) {
                 return null;
             }
-            throw new RuntimeException("Unable to load organization summary", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to load organization summary", exception);
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to load organization summary", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to load organization summary", exception);
         }
     }
 
@@ -72,7 +72,7 @@ public class OrganizationClient {
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to sync organization member", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to sync organization member", exception);
         }
     }
 
@@ -91,9 +91,9 @@ public class OrganizationClient {
                     || exception.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(400))) {
                 return null;
             }
-            throw new RuntimeException("Unable to load organization member", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to load organization member", exception);
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to load organization member", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to load organization member", exception);
         }
     }
 
@@ -109,7 +109,7 @@ public class OrganizationClient {
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to update member role", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to update member role", exception);
         }
     }
 
@@ -140,7 +140,7 @@ public class OrganizationClient {
                     .body(Boolean.class);
             return Boolean.TRUE.equals(exists);
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to validate department", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to validate department", exception);
         }
     }
 
@@ -157,9 +157,9 @@ public class OrganizationClient {
             if (exception.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(404))) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid or expired invitation token");
             }
-            throw new RuntimeException("Unable to validate token", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to validate token", exception);
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to validate token", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to validate token", exception);
         }
     }
 
@@ -186,7 +186,7 @@ public class OrganizationClient {
             }
             throw new ResponseStatusException(exception.getStatusCode(), message);
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to accept invitation", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to accept invitation", exception);
         }
     }
 
@@ -215,7 +215,7 @@ public class OrganizationClient {
             }
             throw new ResponseStatusException(exception.getStatusCode(), message);
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to invite member", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to invite member", exception);
         }
     }
 
@@ -226,7 +226,7 @@ public class OrganizationClient {
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to cancel invitation", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to cancel invitation", exception);
         }
     }
 
@@ -238,7 +238,7 @@ public class OrganizationClient {
                     .body(OrganizationMemberResponse[].class);
             return responses != null ? java.util.Arrays.asList(responses) : java.util.Collections.emptyList();
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to load pending invitations", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to load pending invitations", exception);
         }
     }
 
@@ -253,7 +253,7 @@ public class OrganizationClient {
                     .body(OrganizationMemberResponse[].class);
             return responses != null ? java.util.Arrays.asList(responses) : java.util.Collections.emptyList();
         } catch (RestClientException exception) {
-            throw new RuntimeException("Unable to load organization members", exception);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to load organization members", exception);
         }
     }
 }

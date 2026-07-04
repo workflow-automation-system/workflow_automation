@@ -51,8 +51,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.acceptInvitation(request));
     }
 
-
-
     @PostMapping("/resend-verification")
     public ResponseEntity<?> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
         return ResponseEntity.ok(Map.of("message", authService.resendVerificationEmail(request.getEmail())));

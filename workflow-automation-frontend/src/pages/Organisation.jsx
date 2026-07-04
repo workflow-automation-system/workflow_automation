@@ -324,199 +324,40 @@ const Organisation = () => {
   }
 
   return (
-    <div className="space-y-5 font-urbanist animate-fadeIn">
-      {/* 1. Global Header and Stats */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[#292D32]">Organisation</h1>
-          <p className="mt-1 text-sm text-[#5C5C5C]">
-            {orgMeta?.name
-              ? `${orgMeta.name} - members, roles, and enterprise access governance.`
-              : 'Manage enterprise teams, permissions, and department-level workflow governance.'}
-          </p>
-        </div>
-      </div>
-
-
-      {/* 2. Main Tabs */}
-      {currentUserIsAdmin && (
-        <div className="flex gap-2 border-b border-[#E2E8F0] pb-2">
-          <button
-            type="button"
-            onClick={() => setPageView('members')}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${pageView === 'members' ? 'bg-[#292D32] text-white' : 'bg-transparent text-[#5C5C5C] hover:bg-[#F6F5FA]'}`}
-          >
-            Team Directory
-          </button>
-          <button
-            type="button"
-            onClick={() => setPageView('departments')}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${pageView === 'departments' ? 'bg-[#292D32] text-white' : 'bg-transparent text-[#5C5C5C] hover:bg-[#F6F5FA]'}`}
-          >
-            Departments ({managedDepartments.length})
-          </button>
-        </div>
-      )}
-
-      {/* Invite Member Modal */}
-      {showInviteForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#292D32]">Invite New Member</h2>
-              <button
-                type="button"
-                onClick={() => setShowInviteForm(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleInvite} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Full Name *</label>
-                <input
-                  type="text"
-                  value={inviteForm.name}
-                  onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="John Doe"
-                  required
-                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Email Address *</label>
-                <input
-                  type="email"
-                  value={inviteForm.email}
-                  onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
-                  placeholder="john@company.com"
-                  required
-                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Department</label>
-                  <select
-                    value={inviteForm.department}
-                    onChange={(e) => setInviteForm((f) => ({ ...f, department: e.target.value }))}
-                    className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-                  >
-                    <option value="">Unassigned</option>
-                    {managedDepartments.map((dept) => (
-                      <option key={dept.id} value={dept.name}>{dept.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Job Title</label>
-                  <input
-                    type="text"
-                    value={inviteForm.jobTitle}
-                    onChange={(e) => setInviteForm((f) => ({ ...f, jobTitle: e.target.value }))}
-                    placeholder="Developer"
-                    className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <p className="text-xs text-[#5C5C5C]">
-                An invitation email will be sent with a secure link to choose a password.
-              </p>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInviteForm(false)}
-                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={inviteLoading}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44] disabled:opacity-60"
-                >
-                  {inviteLoading ? 'Sending...' : (
-                    <>
-                      <Mail size={14} />
-                      Send Invitation
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+    <>
+      <div className="space-y-5 font-urbanist animate-fadeIn">
+        {/* 1. Global Header and Stats */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-[#292D32]">Organisation</h1>
+            <p className="mt-1 text-sm text-[#5C5C5C]">
+              {orgMeta?.name
+                ? `${orgMeta.name} - members, roles, and enterprise access governance.`
+                : 'Manage enterprise teams, permissions, and department-level workflow governance.'}
+            </p>
           </div>
         </div>
-      )}
 
-      {showDeptForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#292D32]">
-                {editingDepartment ? 'Rename Department' : 'Create Department'}
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDeptForm(false);
-                  setEditingDepartment(null);
-                  setDeptFormName('');
-                }}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
-            <form onSubmit={handleSaveDepartment} className="space-y-4">
-              {editingDepartment?.memberCount > 0 && (
-                <p className="rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2 text-xs text-[#5C5C5C]">
-                  Renaming updates all {editingDepartment.memberCount} assigned member
-                  {editingDepartment.memberCount !== 1 ? 's' : ''} in real time.
-                </p>
-              )}
-              <div>
-                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Department Name *</label>
-                <input
-                  type="text"
-                  value={deptFormName}
-                  onChange={(e) => setDeptFormName(e.target.value)}
-                  placeholder="Engineering"
-                  required
-                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDeptForm(false);
-                    setEditingDepartment(null);
-                    setDeptFormName('');
-                  }}
-                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={deptSaving}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44] disabled:opacity-60"
-                >
-                  {deptSaving ? 'Saving...' : editingDepartment ? 'Rename' : 'Create'}
-                </button>
-              </div>
-            </form>
+        {/* 2. Main Tabs */}
+        {currentUserIsAdmin && (
+          <div className="flex gap-2 border-b border-[#E2E8F0] pb-2">
+            <button
+              type="button"
+              onClick={() => setPageView('members')}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${pageView === 'members' ? 'bg-[#292D32] text-white' : 'bg-transparent text-[#5C5C5C] hover:bg-[#F6F5FA]'}`}
+            >
+              Team Directory
+            </button>
+            <button
+              type="button"
+              onClick={() => setPageView('departments')}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${pageView === 'departments' ? 'bg-[#292D32] text-white' : 'bg-transparent text-[#5C5C5C] hover:bg-[#F6F5FA]'}`}
+            >
+              Departments ({managedDepartments.length})
+            </button>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Departments View */}
       {pageView === 'departments' && currentUserIsAdmin && (
@@ -764,6 +605,167 @@ const Organisation = () => {
           </div>
         </section>
       )}
+      </div>
+
+      {/* Invite Member Modal */}
+      {showInviteForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl animate-scaleUp">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#292D32]">Invite New Member</h2>
+              <button
+                type="button"
+                onClick={() => setShowInviteForm(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Full Name *</label>
+                <input
+                  type="text"
+                  value={inviteForm.name}
+                  onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="John Doe"
+                  required
+                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Email Address *</label>
+                <input
+                  type="email"
+                  value={inviteForm.email}
+                  onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="john@company.com"
+                  required
+                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Department</label>
+                  <select
+                    value={inviteForm.department}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, department: e.target.value }))}
+                    className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                  >
+                    <option value="">Unassigned</option>
+                    {managedDepartments.map((dept) => (
+                      <option key={dept.id} value={dept.name}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Job Title</label>
+                  <input
+                    type="text"
+                    value={inviteForm.jobTitle}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, jobTitle: e.target.value }))}
+                    placeholder="Developer"
+                    className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs text-[#5C5C5C]">
+                An invitation email will be sent with a secure link to choose a password.
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInviteForm(false)}
+                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={inviteLoading}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44] disabled:opacity-60"
+                >
+                  {inviteLoading ? 'Sending...' : (
+                    <>
+                      <Mail size={14} />
+                      Send Invitation
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showDeptForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-xl animate-scaleUp">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#292D32]">
+                {editingDepartment ? 'Rename Department' : 'Create Department'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeptForm(false);
+                  setEditingDepartment(null);
+                  setDeptFormName('');
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDepartment} className="space-y-4">
+              {editingDepartment?.memberCount > 0 && (
+                <p className="rounded-xl border border-[#E2E8F0] bg-[#F6F5FA] px-3 py-2 text-xs text-[#5C5C5C]">
+                  Renaming updates all {editingDepartment.memberCount} assigned member
+                  {editingDepartment.memberCount !== 1 ? 's' : ''} in real time.
+                </p>
+              )}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#5C5C5C]">Department Name *</label>
+                <input
+                  type="text"
+                  value={deptFormName}
+                  onChange={(e) => setDeptFormName(e.target.value)}
+                  placeholder="Engineering"
+                  required
+                  className="w-full rounded-xl border border-[#E2E8F0] px-4 py-2.5 text-sm text-[#292D32] focus:border-[#D0FFA4] focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeptForm(false);
+                    setEditingDepartment(null);
+                    setDeptFormName('');
+                  }}
+                  className="flex-1 rounded-xl border border-[#E2E8F0] py-2.5 text-sm font-medium text-[#5C5C5C] transition-colors hover:bg-[#F6F5FA]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deptSaving}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#292D32] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3a3f44] disabled:opacity-60"
+                >
+                  {deptSaving ? 'Saving...' : editingDepartment ? 'Rename' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <Modal
         isOpen={deleteDeptModal.open}
@@ -826,7 +828,7 @@ const Organisation = () => {
         tone={toast.tone}
         onClose={() => setToast((t) => ({ ...t, open: false }))}
       />
-    </div>
+    </>
   );
 };
 

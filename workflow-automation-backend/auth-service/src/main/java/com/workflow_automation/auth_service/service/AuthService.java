@@ -51,7 +51,7 @@ public class AuthService {
         }
 
         if (userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email already exists");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists");
         }
 
         String domain = extractDomain(email);
@@ -212,7 +212,7 @@ public class AuthService {
 
     public String verifyEmail(String token) {
         User user = userRepository.findByVerificationToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid verification token"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid verification token"));
 
         if (user.isEnabled()) {
             return "Account already verified";
@@ -220,7 +220,7 @@ public class AuthService {
 
         if (user.getVerificationTokenExpiresAt() == null ||
                 user.getVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Verification token expired");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Verification token expired");
         }
 
         user.setEnabled(true);
@@ -262,10 +262,10 @@ public class AuthService {
 
     public String resendVerificationEmail(String email) {
         User user = userRepository.findByEmail(email.trim().toLowerCase())
-                .orElseThrow(() -> new RuntimeException("Email not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Email not found"));
 
         if (user.isEnabled()) {
-            throw new RuntimeException("Email already verified");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already verified");
         }
 
         String verificationToken = UUID.randomUUID().toString();
@@ -313,7 +313,7 @@ public class AuthService {
 
     public AuthResponse getCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         if (!user.isEnabled()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -360,13 +360,24 @@ public class AuthService {
     private AuthResponse toAuthResponse(User user, String token) {
         OrganizationSummary organization = organizationClient.getOrganizationSummary(user.getOrganizationId());
 
+        String department = "Unassigned";
+        String jobTitle = null;
+        
+        if (user.getOrganizationId() != null && user.getId() != null) {
+            OrganizationMemberResponse member = organizationClient.getMember(user.getOrganizationId(), user.getId());
+            if (member != null) {
+                department = member.getDepartment() != null ? member.getDepartment() : "Unassigned";
+                jobTitle = member.getJobTitle();
+            }
+        }
+
         return AuthResponse.builder()
                 .id(user.getId())
                 .token(token)
                 .email(user.getEmail())
                 .name(user.getName())
-                .department("Unassigned")
-                .jobTitle(null)
+                .department(department)
+                .jobTitle(jobTitle)
                 .role(resolveRole(user).name())
                 .status(user.isEnabled() ? MemberStatus.ACCEPTED.name() : MemberStatus.PENDING.name())
                 .organizationId(user.getOrganizationId())
@@ -386,8 +397,8 @@ public class AuthService {
                         .name(user.getName())
                         .email(user.getEmail())
                         .role(resolveRole(user).name())
-                        .department("Unassigned")
-                        .jobTitle("Team Member")
+                        .department(null)
+                        .jobTitle(null)
                         .status(MemberStatus.ACCEPTED.name())
                         .build()
         );
@@ -484,6 +495,28 @@ public class AuthService {
                     .status(m.getStatus() != null ? m.getStatus() : "PENDING")
                     .build());
         });
+
+        if (organizationId != null) {
+            try {
+                List<com.workflow_automation.auth_service.dto.organization.OrganizationMemberResponse> pendingInvites =
+                        organizationClient.listPendingInvitations(organizationId);
+                pendingInvites.forEach(m -> {
+                    responses.add(MemberViewResponse.builder()
+                            .type("INVITATION")
+                            .id(m.getId())
+                            .userId(null)
+                            .email(m.getEmail())
+                            .name(m.getName())
+                            .role(m.getRole())
+                            .department(m.getDepartment() != null ? m.getDepartment() : "Unassigned")
+                            .jobTitle(m.getJobTitle())
+                            .status("PENDING")
+                            .build());
+                });
+            } catch (Exception e) {
+                log.error("Failed to load pending invitations for organization {}: {}", organizationId, e.getMessage());
+            }
+        }
         
         return responses;
     }
@@ -554,6 +587,17 @@ public class AuthService {
             String userAgent
     ) {
         OrganizationMemberResponse member = organizationClient.inviteMember(adminOrganizationId, request, adminUserId);
+        
+        if (member.getInviteToken() != null) {
+            String invitationLink = frontendUrl + "/accept-invitation?token=" + member.getInviteToken();
+            try {
+                emailService.sendInvitationEmail(member.getEmail(), member.getName() != null ? member.getName() : "Invité", invitationLink);
+            } catch (Exception e) {
+                log.error("Failed to send invitation email to {}: {}", member.getEmail(), e.getMessage());
+                // We don't fail the request if email fails, or we could. For now we log it.
+            }
+        }
+
         return InvitationResponse.builder()
                 .id(member.getId())
                 .email(member.getEmail())

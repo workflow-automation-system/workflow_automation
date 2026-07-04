@@ -1,8 +1,5 @@
 
 services:
-  # ==========================================
-  # Base de données PostgreSQL partagée
-  # ==========================================
   postgres:
     image: postgres:15-alpine
     container_name: pfa-postgres
@@ -18,21 +15,8 @@ services:
     networks:
       - pfa-network
 
-  # ==========================================
-  # Message Queue RabbitMQ
-  # ==========================================
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: pfa-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - pfa-network
 
-  # ==========================================
-  # Microservice 1 : Auth Service
-  # ==========================================
+  # Auth Service
   auth-service:
     build:
       context: ./workflow-automation-backend/auth-service
@@ -52,9 +36,7 @@ services:
     networks:
       - pfa-network
 
-  # ==========================================
-  # Microservice 2 : Workflow Service
-  # ==========================================
+  # Workflow Service
   workflow-service:
     build:
       context: ./workflow-automation-backend/workflow-service
@@ -68,19 +50,12 @@ services:
       - DB_URL=jdbc:postgresql://postgres:5432/workflow_db
       - ORGANIZATION_SERVICE_URL=http://organization-service:8083/api/organizations
       - AUDIT_SERVICE_URL=http://audit-service:8085/api/audit
-      - SPRING_RABBITMQ_HOST=rabbitmq
-      - SPRING_RABBITMQ_PORT=5672
-      - SPRING_RABBITMQ_USERNAME=guest
-      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - postgres
-      - rabbitmq
     networks:
       - pfa-network
 
-  # ==========================================
-  # Microservice 3 : Organization Service
-  # ==========================================
+  # Organization Service
   organization-service:
     build:
       context: ./workflow-automation-backend/organization-service
@@ -97,9 +72,7 @@ services:
     networks:
       - pfa-network
 
-  # ==========================================
   # API Gateway
-  # ==========================================
   api-gateway:
     build:
       context: ./workflow-automation-backend/api-gateway
@@ -124,9 +97,7 @@ services:
     networks:
       - pfa-network
 
-  # ==========================================
-  # Frontend : React Application (Dev mode avec HMR)
-  # ==========================================
+  # Frontend
   frontend:
     build:
       context: ./workflow-automation-frontend
@@ -137,9 +108,8 @@ services:
     env_file:
       - ./workflow-automation-frontend/.env
     environment:
-      - CHOKIDAR_USEPOLLING=true
-      - CHOKIDAR_POLLING_INTERVAL=300
-      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=false
+      - WATCHPACK_POLLING=false
       - WDS_SOCKET_PORT=3000
       - WDS_SOCKET_HOST=localhost
       - FAST_REFRESH=true
@@ -152,9 +122,7 @@ services:
       - pfa-network
 
 
-    # ==========================================
     # Audit Service
-    # ==========================================
   audit-service:
     build:
       context: ./workflow-automation-backend/audit-service
@@ -168,25 +136,14 @@ services:
       - DB_URL=jdbc:postgresql://postgres:5432/audit_db
       - DB_USERNAME=pfa_user
       - DB_PASSWORD=pfa_password
-      - SPRING_RABBITMQ_HOST=rabbitmq
-      - SPRING_RABBITMQ_PORT=5672
-      - SPRING_RABBITMQ_USERNAME=guest
-      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - postgres
-      - rabbitmq
     networks:
       - pfa-network
 
-# ==========================================
-# Configuration des Volumes Globaux
-# ==========================================
 volumes:
   postgres_data:
 
-# ==========================================
-# Configuration du Réseau Global
-# ==========================================
 networks:
   pfa-network:
     driver: bridge

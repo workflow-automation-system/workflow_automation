@@ -58,6 +58,15 @@ public class OrganizationMember {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "invite_token")
+    private String inviteToken;
+
+    @Column(name = "invite_expires_at")
+    private LocalDateTime inviteExpiresAt;
+
+    @Column(name = "invited_by_user_id")
+    private Long invitedByUserId;
+
     @LastModifiedDate
     private LocalDateTime updatedAt;
     

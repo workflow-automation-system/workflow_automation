@@ -438,6 +438,7 @@ public class OrganizationService {
                 .jobTitle(m.getJobTitle())
                 .status(m.getStatus())
                 .organizationId(m.getOrganization() != null ? m.getOrganization().getId() : null)
+                .inviteToken(m.getInviteToken())
                 .build();
     }
 
