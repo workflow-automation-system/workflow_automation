@@ -32,7 +32,8 @@ public class AiWorkflowService {
             Generate a workflow JSON for this requirement: {description}
 
             Available actions:
-            - gmail (send_email: fields 'to', 'subject', 'body'; read_emails: fields 'query', 'maxResults')
+            - gmail (send_email: fields 'to', 'subject', 'body')
+            - gmail_read (read_emails: fields 'query', 'maxResults')
             - slack (send_message: fields 'channel', 'message')
             - notion (create_page: fields 'database')
             - delay (wait_seconds: fields 'duration', 'unit')
@@ -44,7 +45,9 @@ public class AiWorkflowService {
                 "nodes": [
                     {"id": "1", "type": "trigger", "name": "Start", "config": {}},
                     {"id": "2", "type": "gmail", "name": "Send Email",
-                     "config": {"to": "recipient@example.com", "subject": "...", "body": "..."}}
+                     "config": {"to": "recipient@example.com", "subject": "...", "body": "..."}},
+                    {"id": "3", "type": "gmail_read", "name": "Read Emails",
+                     "config": {"query": "is:unread", "maxResults": 10}}
                 ],
                 "edges": [{"source": "1", "target": "2"}]
             }
@@ -154,19 +157,19 @@ public class AiWorkflowService {
         Map<String, Object> configMap = new HashMap<>();
         String typeLower = type != null ? type.toLowerCase() : "";
 
-        if (typeLower.equals("gmail") || typeLower.equals("email")) {
+        if (typeLower.equals("gmail_read") || (typeLower.equals("gmail") && "read_emails".equals(getStringField(configNode, "action", "")))) {
+            configMap.put("functionKey", "gmail_read");
+            configMap.put("application", "gmail");
+            configMap.put("action", "read_emails");
+            configMap.put("query", getStringField(configNode, "query", "is:unread"));
+            configMap.put("maxResults", getIntField(configNode, "maxResults", 10));
+        } else if (typeLower.equals("gmail") || typeLower.equals("email")) {
             configMap.put("functionKey", "gmail");
             configMap.put("application", "gmail");
             configMap.put("action", "send_email");
             configMap.put("to", getStringField(configNode, "to", ""));
             configMap.put("subject", getStringField(configNode, "subject", ""));
             configMap.put("body", getStringField(configNode, "body", ""));
-        } else if (typeLower.equals("gmail_read")) {
-            configMap.put("functionKey", "gmail_read");
-            configMap.put("application", "gmail");
-            configMap.put("action", "read_emails");
-            configMap.put("query", getStringField(configNode, "query", "is:unread"));
-            configMap.put("maxResults", getIntField(configNode, "maxResults", 10));
         } else {
             // slack, delay, etc.
             configMap.put("functionKey", typeLower);
